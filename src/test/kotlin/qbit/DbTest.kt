@@ -1,15 +1,15 @@
 package qbit
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
-import java.util.*
 
 class DbTest {
 
     @Test
     fun testInit() {
         val db = Db()
-        assertEquals(VersionVector(0, listOf(1)), db.version())
+        assertNotNull(db)
     }
 
     @Test
@@ -17,7 +17,7 @@ class DbTest {
         val db = Db()
         val e = mapOf("attr" to "value")
         val eid = db.create(e)
-        db.add(eid, "attr" to "value2")
+        db.add(eid, mapOf("attr" to "value2"))
         val pulledE2 = db.pull(eid)
         assertEquals("value2", pulledE2!!["attr"] as String)
     }
@@ -25,9 +25,7 @@ class DbTest {
     @Test
     fun testSync() {
         val db1 = Db()
-        val db2Uuid = UUID.randomUUID().toString()
-        db1.addDb(db2Uuid)
-        val db2 = Db(db2Uuid, db1)
+        val db2 = db1.fork()
 
         val e1 = mapOf("attr1" to "value1")
         val e1id = db1.create(e1)
@@ -42,5 +40,10 @@ class DbTest {
         assertEquals("value2", db2.pull(e2id)!!["attr2"])
     }
 
+    fun sizes(g: Graph): List<Pair<N, Int>> {
+        val sizes = ArrayList<Pair<N, Int>>()
+        g.walk { sizes.add(it to compress(render(it)).size); false }
+        return sizes
+    }
 }
 
