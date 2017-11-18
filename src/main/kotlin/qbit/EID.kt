@@ -2,7 +2,11 @@ package qbit
 
 class EID(val iid: Int, val eid: Int) {
 
-    fun value() = (iid shl 32) or eid
+    constructor(eid: Long) : this(eid.shl(32).and(0xFF).toInt(), eid.and(0xFF).toInt())
+
+    constructor(iid: IID, eid: Int) : this(iid.value, eid)
+
+    fun value(): Long = (iid.toLong() shl 32) or eid.toLong()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

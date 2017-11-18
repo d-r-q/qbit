@@ -2,20 +2,19 @@ package qbit
 
 import java.util.*
 
-private typealias Trx = Array<Fact>
-
 fun Db(): Db {
     val iid = IID(0, 4)
     val dbUuid = DbUuid(iid)
-    val g = Graph(Root(dbUuid, System.currentTimeMillis()), dbUuid)
+    val g = Graph(Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
+            Fact(EID(iid.value, 0), "forks", 0),
+            Fact(EID(iid.value, 0), "entities", 0)))), dbUuid)
     val d = Db(dbUuid, g)
-    d.store(Fact(d.instanceEid, "forks", 0),
-            Fact(d.instanceEid, "entities", 0))
+    d.store()
     return d
 }
 
 @Suppress("UNCHECKED_CAST")
-class Db(private val dbUuid: DbUuid, graph: Graph) {
+class Db(private val dbUuid: DbUuid, graph: Graph<NodeVal>) {
 
     private var log = graph
     internal val instanceEid = EID(dbUuid.iid.value, 0)
@@ -34,14 +33,14 @@ class Db(private val dbUuid: DbUuid, graph: Graph) {
     fun pull(eid: EID): Map<String, Any>? {
         val res = HashMap<String, Any>()
         log.walk {
-            if (it is DataHolder) {
+            if (it is NodeVal) {
                 it.data.trx.filter { it.entityId == eid }.forEach {
                     res.putIfAbsent(it.attribute, it.value)
                 }
             }
             false
         }
-        return res
+        return res.takeIf { it.size > 0 }
     }
 
     fun fork(): Db {
@@ -69,14 +68,14 @@ class Db(private val dbUuid: DbUuid, graph: Graph) {
     fun sync(another: Db) {
         val novelty = log.findSubgraph(log.head, another.dbUuid)
         val newRoot = another.push(novelty)
-        log = Graph(log.append(newRoot)?.first!!, dbUuid)
+        log = Graph(log.append(newRoot).first, dbUuid)
     }
 
-    private fun push(novetyRoot: N): Merge {
-        val (appendNovelty, mergeRoot) = log.append(novetyRoot) ?: throw AssertionError("Could not append $log to $log")
+    private fun push(novetyRoot: Node): Merge {
+        val (appendNovelty, mergeRoot) = log.append(novetyRoot)
         val myNovelty = log.findSubgraph(log.head, mergeRoot)
         log = log.merge(appendNovelty)
-        return Merge(myNovelty, Link(novetyRoot), log.head.source, log.head.timestamp, (log.head as Merge).data)
+        return Merge(myNovelty, NodeRef(novetyRoot), log.head.source, log.head.timestamp, (log.head as Merge).data)
     }
 
 }

@@ -1,6 +1,6 @@
 package qbit
 
-class IID(val value: Int, val instanceBits: Int) {
+data class IID(val value: Int, val instanceBits: Byte) {
 
     fun fork(forkNum: Int): IID {
         if (forkNum <= 0) {

@@ -40,10 +40,5 @@ class DbTest {
         assertEquals("value2", db2.pull(e2id)!!["attr2"])
     }
 
-    fun sizes(g: Graph): List<Pair<N, Int>> {
-        val sizes = ArrayList<Pair<N, Int>>()
-        g.walk { sizes.add(it to compress(render(it)).size); false }
-        return sizes
-    }
 }
 
