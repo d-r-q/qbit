@@ -78,6 +78,34 @@ class SimpleSerializationTest {
         assertEquals(root.data.trx[0].value, res.data.trx[0].value)
     }
 
+    @Test
+    fun testLeaf() {
+        val iid = IID(0, 4)
+        val root = Leaf(NodeRef(randomBytes(32)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Leaf
+        assertArrayEquals(root.hash, res.hash)
+        assertArrayEquals(root.parent.hash, res.parent.hash)
+        assertEquals(root.source, res.source)
+        assertEquals(root.timestamp, res.timestamp)
+        assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
+        assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
+        assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+    }
+
+    @Test
+    fun testMerge() {
+        val iid = IID(0, 4)
+        val root = Merge(NodeRef(randomBytes(32)), NodeRef(randomBytes(32)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Merge
+        assertArrayEquals(root.parent1.hash, res.parent1.hash)
+        assertArrayEquals(root.parent2.hash, res.parent2.hash)
+        assertEquals(root.source, res.source)
+        assertEquals(root.timestamp, res.timestamp)
+        assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
+        assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
+        assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+    }
+
     private fun randomBytes(count: Int = Random().nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random().nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
 
     private fun randomString(count: Int = Random().nextInt(1025)) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random() })
