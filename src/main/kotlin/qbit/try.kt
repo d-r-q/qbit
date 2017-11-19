@@ -30,6 +30,7 @@ sealed class Try<out R> {
 class Ok<out R>(override val res: R) : Try<R>() {
     override val isOk: Boolean = true
     override val isErr: Boolean = false
+    override fun toString(): String = "ok($res)"
 }
 
 class Err<out E : Throwable>(val reason: E) : Try<Nothing>() {
@@ -59,6 +60,10 @@ fun <A1, R> ifOk(p: Try<A1>, body: (A1) -> Try<R>) = when (p) {
     is Ok -> body(p.res)
     is Err<*> -> p
 }
+
+fun <A1, A2, R> ifOk(a1: Try<A1>, a2: Try<A2>, body: (A1, A2) -> R): Try<R> =
+        if (a1.isOk && a2.isOk) ok(body(a1.res, a2.res))
+        else listOf(a1, a2).first { it.isErr } as Try<R>
 
 fun <A1, A2, A3, R> ifOk(a1: Try<A1>, a2: Try<A2>, a3: Try<A3>, body: (A1, A2, A3) -> R): Try<R> =
         if (a1.isOk && a2.isOk && a3.isOk) ok(body(a1.res, a2.res, a3.res))

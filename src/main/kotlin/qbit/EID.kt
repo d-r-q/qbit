@@ -2,7 +2,7 @@ package qbit
 
 class EID(val iid: Int, val eid: Int) {
 
-    constructor(eid: Long) : this(eid.shl(32).and(0xFF).toInt(), eid.and(0xFF).toInt())
+    constructor(eid: Long) : this(eid.shr(32).and(0xFF).toInt(), eid.and(0xFF).toInt())
 
     constructor(iid: IID, eid: Int) : this(iid.value, eid)
 

@@ -146,7 +146,7 @@ private fun <T> readMark(expectedMark: DataMark<T>, ins: InputStream): Try<T> {
         ByteMark -> Try { ins.read().toByte() }.mapErr { DeserializationIOErr(cause = it) }
         IntMark -> readInt(ins)
         LongMark -> readLong(ins)
-        NodeMark -> readBytes(ins, 32)
+        NodeMark -> readBytes(ins, HASH_LEN)
 
         BytesMark -> readInt(ins).ifOkTry { count ->
             readBytes(ins, count)

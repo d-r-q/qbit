@@ -1,7 +1,6 @@
 package qbit
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.*
 import org.junit.Test
 
 class DbTest {
@@ -33,7 +32,7 @@ class DbTest {
         val e2 = mapOf("attr2" to "value2")
         val e2id = db2.create(e2)
 
-        db2.sync(db1)
+        assertTrue(db2.sync(db1).isOk)
         assertEquals("value1", db1.pull(e1id)!!["attr1"])
         assertEquals("value2", db1.pull(e2id)!!["attr2"])
         assertEquals("value1", db2.pull(e1id)!!["attr1"])

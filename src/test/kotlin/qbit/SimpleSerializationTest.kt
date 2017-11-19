@@ -41,10 +41,10 @@ class SimpleSerializationTest {
     @Test
     fun testN() {
         assertArrayEquals(nullHash, deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), NodeMark).res)
-        val randomBytes = randomBytes(32)
+        val randomBytes = randomBytes(HASH_LEN)
         assertArrayEquals(randomBytes, deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), NodeMark).res)
 
-        val fewBytes = randomBytes(31)
+        val fewBytes = randomBytes(HASH_LEN - 1)
         val res = deserialize(ByteArrayInputStream(serialize(NodeRef(fewBytes))), NodeMark)
         assertTrue(res.its<DeserializationIOErr>())
     }
@@ -67,7 +67,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testRoot() {
-        val iid = IID(0, 4)
+        val iid = IID(1, 4)
         val root = Root(DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res
         assertArrayEquals(root.hash, res.hash)
@@ -81,7 +81,7 @@ class SimpleSerializationTest {
     @Test
     fun testLeaf() {
         val iid = IID(0, 4)
-        val root = Leaf(NodeRef(randomBytes(32)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Leaf(NodeRef(randomBytes(HASH_LEN)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Leaf
         assertArrayEquals(root.hash, res.hash)
         assertArrayEquals(root.parent.hash, res.parent.hash)
@@ -95,7 +95,7 @@ class SimpleSerializationTest {
     @Test
     fun testMerge() {
         val iid = IID(0, 4)
-        val root = Merge(NodeRef(randomBytes(32)), NodeRef(randomBytes(32)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Merge(NodeRef(randomBytes(HASH_LEN)), NodeRef(randomBytes(HASH_LEN)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Merge
         assertArrayEquals(root.parent1.hash, res.parent1.hash)
         assertArrayEquals(root.parent2.hash, res.parent2.hash)

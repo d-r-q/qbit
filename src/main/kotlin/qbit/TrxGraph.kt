@@ -10,7 +10,9 @@ data class Fact(val entityId: EID, val attribute: String, val value: Any)
 
 class NodeData(val trx: Array<out Fact>)
 
-val nullHash = ByteArray(32)
+const val HASH_LEN = 20
+
+val nullHash = ByteArray(HASH_LEN)
 
 fun hash(data: ByteArray): ByteArray = MessageDigest.getInstance("SHA-1").digest(data)
 
@@ -30,37 +32,51 @@ class Leaf(val parent: Node, source: DbUuid, timestamp: Long, data: NodeData) : 
 
 class Merge(val parent1: Node, val parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal(hash(parent1.hash, parent2.hash, source, timestamp, data), source, timestamp, data)
 
-class Graph<out T : Node>(val head: T, val source: DbUuid) {
+class Graph(private val resolve: (String) -> Try<NodeVal?>) {
 
-    fun add(data: NodeData): Graph<Leaf> = Graph(Leaf(head, source, System.currentTimeMillis(), data), source)
-
-    fun merge(r: Node): Graph<Merge> = Graph(Merge(head, r, source, System.currentTimeMillis(), NodeData(emptyArray())), source)
-
-    fun append(h: Node): Pair<NodeVal, NodeVal> = when (h) {
+    fun append(h: Node): Try<Pair<NodeVal, NodeVal>> = when (h) {
         is Root -> throw AssertionError("Could not append $h")
         is Leaf -> {
-            val (parent, mergeRoot) = append(h.parent)
-            Pair(Leaf(parent, h.source, h.timestamp, h.data), mergeRoot)
+            val pair = append(h.parent)
+            pair.mapOk { (parent, mergeRoot) -> Pair(Leaf(parent, h.source, h.timestamp, h.data), mergeRoot) }
         }
         is Merge -> {
-            val (parent1, mergeRoot) = append(h.parent1)
-            val (parent2, _) = append(h.parent2)
-            Pair(Merge(parent1, parent2, h.source, h.timestamp, h.data), mergeRoot)
+            val pair1 = append(h.parent1)
+            val pair2 = ifOk(pair1) { append(h.parent2) }
+            ifOk(pair1, pair2) { (parent1, mergeRoot), (parent2, _) ->
+                Pair(Merge(parent1, parent2, h.source, h.timestamp, h.data), mergeRoot)
+            }
         }
         is NodeRef -> {
-            val localNode = findNode(h.hash, head) ?: throw AssertionError("Could not find parent")
-            Pair(localNode, localNode)
+            val localNode = resolve(h.hash.toHexString())
+            ifOk(localNode) { l ->
+                if (l != null) {
+                    ok(Pair(l, l))
+                } else {
+                    err(AssertionError("Could not resolve node ${h.hash.toHexString()}"))
+                }
+            }
         }
     }
 
-    fun walk(walker: (Node) -> Boolean) {
+    fun walk(head: Node, walker: (Node) -> Boolean) {
         walkFrom(walker, hashSetOf(), head)
     }
 
-    fun findSubgraph(n: Node, sgRootSource: DbUuid): Node = when {
-        n is NodeVal && n.source == sgRootSource -> NodeRef(n.hash)
-        n is Leaf -> Leaf(findSubgraph(n.parent, sgRootSource), n.source, n.timestamp, n.data)
-        n is Merge -> Merge(findSubgraph(n.parent1, sgRootSource), findSubgraph(n.parent2, sgRootSource), n.source, n.timestamp, n.data)
+    fun findSubgraph(n: Node, sgRootSource: DbUuid): Try<Node> = when {
+        n is NodeRef -> resolve(n.hash.toHexString()).ifOkTry { findSubgraph(it!!, sgRootSource) }
+        n is NodeVal && n.source == sgRootSource -> ok(NodeRef(n.hash))
+        n is Leaf -> {
+            val parent = findSubgraph(n.parent, sgRootSource)
+            parent.mapOk { Leaf(it, n.source, n.timestamp, n.data) }
+        }
+        n is Merge -> {
+            val parent1 = findSubgraph(n.parent1, sgRootSource)
+            val parent2 = ifOk(parent1) { findSubgraph(n.parent2, sgRootSource) }
+            ifOk(parent1, parent2) { p1, p2 ->
+                Merge(p1, p2, n.source, n.timestamp, n.data)
+            }
+        }
         else -> throw AssertionError("Should never happen")
     }
 
@@ -74,32 +90,30 @@ class Graph<out T : Node>(val head: T, val source: DbUuid) {
         else -> throw AssertionError("Should never happen, n is $n root is $sgRoot")
     }
 
-    private fun findNode(hash: ByteArray, n: Node): NodeVal? {
-        if (n is NodeVal && Arrays.equals(n.hash, hash)) {
-            return n
-        }
-        return when (n) {
-            is Leaf -> findNode(hash, n.parent)
-            is Merge -> findNode(hash, n.parent1) ?: findNode(hash, n.parent2)
-            else -> null
-        }
-    }
-
     private fun walkFrom(walker: (Node) -> Boolean, visited: MutableSet<Node>, head: Node): Boolean {
         if (walker(head)) {
             return true
         }
         visited.add(head)
-        val toVisit = when (head) {
-            is Root -> listOf()
-            is Leaf -> listOf(head.parent)
-            is Merge -> listOf(head.parent1, head.parent2)
-            else -> throw AssertionError("Should never happen")
+        val toVisit: Try<List<Node>> = when (head) {
+            is Root -> ok(listOf())
+            is Leaf -> ok(listOf(head.parent))
+            is Merge -> ok(listOf(head.parent1, head.parent2))
+            is NodeRef -> resolve(head.hash.toHexString()).mapOk { h ->
+                when (h) {
+                    is Root -> listOf<Node>()
+                    is Leaf -> listOf(h.parent)
+                    is Merge -> listOf(h.parent1, h.parent2)
+                    else -> throw AssertionError("Should never happen")
+                }
+            }
         }
 
-        toVisit.filter { it !in visited }.forEach { node ->
-            if (walkFrom(walker, visited, node)) {
-                return true
+        toVisit.mapOk {
+            it.filter { it !in visited }.forEach { node ->
+                if (walkFrom(walker, visited, node)) {
+                    return true
+                }
             }
         }
         return false
@@ -107,3 +121,4 @@ class Graph<out T : Node>(val head: T, val source: DbUuid) {
 
 }
 
+fun ByteArray.toHexString() = this.joinToString("") { Integer.toHexString(it.toInt() and 0xFF) }
