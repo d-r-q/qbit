@@ -13,4 +13,6 @@ class MemStorage : Storage {
 
     override fun load(key: String): Try<ByteArray?> = ok(data[key])
 
+    override fun keys(): Try<Collection<String>> = ok(data.keys)
+
 }

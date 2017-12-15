@@ -94,6 +94,26 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
         }
     }
 
+    fun fetch(source: Db): Try<Unit> {
+        val keys = source.storage.keys()
+        return keys.mapOk {
+            for (key in keys.res) {
+                val value = source.storage.load(key)
+                if (value.isOk) {
+                    val res = value.res
+                    if (res != null) {
+                        storage.store(key, res)
+                    } else {
+                        return Err(IOException("Could not get value for key $key"))
+                    }
+                } else {
+                    return value.mapOk { Unit }
+                }
+            }
+            return ok(Unit)
+        }
+    }
+
     private fun push(novetyRoot: Node): Try<Merge> {
         val appendTry = graph.append(novetyRoot)
         appendTry.mapOk { storeAppendedNodes(it.first) }

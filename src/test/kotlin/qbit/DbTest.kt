@@ -28,6 +28,8 @@ class DbTest {
         val (id, head) = db1.fork()
         val db2 = Db(MemStorage(), id, head)
 
+        assertTrue(db2.fetch(db1).isOk)
+
         val e1 = mapOf("attr1" to "value1")
         val e1id = db1.create(e1)
 

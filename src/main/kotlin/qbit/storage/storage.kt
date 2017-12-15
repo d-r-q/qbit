@@ -8,4 +8,6 @@ interface Storage {
 
     fun load(key: String): Try<ByteArray?>
 
+    fun keys(): Try<Collection<String>>
+
 }
