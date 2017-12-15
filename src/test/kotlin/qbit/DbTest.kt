@@ -2,18 +2,19 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.storage.MemStorage
 
 class DbTest {
 
     @Test
     fun testInit() {
-        val db = Db()
+        val db = Db(MemStorage())
         assertNotNull(db)
     }
 
     @Test
     fun testUpdate() {
-        val db = Db()
+        val db = Db(MemStorage())
         val e = mapOf("attr" to "value")
         val eid = db.create(e)
         db.add(eid, mapOf("attr" to "value2"))
@@ -23,8 +24,9 @@ class DbTest {
 
     @Test
     fun testSync() {
-        val db1 = Db()
-        val db2 = db1.fork()
+        val db1 = Db(MemStorage())
+        val (id, head) = db1.fork()
+        val db2 = Db(MemStorage(), id, head)
 
         val e1 = mapOf("attr1" to "value1")
         val e1id = db1.create(e1)

@@ -1,32 +1,35 @@
 package qbit
 
 import qbit.serialization.SimpleSerialization
-import qbit.storage.MemStorage
+import qbit.storage.Storage
 import java.io.ByteArrayInputStream
+import java.io.IOException
 import java.util.*
 
-fun Db(): Db {
+fun Db(storage: Storage): Db {
     val iid = IID(0, 4)
     val dbUuid = DbUuid(iid)
     val g = Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
             Fact(EID(iid.value, 0), "forks", 0),
             Fact(EID(iid.value, 0), "entities", 0))))
-    MemStorage.store(g.hash.toHexString(), SimpleSerialization.serializeNode(g))
-    return Db(dbUuid, g)
+    storage.store(g.hash.toHexString(), SimpleSerialization.serializeNode(g))
+    return Db(storage, dbUuid, g)
 }
 
-fun resolve(key: String): Try<NodeVal?> {
-    val value = MemStorage.load(key)
-    return if (value.isOk) {
-        if (value.res != null) SimpleSerialization.deserializeNode(ByteArrayInputStream(value.res))
-        else ok(null)
-    } else value as Try<NodeVal?>
-}
+
 @Suppress("UNCHECKED_CAST")
-class Db(private val dbUuid: DbUuid, private var head: Node) {
+class Db(private val storage: Storage, private val dbUuid: DbUuid, private var head: Node) {
 
     internal val instanceEid = EID(dbUuid.iid.value, 0)
-    private val graph = Graph(::resolve)
+    private val graph = Graph({ key -> resolve(key) })
+
+    fun resolve(key: String): Try<NodeVal?> {
+        val value = storage.load(key)
+        return if (value.isOk) {
+            if (value.res != null) SimpleSerialization.deserializeNode(ByteArrayInputStream(value.res))
+            else ok(null)
+        } else value as Try<NodeVal?>
+    }
 
     fun create(e: Map<String, Any>): EID {
         val eid = EID(dbUuid.iid.value, pull(instanceEid)!!.get("entities") as Int + 1)
@@ -52,14 +55,14 @@ class Db(private val dbUuid: DbUuid, private var head: Node) {
         return res.takeIf { it.size > 0 }
     }
 
-    fun fork(): Db {
+    fun fork(): Pair<DbUuid, Node> {
         val forks = pull(instanceEid)!!.get("forks") as Int
         val id = DbUuid(dbUuid.iid.fork(forks + 1))
         val eid = EID(id.iid.value, 0)
         store(Fact(instanceEid, "forks", forks + 1),
                 Fact(eid, "forks", 0),
                 Fact(eid, "entities", 0))
-        return Db(id, head)
+        return Pair(id, head)
     }
 
     fun store(e: Fact) {
@@ -72,7 +75,7 @@ class Db(private val dbUuid: DbUuid, private var head: Node) {
 
     fun store(vararg e: Fact) {
         val newHead = add(NodeData(e))
-        MemStorage.store(newHead.hash.toHexString(), SimpleSerialization.serializeNode(newHead))
+        storage.store(newHead.hash.toHexString(), SimpleSerialization.serializeNode(newHead))
         head = newHead
     }
 
@@ -106,7 +109,7 @@ class Db(private val dbUuid: DbUuid, private var head: Node) {
             when (n) {
                 is NodeRef -> true
                 is NodeVal -> {
-                    MemStorage.store(n.hash.toHexString(), SimpleSerialization.serializeNode(n))
+                    storage.store(n.hash.toHexString(), SimpleSerialization.serializeNode(n))
                     false
                 }
             }

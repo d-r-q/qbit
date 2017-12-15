@@ -3,8 +3,7 @@ package qbit.storage
 import qbit.Try
 import qbit.ok
 
-object MemStorage : Storage {
-
+class MemStorage : Storage {
     private val data = HashMap<String, ByteArray>()
 
     override fun store(key: String, value: ByteArray): Try<Unit> {
