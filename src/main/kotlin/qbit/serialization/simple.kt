@@ -14,31 +14,27 @@ object SimpleSerialization : Serialization {
 
     override fun serializeNode(parent1: Node, parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
-    override fun deserializeNode(ins: InputStream): Try<NodeVal> {
+    override fun deserializeNode(ins: InputStream): NodeVal {
         val parent1 = deserialize(ins, NodeMark)
-        val parent2 = ifOk(parent1) { deserialize(ins, NodeMark) }
-        val iid = ifOk(parent2) { deserialize(ins, IntMark) }
-        val instanceBits = ifOk(iid) { deserialize(ins, ByteMark) }
-        val timestamp = ifOk(instanceBits) { deserialize(ins, LongMark) }
-        val factsCount = ifOk(timestamp) { deserialize(ins, IntMark) }
-        val nodeData = ifOk(factsCount) { fc ->
-            (1..fc).asSequence().map {
-                val eid = deserialize(ins, LongMark)
-                val attr = ifOk(eid) { deserialize(ins, StringMark) }
-                val value = ifOk(attr) { deserialize<Any>(ins) }
-                ifOk(eid, attr, value) { e, a, v -> Fact(EID(e), a, v) }
-            }.flatten().mapOk { NodeData(it.toTypedArray()) }
+        val parent2 = deserialize(ins, NodeMark)
+        val iid = deserialize(ins, IntMark)
+        val instanceBits = deserialize(ins, ByteMark)
+        val timestamp = deserialize(ins, LongMark)
+        val factsCount = deserialize(ins, IntMark)
+        val facts = (1..factsCount).asSequence().map {
+            val eid = deserialize(ins, LongMark)
+            val attr = deserialize(ins, StringMark)
+            val value = deserialize<Any>(ins)
+            Fact(EID(eid), attr, value)
         }
-        return ifOk(parent1, parent2, iid, instanceBits, timestamp, nodeData) { p1, p2, id, ib, ts, nd ->
-            when {
-                p1.contentEquals(nullHash) && p2.contentEquals(nullHash) -> Root(DbUuid(IID(id, ib)), ts, nd)
-                p1.contentEquals(nullHash) && !p2.contentEquals(nullHash) -> Leaf(NodeRef(p2), DbUuid(IID(id, ib)), ts, nd)
-                !p1.contentEquals(nullHash) && !p2.contentEquals(nullHash) -> Merge(NodeRef(p1), NodeRef(p2), DbUuid(IID(id, ib)), ts, nd)
-                else -> throw AssertionError()
-            }
+        val nodeData = NodeData(facts.toList().toTypedArray())
+        return when {
+            parent1.contentEquals(nullHash) && parent2.contentEquals(nullHash) -> Root(DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1.contentEquals(nullHash) && !parent2.contentEquals(nullHash) -> Leaf(NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            !parent1.contentEquals(nullHash) && !parent2.contentEquals(nullHash) -> Merge(NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
-
 }
 
 // Serialization
@@ -114,82 +110,71 @@ internal val char2mark = mapOf(
         'S' to StringMark,
         'b' to ByteMark)
 
-internal fun <T> deserialize(ins: InputStream, mark: DataMark<T>): Try<T> {
-    val markByte = Try<Int> { ins.read() }
-    val expectedMark = markByte.ifOkTry { byte ->
-        when {
-            byte == -1 -> err(DeserializationIOErr(cause = EOFException()))
-            char2mark[byte.toChar()] == mark -> ok(byte)
-            byte.toChar() in char2mark.keys -> err(DeserializationUnexpectedMarkErr("Mark is ${byte.toChar()} while $mark expected"))
-            else -> err(DeserializationUnknownMarkErr("Unknown mark: ${byte.toChar()}"))
-        }
+internal fun <T> deserialize(ins: InputStream, mark: DataMark<T>): T {
+    val byte = ins.read()
+    when {
+        byte == -1 -> throw EOFException("Unexpected end of input")
+        char2mark[byte.toChar()] != mark && byte.toChar() in char2mark.keys -> throw DeserializationException("Mark is ${byte.toChar()} while $mark expected")
+        byte.toChar() !in char2mark -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
-    return expectedMark.ifOkTry { em -> readMark(mark, ins) }
+    return readMark(mark, ins)
 }
 
-internal fun <T> deserialize(ins: InputStream): Try<T> {
-    return Try<Int> { ins.read() }
-            .ifOkTry { byte ->
-                when {
-                    byte == -1 -> err(DeserializationIOErr(cause = EOFException()))
-                    byte.toChar() in char2mark.keys -> ok(char2mark[byte.toChar()]!! as DataMark<T>)
-                    else -> err(DeserializationUnknownMarkErr("Unknown mark: ${byte.toChar()}"))
-                }
-            }
-            .ifOkTry { expectedMark ->
-                readMark(expectedMark, ins)
-            }
+internal fun <T> deserialize(ins: InputStream): T {
+    val byte = ins.read()
+    val mark = when {
+        byte == -1 -> throw DeserializationException(cause = EOFException())
+        byte.toChar() !in char2mark.keys -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
+        else -> char2mark[byte.toChar()] as DataMark<T>
+    }
+    return readMark(mark, ins)
 }
 
-private fun <T> readMark(expectedMark: DataMark<T>, ins: InputStream): Try<T> {
+private fun <T> readMark(expectedMark: DataMark<T>, ins: InputStream): T {
     return when (expectedMark) {
-        ByteMark -> Try { ins.read().toByte() }.mapErr { DeserializationIOErr(cause = it) }
+        ByteMark -> ins.read().toByte()
         IntMark -> readInt(ins)
         LongMark -> readLong(ins)
         NodeMark -> readBytes(ins, HASH_LEN)
 
-        BytesMark -> readInt(ins).ifOkTry { count ->
+        BytesMark -> readInt(ins).let { count ->
             readBytes(ins, count)
         }
 
-        StringMark -> readInt(ins).ifOkTry { count ->
-            readBytes(ins, count)
-                    .mapOk { String(it, Charsets.UTF_8) }
+        StringMark -> readInt(ins).let { count ->
+            String(readBytes(ins, count), Charsets.UTF_8)
         }
-    } as Try<T>
+    } as T
 }
 
-internal fun readBytes(ins: InputStream, count: Int): Try<ByteArray> =
-        TTry {
-            val buff = ByteArray(count)
-            val len = ins.read(buff)
-            if (len < count) {
-                err(DeserializationIOErr(cause = EOFException("There are not enough bytes in stream")))
-            } else {
-                ok(buff)
-            }
-        }
+internal fun readBytes(ins: InputStream, count: Int): ByteArray {
+    val buff = ByteArray(count)
+    val len = ins.read(buff)
+    if (len < count) {
+        throw DeserializationException(cause = EOFException("There are not enough bytes in stream"))
+    } else {
+        return buff
+    }
+}
 
-internal fun readInt(ins: InputStream): Try<Int> = readNumber(ins, 4) { buff ->
+internal fun readInt(ins: InputStream): Int = readNumber(ins, 4) { buff ->
     buff[0].toInt().and(0xFF).shl(8 * 3) or buff[1].toInt().and(0xFF).shl(8 * 2) or
             buff[2].toInt().and(0xFF).shl(8) or buff[3].toInt().and(0xFF)
 }
 
-internal fun readLong(ins: InputStream): Try<Long> = readNumber(ins, 8) { buff ->
+internal fun readLong(ins: InputStream): Long = readNumber(ins, 8) { buff ->
     buff[0].toLong().and(0xFF).shl(8 * 7) or buff[1].toLong().and(0xFF).shl(8 * 6) or
             buff[2].toLong().and(0xFF).shl(8 * 5) or buff[3].toLong().and(0xFF).shl(8 * 4) or
             buff[4].toLong().and(0xFF).shl(8 * 3) or buff[5].toLong().and(0xFF).shl(8 * 2) or
             buff[6].toLong().and(0xFF).shl(8) or buff[7].toLong().and(0xFF)
 }
 
-internal fun <T> readNumber(ins: InputStream, size: Int, c: (ByteArray) -> T): Try<T> =
-        TTry {
-            val buff = ByteArray(size)
-            val len = ins.read(buff)
-            if (len < size) {
-                err(EOFException("There are not enough bytes in stream"))
-            } else {
-                ok(c(buff))
-            }
-        }
-
+internal fun <T> readNumber(ins: InputStream, size: Int, parse: (ByteArray) -> T): T {
+    val buff = ByteArray(size)
+    val len = ins.read(buff)
+    if (len < size) {
+        throw EOFException("There are not enough bytes in stream")
+    } else {
+        return parse(buff)
+    }
+}

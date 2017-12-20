@@ -28,7 +28,7 @@ class DbTest {
         val (id, head) = db1.fork()
         val db2 = Db(MemStorage(), id, head)
 
-        assertTrue(db2.fetch(db1).isOk)
+        db2.fetch(db1)
 
         val e1 = mapOf("attr1" to "value1")
         val e1id = db1.create(e1)
@@ -36,7 +36,7 @@ class DbTest {
         val e2 = mapOf("attr2" to "value2")
         val e2id = db2.create(e2)
 
-        assertTrue(db2.sync(db1).isOk)
+        db2.sync(db1)
         assertEquals("value1", db1.pull(e1id)!!["attr1"])
         assertEquals("value2", db1.pull(e2id)!!["attr2"])
         assertEquals("value1", db2.pull(e1id)!!["attr1"])

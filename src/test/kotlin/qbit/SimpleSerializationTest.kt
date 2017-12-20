@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
+import java.io.EOFException
 import java.io.InputStream
 import java.util.*
 
@@ -28,48 +29,61 @@ class SimpleSerializationTest {
     }
 
     @Test
+    fun testMaxInt() {
+        assertEquals(Integer.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Integer.MAX_VALUE)), IntMark))
+    }
+
+    @Test
     fun testDeserializeInt() {
         testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, IntMark) })
     }
 
-    private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> Try<T>) {
+    private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {
         for (v in values) {
-            assertEquals(v, r(ByteArrayInputStream(s(v))).res)
+            assertEquals(v, r(ByteArrayInputStream(s(v))))
         }
     }
 
     @Test
     fun testN() {
-        assertArrayEquals(nullHash, deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), NodeMark).res)
+        assertArrayEquals(nullHash, deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), NodeMark))
         val randomBytes = randomBytes(HASH_LEN)
-        assertArrayEquals(randomBytes, deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), NodeMark).res)
+        assertArrayEquals(randomBytes, deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), NodeMark))
 
         val fewBytes = randomBytes(HASH_LEN - 1)
-        val res = deserialize(ByteArrayInputStream(serialize(NodeRef(fewBytes))), NodeMark)
-        assertTrue(res.its<DeserializationIOErr>())
+        try {
+            deserialize(ByteArrayInputStream(serialize(NodeRef(fewBytes))), NodeMark)
+            fail("eof error exptected")
+        } catch (e: DeserializationException) {
+            assertTrue(e.cause is EOFException)
+        }
     }
 
     @Test
     fun testByteArray() {
         val random = randomBytes()
-        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), BytesMark).res)
+        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), BytesMark))
 
         val twoBytes = byteArrayOf('B'.toByte(), 0, 0, 0, 3, 0, 0)
-        val res = deserialize(ByteArrayInputStream(twoBytes), BytesMark)
-        assertTrue(res.its<DeserializationIOErr>())
+        try {
+            deserialize(ByteArrayInputStream(twoBytes), BytesMark)
+            fail("eof error exptected")
+        } catch (e : DeserializationException) {
+            assertTrue(e.cause is EOFException)
+        }
     }
 
     @Test
     fun testString() {
         val random = randomString()
-        assertEquals(random, deserialize(ByteArrayInputStream(serialize(random)), StringMark).res)
+        assertEquals(random, deserialize(ByteArrayInputStream(serialize(random)), StringMark))
     }
 
     @Test
     fun testRoot() {
         val iid = IID(1, 4)
         val root = Root(DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res
+        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root)))
         assertArrayEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
@@ -82,7 +96,7 @@ class SimpleSerializationTest {
     fun testLeaf() {
         val iid = IID(0, 4)
         val root = Leaf(NodeRef(randomBytes(HASH_LEN)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Leaf
+        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Leaf
         assertArrayEquals(root.hash, res.hash)
         assertArrayEquals(root.parent.hash, res.parent.hash)
         assertEquals(root.source, res.source)
@@ -96,7 +110,7 @@ class SimpleSerializationTest {
     fun testMerge() {
         val iid = IID(0, 4)
         val root = Merge(NodeRef(randomBytes(HASH_LEN)), NodeRef(randomBytes(HASH_LEN)), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))).res as Merge
+        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Merge
         assertArrayEquals(root.parent1.hash, res.parent1.hash)
         assertArrayEquals(root.parent2.hash, res.parent2.hash)
         assertEquals(root.source, res.source)
@@ -104,6 +118,18 @@ class SimpleSerializationTest {
         assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
         assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
         assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+    }
+
+    @Test
+    fun testSerializeInt() {
+        val zeroRes = serializeInt(0)
+        assertArrayEquals(byteArrayOf(0, 0, 0, 0), zeroRes)
+
+        val maxRes = serializeInt(Integer.MAX_VALUE)
+        assertArrayEquals(byteArrayOf(127, -1, -1, -1), maxRes)
+
+        val minRes = serializeInt(Integer.MIN_VALUE)
+        assertArrayEquals(byteArrayOf(-128, 0, 0, 0), minRes)
     }
 
     private fun randomBytes(count: Int = Random().nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random().nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }

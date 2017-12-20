@@ -32,29 +32,25 @@ class Leaf(val parent: Node, source: DbUuid, timestamp: Long, data: NodeData) : 
 
 class Merge(val parent1: Node, val parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal(hash(parent1.hash, parent2.hash, source, timestamp, data), source, timestamp, data)
 
-class Graph(private val resolve: (String) -> Try<NodeVal?>) {
+class Graph(private val resolve: (String) -> NodeVal?) {
 
-    fun append(h: Node): Try<Pair<NodeVal, NodeVal>> = when (h) {
+    fun append(h: Node): Pair<NodeVal, NodeVal> = when (h) {
         is Root -> throw AssertionError("Could not append $h")
         is Leaf -> {
-            val pair = append(h.parent)
-            pair.mapOk { (parent, mergeRoot) -> Pair(Leaf(parent, h.source, h.timestamp, h.data), mergeRoot) }
+            val (parent, mergeRoot) = append(h.parent)
+            Pair(Leaf(parent, h.source, h.timestamp, h.data), mergeRoot)
         }
         is Merge -> {
-            val pair1 = append(h.parent1)
-            val pair2 = ifOk(pair1) { append(h.parent2) }
-            ifOk(pair1, pair2) { (parent1, mergeRoot), (parent2, _) ->
-                Pair(Merge(parent1, parent2, h.source, h.timestamp, h.data), mergeRoot)
-            }
+            val (parent1, mergeRoot) = append(h.parent1)
+            val (parent2, _) = append(h.parent2)
+            Pair(Merge(parent1, parent2, h.source, h.timestamp, h.data), mergeRoot)
         }
         is NodeRef -> {
             val localNode = resolve(h.hash.toHexString())
-            ifOk(localNode) { l ->
-                if (l != null) {
-                    ok(Pair(l, l))
-                } else {
-                    err(AssertionError("Could not resolve node ${h.hash.toHexString()}"))
-                }
+            if (localNode != null) {
+                Pair(localNode, localNode)
+            } else {
+                throw QBitException("Could not resolve node ${h.hash.toHexString()}")
             }
         }
     }
@@ -63,19 +59,17 @@ class Graph(private val resolve: (String) -> Try<NodeVal?>) {
         walkFrom(walker, hashSetOf(), head)
     }
 
-    fun findSubgraph(n: Node, sgRootSource: DbUuid): Try<Node> = when {
-        n is NodeRef -> resolve(n.hash.toHexString()).ifOkTry { findSubgraph(it!!, sgRootSource) }
-        n is NodeVal && n.source == sgRootSource -> ok(NodeRef(n.hash))
+    fun findSubgraph(n: Node, sgRootSource: DbUuid): Node = when {
+        n is NodeRef -> resolve(n.hash.toHexString()).let { findSubgraph(it!!, sgRootSource) }
+        n is NodeVal && n.source == sgRootSource -> NodeRef(n.hash)
         n is Leaf -> {
             val parent = findSubgraph(n.parent, sgRootSource)
-            parent.mapOk { Leaf(it, n.source, n.timestamp, n.data) }
+            Leaf(parent, n.source, n.timestamp, n.data)
         }
         n is Merge -> {
             val parent1 = findSubgraph(n.parent1, sgRootSource)
-            val parent2 = ifOk(parent1) { findSubgraph(n.parent2, sgRootSource) }
-            ifOk(parent1, parent2) { p1, p2 ->
-                Merge(p1, p2, n.source, n.timestamp, n.data)
-            }
+            val parent2 = findSubgraph(n.parent2, sgRootSource)
+            Merge(parent1, parent2, n.source, n.timestamp, n.data)
         }
         else -> throw AssertionError("Should never happen")
     }
@@ -95,13 +89,13 @@ class Graph(private val resolve: (String) -> Try<NodeVal?>) {
             return true
         }
         visited.add(head)
-        val toVisit: Try<List<Node>> = when (head) {
-            is Root -> ok(listOf())
-            is Leaf -> ok(listOf(head.parent))
-            is Merge -> ok(listOf(head.parent1, head.parent2))
-            is NodeRef -> resolve(head.hash.toHexString()).mapOk { h ->
+        val toVisit: List<Node> = when (head) {
+            is Root -> listOf()
+            is Leaf -> listOf(head.parent)
+            is Merge -> listOf(head.parent1, head.parent2)
+            is NodeRef -> resolve(head.hash.toHexString()).let { h ->
                 when (h) {
-                    is Root -> listOf<Node>()
+                    is Root -> listOf()
                     is Leaf -> listOf(h.parent)
                     is Merge -> listOf(h.parent1, h.parent2)
                     else -> throw AssertionError("Should never happen")
@@ -109,11 +103,9 @@ class Graph(private val resolve: (String) -> Try<NodeVal?>) {
             }
         }
 
-        toVisit.mapOk {
-            it.filter { it !in visited }.forEach { node ->
-                if (walkFrom(walker, visited, node)) {
-                    return true
-                }
+        toVisit.filter { it !in visited }.forEach { node ->
+            if (walkFrom(walker, visited, node)) {
+                return true
             }
         }
         return false
