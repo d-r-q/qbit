@@ -1,9 +1,12 @@
 package qbit
 
 import qbit.serialization.SimpleSerialization
+import qbit.storage.Namespace
 import qbit.storage.Storage
 import java.io.ByteArrayInputStream
 import java.util.*
+
+private val nodes = Namespace("nodes")
 
 fun Db(storage: Storage): Db {
     val iid = IID(0, 4)
@@ -11,7 +14,7 @@ fun Db(storage: Storage): Db {
     val g = Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
             Fact(EID(iid.value, 0), "forks", 0),
             Fact(EID(iid.value, 0), "entities", 0))))
-    storage.store(g.hash.toHexString(), SimpleSerialization.serializeNode(g))
+    storage.store(nodes[g.hash.toHexString()], SimpleSerialization.serializeNode(g))
     return Db(storage, dbUuid, g)
 }
 
@@ -24,7 +27,7 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
 
     private fun resolve(key: String): NodeVal? {
         try {
-            val value = storage.load(key)
+            val value = storage.load(nodes[key])
             return value?.let { SimpleSerialization.deserializeNode(ByteArrayInputStream(value)) }
         } catch (e: Exception) {
             throw QBitException(cause = e)
@@ -100,7 +103,7 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
     fun store(vararg e: Fact) {
         try {
             val newHead = add(NodeData(e))
-            storage.store(newHead.hash.toHexString(), SimpleSerialization.serializeNode(newHead))
+            storage.store(nodes[newHead.hash.toHexString()], SimpleSerialization.serializeNode(newHead))
             head = newHead
         } catch (e: Exception) {
             throw QBitException(cause = e)
@@ -124,7 +127,7 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
 
     fun fetch(source: Db) {
         try {
-            val keys = source.storage.keys()
+            val keys = source.storage.keys(nodes)
             for (key in keys) {
                 val value = source.storage.load(key)
                 if (value != null) {
@@ -151,7 +154,7 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
             when (n) {
                 is NodeRef -> true
                 is NodeVal -> {
-                    storage.store(n.hash.toHexString(), SimpleSerialization.serializeNode(n))
+                    storage.store(nodes[n.hash.toHexString()], SimpleSerialization.serializeNode(n))
                     false
                 }
             }
