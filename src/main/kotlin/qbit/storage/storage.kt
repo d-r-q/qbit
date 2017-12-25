@@ -1,7 +1,5 @@
 package qbit.storage
 
-import java.util.function.BiFunction
-
 interface Storage {
 
     fun store(key: Key, value: ByteArray)
@@ -12,9 +10,11 @@ interface Storage {
 
 }
 
-data class Namespace(val name: String) {
+data class Namespace(val name: String, val parent: Namespace? = null) {
 
     operator fun get(key: String) = Key(this, key)
+
+    fun subNs(name: String) = Namespace(name, this)
 
 }
 

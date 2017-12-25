@@ -2,7 +2,9 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
+import java.nio.file.Files
 
 class DbTest {
 
@@ -24,9 +26,9 @@ class DbTest {
 
     @Test
     fun testSync() {
-        val db1 = Db(MemStorage())
+        val db1 = Db(FileSystemStorage(Files.createTempDirectory("qbit-db1-")))
         val (id, head) = db1.fork()
-        val db2 = Db(MemStorage(), id, head)
+        val db2 = Db(FileSystemStorage(Files.createTempDirectory("qbit-db2-")), id, head)
 
         db2.fetch(db1)
 
