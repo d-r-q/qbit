@@ -2,7 +2,7 @@ group 'org.qbit'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.1.51'
+    ext.kotlin_version = '1.2.10'
 
     repositories {
         mavenCentral()
