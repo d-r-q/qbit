@@ -1,6 +1,6 @@
 package qbit
 
-class EID(val iid: Int, val eid: Int) {
+class EID(val iid: Int, val eid: Int) : Comparable<EID> {
 
     constructor(eid: Long) : this(eid.shr(32).and(0xFF).toInt(), eid.and(0xFF).toInt())
 
@@ -24,6 +24,14 @@ class EID(val iid: Int, val eid: Int) {
         var result = iid
         result = 31 * result + eid
         return result
+    }
+
+    override fun compareTo(other: EID): Int {
+        return if (this.iid == other.iid) {
+            this.eid.compareTo(other.eid)
+        } else {
+            this.iid.compareTo(other.iid)
+        }
     }
 
 }

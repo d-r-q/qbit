@@ -24,6 +24,16 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
 
     private val instanceEid = EID(dbUuid.iid.value, 0)
     private val graph = Graph({ key -> resolve(key) })
+    private var index = Index()
+
+    init {
+        storage.keys(nodes).forEach { node ->
+            val nodeVal = resolve(node.key)
+            nodeVal?.data?.trx?.forEach {
+                index = index.add(StoredFact(it.entityId, it.attribute, nodeVal.timestamp, it.value))
+            }
+        }
+    }
 
     private fun resolve(key: String): NodeVal? {
         try {
@@ -105,6 +115,7 @@ class Db(private val storage: Storage, private val dbUuid: DbUuid, private var h
             val newHead = add(NodeData(e))
             storage.store(nodes[newHead.hash.toHexString()], SimpleSerialization.serializeNode(newHead))
             head = newHead
+            index = index.add(e.map { StoredFact(it.entityId, it.attribute, (head as Leaf).timestamp, it.value)})
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
