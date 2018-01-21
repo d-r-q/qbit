@@ -45,6 +45,7 @@ class IndexTest {
         val greaterTime = FactPattern(EID(1, 0), "attr2", 3, "value2")
         assertEquals(-1, vaetCmp(f1, greaterTime))
         assertEquals(1, vaetCmp(greaterTime, f1))
+
     }
 
 }

@@ -34,31 +34,6 @@ class Merge(val parent1: Node, val parent2: Node, source: DbUuid, timestamp: Lon
 
 class Graph(private val resolve: (String) -> NodeVal?) {
 
-    fun append(h: Node): Pair<NodeVal, NodeVal> = when (h) {
-        is Root -> throw AssertionError("Could not append $h")
-        is Leaf -> {
-            val (parent, mergeRoot) = append(h.parent)
-            Pair(Leaf(parent, h.source, h.timestamp, h.data), mergeRoot)
-        }
-        is Merge -> {
-            val (parent1, mergeRoot) = append(h.parent1)
-            val (parent2, _) = append(h.parent2)
-            Pair(Merge(parent1, parent2, h.source, h.timestamp, h.data), mergeRoot)
-        }
-        is NodeRef -> {
-            val localNode = resolve(h.hash.toHexString())
-            if (localNode != null) {
-                Pair(localNode, localNode)
-            } else {
-                throw QBitException("Could not resolve node ${h.hash.toHexString()}")
-            }
-        }
-    }
-
-    fun walk(head: Node, walker: (Node) -> Boolean) {
-        walkFrom(walker, hashSetOf(), head)
-    }
-
     fun findSubgraph(n: Node, sgRootSource: DbUuid): Node = when {
         n is NodeRef -> resolve(n.hash.toHexString()).let { findSubgraph(it!!, sgRootSource) }
         n is NodeVal && n.source == sgRootSource -> NodeRef(n.hash)
@@ -75,13 +50,10 @@ class Graph(private val resolve: (String) -> NodeVal?) {
     }
 
     /**
-     * sgRoot - root of the subgraph
+     * @param walker nodes handler. Should return `true` if walk should be stopped or `false` otherwise
      */
-    fun findSubgraph(n: Node, sgRoot: Node): Node = when {
-        n is Leaf && Arrays.equals(n.parent.hash, sgRoot.hash) -> Leaf(NodeRef(n.parent), n.source, n.timestamp, n.data)
-        n is Leaf && !Arrays.equals(n.parent.hash, sgRoot.hash) -> findSubgraph(n.parent, sgRoot)
-        n is Merge -> Merge(findSubgraph(n.parent1, sgRoot), findSubgraph(n.parent2, sgRoot), n.source, n.timestamp, n.data)
-        else -> throw AssertionError("Should never happen, n is $n root is $sgRoot")
+    fun walk(head: Node, walker: (Node) -> Boolean) {
+        walkFrom(walker, hashSetOf(), head)
     }
 
     private fun walkFrom(walker: (Node) -> Boolean, visited: MutableSet<Node>, head: Node): Boolean {

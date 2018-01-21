@@ -3,10 +3,8 @@ package qbit
 import qbit.serialization.SimpleSerialization
 import qbit.storage.Namespace
 import qbit.storage.Storage
-import java.io.ByteArrayInputStream
-import java.util.*
 
-private val nodes = Namespace("nodes")
+val nodes = Namespace("nodes")
 
 fun Db(storage: Storage): Db {
     val iid = IID(0, 4)
@@ -20,159 +18,32 @@ fun Db(storage: Storage): Db {
 
 
 @Suppress("UNCHECKED_CAST")
-class Db(private val storage: Storage, private val dbUuid: DbUuid, private var head: Node) {
+class Db(private val dbUuid: DbUuid) {
 
-    private val instanceEid = EID(dbUuid.iid.value, 0)
-    private val graph = Graph({ key -> resolve(key) })
-    private var index = Index()
-
-    init {
-        storage.keys(nodes).forEach { node ->
-            val nodeVal = resolve(node.key)
-            nodeVal?.data?.trx?.forEach {
-                index = index.add(StoredFact(it.entityId, it.attribute, nodeVal.timestamp, it.value))
-            }
-        }
-    }
-
-    private fun resolve(key: String): NodeVal? {
+    fun sync(another: Db, anotherUuid: DbUuid, thiz: Writer): Db2 {
         try {
-            val value = storage.load(nodes[key])
-            return value?.let { SimpleSerialization.deserializeNode(ByteArrayInputStream(value)) }
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun create(e: Map<String, Any>): EID {
-        try {
-            val eid = EID(dbUuid.iid.value, pull(instanceEid)!!.get("entities") as Int + 1)
-            add(eid, e)
-            return eid
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun add(eid: EID, e: Map<String, Any>) {
-        try {
-            val entity = e.entries.map { Fact(eid, it.key, it.value) } + Fact(instanceEid, "entities", eid.eid)
-            store(entity)
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun pull(eid: EID): Map<String, Any>? {
-        try {
-            val res = HashMap<String, Any>()
-            graph.walk(head) {
-                if (it is NodeVal) {
-                    it.data.trx.filter { it.entityId == eid }.forEach {
-                        res.putIfAbsent(it.attribute, it.value)
-                    }
-                }
-                false
-            }
-            return res.takeIf { it.size > 0 }
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun fork(): Pair<DbUuid, Node> {
-        try {
-            val forks = pull(instanceEid)!!.get("forks") as Int
-            val id = DbUuid(dbUuid.iid.fork(forks + 1))
-            val eid = EID(id.iid.value, 0)
-            store(Fact(instanceEid, "forks", forks + 1),
-                    Fact(eid, "forks", 0),
-                    Fact(eid, "entities", 0))
-            return Pair(id, head)
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun store(e: Fact) {
-        try {
-            head = add(NodeData(arrayOf(e)))
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun store(e: List<Fact>) {
-        try {
-            store(*e.toTypedArray())
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun store(vararg e: Fact) {
-        try {
-            val newHead = add(NodeData(e))
-            storage.store(nodes[newHead.hash.toHexString()], SimpleSerialization.serializeNode(newHead))
-            head = newHead
-            index = index.add(e.map { StoredFact(it.entityId, it.attribute, (head as Leaf).timestamp, it.value)})
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun sync(another: Db): Node {
-        try {
-            val novelty = graph.findSubgraph(head, another.dbUuid)
+            val novelty = thiz.db.findSubgraph(anotherUuid)
             val newRoot = another.push(novelty)
-            val newHead = graph.append(newRoot).let {
-                storeAppendedNodes(it.first)
-                it.first
-            }
-            head = newHead
-            return head
+            return thiz.append(newRoot)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
 
-    fun fetch(source: Db) {
+    fun fetch(source: Db2, thiz: Writer): Db2 {
         try {
-            val keys = source.storage.keys(nodes)
-            for (key in keys) {
-                val value = source.storage.load(key)
-                if (value != null) {
-                    storage.store(key, value)
-                } else {
-                    println("Value for $key not found")
-                }
-            }
+            return thiz.append(source.head)
         } catch (e: Exception) {
             throw QBitException("Fetch failed", e)
         }
     }
 
-    private fun push(novetyRoot: Node): Merge {
-        val (newHead, mergeRoot) = graph.append(novetyRoot)
-        storeAppendedNodes(newHead)
-        val myNovelty = graph.findSubgraph(head, mergeRoot)
+    private fun push(dst: Db2, novetyRoot: Node, thiz: Writer): Merge {
+        val newDb = thiz.append(novetyRoot)
+        val myNovelty = dst.findSubgraph(head, mergeRoot)
         head = merge(newHead)
         return Merge(myNovelty, NodeRef(novetyRoot), dbUuid, System.currentTimeMillis(), (head as Merge).data)
     }
-
-    private fun storeAppendedNodes(it: NodeVal) {
-        graph.walk(it) { n ->
-            when (n) {
-                is NodeRef -> true
-                is NodeVal -> {
-                    storage.store(nodes[n.hash.toHexString()], SimpleSerialization.serializeNode(n))
-                    false
-                }
-            }
-        }
-    }
-
-    private fun add(data: NodeData): Leaf = Leaf(head, dbUuid, System.currentTimeMillis(), data)
 
     private fun merge(r: Node): Merge = Merge(head, r, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
 

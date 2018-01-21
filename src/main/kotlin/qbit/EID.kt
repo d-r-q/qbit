@@ -34,4 +34,5 @@ class EID(val iid: Int, val eid: Int) : Comparable<EID> {
         }
     }
 
+    override fun toString() = "$iid/$eid"
 }
