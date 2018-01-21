@@ -1,51 +1,54 @@
 package qbit
 
-import qbit.serialization.SimpleSerialization
-import qbit.storage.Namespace
-import qbit.storage.Storage
+import java.util.*
 
-val nodes = Namespace("nodes")
+class Db(val head: NodeVal, resolve: (String) -> NodeVal?) {
 
-fun Db(storage: Storage): Db {
-    val iid = IID(0, 4)
-    val dbUuid = DbUuid(iid)
-    val g = Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
-            Fact(EID(iid.value, 0), "forks", 0),
-            Fact(EID(iid.value, 0), "entities", 0))))
-    storage.store(nodes[g.hash.toHexString()], SimpleSerialization.serializeNode(g))
-    return Db(storage, dbUuid, g)
-}
+    private val graph = Graph(resolve)
+    private val index = createIndex(graph, head)
 
+    companion object {
+        private fun createIndex(graph: Graph, head: Node): Index {
+            val res = Index()
+            graph.walk(head, { n ->
+                if (n is Leaf) {
+                    n.data.trx.forEach { res.add(StoredFact(it.entityId, it.attribute, n.timestamp, it.value)) }
+                }
+                false
+            })
+            return res
+        }
+    }
 
-@Suppress("UNCHECKED_CAST")
-class Db(private val dbUuid: DbUuid) {
-
-    fun sync(another: Db, anotherUuid: DbUuid, thiz: Writer): Db2 {
+    fun pull(eid: EID): Map<String, Any>? {
         try {
-            val novelty = thiz.db.findSubgraph(anotherUuid)
-            val newRoot = another.push(novelty)
-            return thiz.append(newRoot)
+            val res = HashMap<String, Any>()
+            graph.walk(head) {
+                if (it is NodeVal) {
+                    it.data.trx.filter { it.entityId == eid }.forEach {
+                        res.putIfAbsent(it.attribute, it.value)
+                    }
+                }
+                false
+            }
+            return res.takeIf { it.size > 0 }
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
 
-    fun fetch(source: Db2, thiz: Writer): Db2 {
-        try {
-            return thiz.append(source.head)
-        } catch (e: Exception) {
-            throw QBitException("Fetch failed", e)
-        }
+    fun findSubgraph(uuid: DbUuid): Node {
+        return graph.findSubgraph(head, uuid)
     }
 
-    private fun push(dst: Db2, novetyRoot: Node, thiz: Writer): Merge {
-        val newDb = thiz.append(novetyRoot)
-        val myNovelty = dst.findSubgraph(head, mergeRoot)
-        head = merge(newHead)
-        return Merge(myNovelty, NodeRef(novetyRoot), dbUuid, System.currentTimeMillis(), (head as Merge).data)
+    /**
+     * sgRoot - root of the subgraph
+     */
+    fun findSubgraph(n: Node, sgRootsHashes: Set<String>): Node = when {
+        n is Leaf && n.parent.hash.toHexString() in sgRootsHashes -> Leaf(NodeRef(n.parent), n.source, n.timestamp, n.data)
+        n is Leaf && n.parent.hash.toHexString() !in sgRootsHashes -> findSubgraph(n.parent, sgRootsHashes)
+        n is Merge -> Merge(findSubgraph(n.parent1, sgRootsHashes), findSubgraph(n.parent2, sgRootsHashes), n.source, n.timestamp, n.data)
+        else -> throw AssertionError("Should never happen, n is $n root is $sgRootsHashes")
     }
-
-    private fun merge(r: Node): Merge = Merge(head, r, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
 
 }
-

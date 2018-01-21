@@ -2,7 +2,6 @@ package qbit
 
 import qbit.serialization.SimpleSerialization.serializeNode
 import java.security.MessageDigest
-import java.util.*
 
 data class DbUuid(val iid: IID)
 
@@ -33,6 +32,18 @@ class Leaf(val parent: Node, source: DbUuid, timestamp: Long, data: NodeData) : 
 class Merge(val parent1: Node, val parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal(hash(parent1.hash, parent2.hash, source, timestamp, data), source, timestamp, data)
 
 class Graph(private val resolve: (String) -> NodeVal?) {
+
+    companion object {
+
+        fun refs(root: Node): Set<NodeRef> {
+            return when (root) {
+                is NodeRef -> setOf(root)
+                is Leaf -> refs(root.parent)
+                is Merge -> refs(root.parent1) + refs(root.parent2)
+                is Root -> throw QBitException("Could not find ref")
+            }
+        }
+    }
 
     fun findSubgraph(n: Node, sgRootSource: DbUuid): Node = when {
         n is NodeRef -> resolve(n.hash.toHexString()).let { findSubgraph(it!!, sgRootSource) }
