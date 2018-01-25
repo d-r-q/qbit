@@ -9,7 +9,9 @@ private val nodes = Namespace("nodes")
 class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal? {
 
     fun store(n: NodeVal) {
-       storage.store(n.key(), SimpleSerialization.serializeNode(n))
+        if (!storage.hasKey(n.key())) {
+            storage.add(n.key(), SimpleSerialization.serializeNode(n))
+        }
     }
 
     override fun invoke(ref: NodeRef): NodeVal? {

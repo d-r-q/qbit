@@ -2,11 +2,15 @@ package qbit.storage
 
 interface Storage {
 
-    fun store(key: Key, value: ByteArray)
+    fun add(key: Key, value: ByteArray)
+
+    fun overwrite(key: Key, value: ByteArray)
 
     fun load(key: Key): ByteArray?
 
     fun keys(namespace: Namespace): Collection<Key>
+
+    fun hasKey(key: Key): Boolean
 
 }
 
@@ -18,4 +22,4 @@ data class Namespace(val name: String, val parent: Namespace? = null) {
 
 }
 
-data class Key(val ns: Namespace, val key: String)
+data class Key(val ns: Namespace, val name: String)
