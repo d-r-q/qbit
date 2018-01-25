@@ -1,11 +1,7 @@
 package qbit
 
-import qbit.serialization.SimpleSerialization
-import qbit.storage.Namespace
+import qbit.storage.NodesStorage
 import qbit.storage.Storage
-import java.io.ByteArrayInputStream
-
-val nodes = Namespace("nodes")
 
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(0, 4)
@@ -13,7 +9,7 @@ fun qbit(storage: Storage): LocalConn {
     val g = Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
             Fact(EID(iid.value, 0), "forks", 0),
             Fact(EID(iid.value, 0), "entities", 0))))
-    storage.store(nodes[g.hash.toHexString()], SimpleSerialization.serializeNode(g))
+    NodesStorage(storage).store(g)
     return LocalConn(dbUuid, storage, g)
 }
 
@@ -29,12 +25,13 @@ interface Conn {
 
 }
 
-class LocalConn(override val dbUuid: DbUuid, private val storage: Storage, head: NodeVal) : Conn {
+class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : Conn {
 
     override val head: NodeVal
         get() = db.head
 
-    var db = Db(head, ::resolve)
+    private val nodesStorage = NodesStorage(storage)
+    var db = Db(head, nodesStorage)
 
     /**
      * Instance descriptor eid
@@ -54,17 +51,8 @@ class LocalConn(override val dbUuid: DbUuid, private val storage: Storage, head:
                     Fact(instanceEid, "forks", forks + 1),
                     Fact(forkInstanceEid, "forks", 0),
                     Fact(forkInstanceEid, "entities", 0))
-            db = Db(newHead, ::resolve)
+            db = Db(newHead, nodesStorage)
             return Pair(forkId, newHead)
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    private fun resolve(key: String): NodeVal? {
-        try {
-            val value = storage.load(nodes[key])
-            return value?.let { SimpleSerialization.deserializeNode(ByteArrayInputStream(value)) }
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
@@ -83,20 +71,20 @@ class LocalConn(override val dbUuid: DbUuid, private val storage: Storage, head:
     fun addEntity(eid: EID, e: Map<String, Any>): Db {
         try {
             val entity = e.entries.map { Fact(eid, it.key, it.value) } + Fact(instanceEid, "entities", eid.eid)
-            db = Db(writer().store(entity), this::resolve)
+            db = Db(writer().store(entity), nodesStorage)
             return db
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
 
-    private fun writer() = Writer(db, storage, dbUuid)
+    private fun writer() = Writer(db, nodesStorage, dbUuid)
 
     fun sync(another: Conn) {
         try {
             val novelty = db.findSubgraph(another.dbUuid)
             val newRoot = another.push(novelty)
-            db = Db(writer().append(newRoot), this::resolve)
+            db = Db(writer().append(newRoot), nodesStorage)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
@@ -104,7 +92,7 @@ class LocalConn(override val dbUuid: DbUuid, private val storage: Storage, head:
 
     fun fetch(source: Conn) {
         try {
-            db = Db(writer().append(source.head), this::resolve)
+            db = Db(writer().append(source.head), nodesStorage)
         } catch (e: Exception) {
             throw QBitException("Fetch failed", e)
         }
@@ -114,7 +102,7 @@ class LocalConn(override val dbUuid: DbUuid, private val storage: Storage, head:
         val newDb = writer().append(noveltyRoot)
         val myNovelty = db.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash.toHexString() }.toSet())
         val head = merge(db.head, newDb)
-        db = Db(head, this::resolve)
+        db = Db(head, nodesStorage)
         return Merge(myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
     }
 

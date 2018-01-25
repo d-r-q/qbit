@@ -2,7 +2,7 @@ package qbit
 
 import java.util.*
 
-class Db(val head: NodeVal, resolve: (String) -> NodeVal?) {
+class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
 
     private val graph = Graph(resolve)
     private val index = createIndex(graph, head)

@@ -31,7 +31,7 @@ class Leaf(val parent: Node, source: DbUuid, timestamp: Long, data: NodeData) : 
 
 class Merge(val parent1: Node, val parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal(hash(parent1.hash, parent2.hash, source, timestamp, data), source, timestamp, data)
 
-class Graph(private val resolve: (String) -> NodeVal?) {
+class Graph(private val resolve: (NodeRef) -> NodeVal?) {
 
     companion object {
 
@@ -46,7 +46,7 @@ class Graph(private val resolve: (String) -> NodeVal?) {
     }
 
     fun findSubgraph(n: Node, sgRootSource: DbUuid): Node = when {
-        n is NodeRef -> resolve(n.hash.toHexString()).let { findSubgraph(it!!, sgRootSource) }
+        n is NodeRef -> resolve(n).let { findSubgraph(it!!, sgRootSource) }
         n is NodeVal && n.source == sgRootSource -> NodeRef(n.hash)
         n is Leaf -> {
             val parent = findSubgraph(n.parent, sgRootSource)
@@ -76,7 +76,7 @@ class Graph(private val resolve: (String) -> NodeVal?) {
             is Root -> listOf()
             is Leaf -> listOf(head.parent)
             is Merge -> listOf(head.parent1, head.parent2)
-            is NodeRef -> resolve(head.hash.toHexString()).let { h ->
+            is NodeRef -> resolve(head).let { h ->
                 when (h) {
                     is Root -> listOf()
                     is Leaf -> listOf(h.parent)
