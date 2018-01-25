@@ -9,10 +9,10 @@ class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
 
     companion object {
         private fun createIndex(graph: Graph, head: Node): Index {
-            val res = Index()
+            var res = Index()
             graph.walk(head, { n ->
-                if (n is Leaf) {
-                    n.data.trx.forEach { res.add(StoredFact(it.entityId, it.attribute, n.timestamp, it.value)) }
+                if (n is NodeVal) {
+                    res = n.data.trx.fold(res, { acc, f -> acc.add(StoredFact(f.entityId, f.attribute, n.timestamp, f.value)) })
                 }
                 false
             })

@@ -14,30 +14,30 @@ class StoredFact(
         override val time: Long,
         override val value: Any) : FactPattern(entityId, attribute, time, value)
 
-class Index(val vaet: TreeSet<FactPattern> = TreeSet(::vaetCmp)) {
+class Index(val avet: TreeSet<FactPattern> = TreeSet(::avetCmp)) {
 
     fun add(facts: List<StoredFact>): Index {
-        val newVaet = TreeSet<FactPattern>(::vaetCmp)
-        newVaet.addAll(vaet)
+        val newVaet = TreeSet<FactPattern>(::avetCmp)
+        newVaet.addAll(avet)
         newVaet.addAll(facts)
-        return Index(vaet)
+        return Index(avet)
     }
 
     fun add(fact: StoredFact): Index {
-        val newVaet = TreeSet<FactPattern>(::vaetCmp)
-        newVaet.addAll(vaet)
+        val newVaet = TreeSet<FactPattern>(::avetCmp)
+        newVaet.addAll(avet)
         newVaet.add(fact)
-        return Index(vaet)
+        return Index(newVaet)
     }
 
 }
 
-fun vaetCmp(f1: FactPattern, f2: FactPattern): Int {
-    if (f1.value == null || f2.value == null) {
-        throw IllegalArgumentException("vaet could not compare fact patterns with empty value $f1, $f2")
+fun avetCmp(f1: FactPattern, f2: FactPattern): Int {
+    if (f1.attribute == null || f2.attribute == null) {
+        throw IllegalArgumentException("avet could not compare fact patterns with empty value $f1, $f2")
     }
-    return cmpA(f1.value!!, f2.value!!)
-            .ifZero { c(f1, f2, FactPattern::attribute) }
+    return f1.attribute!!.compareTo(f2.attribute!!)
+            .ifZero { c(f1, f2, FactPattern::value) }
             .ifZero { c(f1, f2, FactPattern::entityId) }
             .ifZero { c(f1, f2, FactPattern::time) }
 }
