@@ -1,7 +1,5 @@
 package qbit
 
-import java.util.*
-
 class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
 
     private val graph = Graph(resolve)
@@ -22,20 +20,18 @@ class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
 
     fun pull(eid: EID): Map<String, Any>? {
         try {
-            val res = HashMap<String, Any>()
-            graph.walk(head) {
-                if (it is NodeVal) {
-                    it.data.trx.filter { it.entityId == eid }.forEach {
-                        res.putIfAbsent(it.attribute, it.value)
-                    }
-                }
-                false
-            }
-            return res.takeIf { it.size > 0 }
+            val facts = index.eavt.subSet(FactPattern(entityId = eid), FactPattern(entityId = eid.next()))
+            return facts
+                    .filter { it.entityId == eid }
+                    .groupBy { it.attribute!! }
+                    .mapValues { it.value.last().value!! }
+                    .takeIf { it.isNotEmpty() }
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
+
+    private fun EID.next() = EID(this.iid, this.eid + 1)
 
     fun findSubgraph(uuid: DbUuid): Node {
         return graph.findSubgraph(head, uuid)

@@ -3,44 +3,58 @@ package qbit
 import java.util.*
 
 open class FactPattern(
-        open val entityId: EID?,
-        open val attribute: String?,
-        open val time: Long?,
-        open val value: Any?)
+        open val entityId: EID? = null,
+        open val attribute: String? = null,
+        open val time: Long? = null,
+        open val value: Any? = null) {
+
+    override fun toString(): String {
+        return "FactPattern(entityId=$entityId, attribute=$attribute, time=$time, value=$value)"
+    }
+}
 
 class StoredFact(
-        override val entityId: EID,
-        override val attribute: String,
-        override val time: Long,
-        override val value: Any) : FactPattern(entityId, attribute, time, value)
+        entityId: EID,
+        attribute: String,
+        time: Long,
+        value: Any) : FactPattern(entityId, attribute, time, value)
 
-class Index(val avet: TreeSet<FactPattern> = TreeSet(::avetCmp)) {
+class Index(
+        val avet: TreeSet<FactPattern> = TreeSet(avetCmp),
+        val eavt: TreeSet<FactPattern> = TreeSet(eavtCmp)) {
 
     fun add(facts: List<StoredFact>): Index {
-        val newVaet = TreeSet<FactPattern>(::avetCmp)
-        newVaet.addAll(avet)
-        newVaet.addAll(facts)
-        return Index(avet)
+        val newAvet = TreeSet<FactPattern>(avetCmp)
+        newAvet.addAll(avet)
+        newAvet.addAll(facts)
+
+        val newEavt = TreeSet<FactPattern>(eavtCmp)
+        newEavt.addAll(eavt)
+        newEavt.addAll(facts)
+
+        return Index(newAvet, newEavt)
     }
 
     fun add(fact: StoredFact): Index {
-        val newVaet = TreeSet<FactPattern>(::avetCmp)
-        newVaet.addAll(avet)
-        newVaet.add(fact)
-        return Index(newVaet)
+        return add(listOf(fact))
     }
 
 }
 
-fun avetCmp(f1: FactPattern, f2: FactPattern): Int {
-    if (f1.attribute == null || f2.attribute == null) {
-        throw IllegalArgumentException("avet could not compare fact patterns with empty value $f1, $f2")
-    }
-    return f1.attribute!!.compareTo(f2.attribute!!)
-            .ifZero { c(f1, f2, FactPattern::value) }
-            .ifZero { c(f1, f2, FactPattern::entityId) }
-            .ifZero { c(f1, f2, FactPattern::time) }
-}
+fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, c3: (FactPattern) -> Any?, c4: (FactPattern) -> Any?) =
+        { f1: FactPattern, f2: FactPattern ->
+            if (c1(f1) == null || c1(f2) == null) {
+                throw IllegalArgumentException("could not compare $f1 and $f2 with $c1")
+            }
+            c1(f1)!!.compareTo(c1(f2)!!)
+                    .ifZero { c(f1, f2, c2) }
+                    .ifZero { c(f1, f2, c3) }
+                    .ifZero { c(f1, f2, c4) }
+        }
+
+val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::value, FactPattern::time)
+
+val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::entityId, FactPattern::time)
 
 private fun Int.ifZero(body: (Int) -> Int) =
         if (this == 0) body(this)
@@ -51,6 +65,10 @@ private fun <T : Any?> c(f1: FactPattern, f2: FactPattern, g: (FactPattern) -> T
     val v2 = g(f2)
     return if (v1 != null && v2 != null) {
         cmpA(v1, v2)
+    } else if (v1 == null && v2 != null) {
+        return -1
+    } else if (v1 != null && v2 == null) {
+        return 1
     } else {
         0
     }

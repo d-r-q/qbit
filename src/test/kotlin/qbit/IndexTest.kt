@@ -11,8 +11,8 @@ class IndexTest {
         assertEquals(0, avetCmp(f1, f1))
 
         val byAttr = FactPattern(null, "attr2", null, null)
-        assertEquals(0, avetCmp(f1, byAttr))
-        assertEquals(0, avetCmp(byAttr, f1))
+        assertEquals(1, avetCmp(f1, byAttr))
+        assertEquals(-1, avetCmp(byAttr, f1))
 
         val lesserAttr = FactPattern(null, "attr1", null, null)
         assertEquals(1, avetCmp(f1, lesserAttr))
