@@ -18,20 +18,9 @@ class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
         }
     }
 
-    fun pull(eid: EID): Map<String, Any>? {
-        try {
-            val facts = index.eavt.subSet(FactPattern(entityId = eid), FactPattern(entityId = eid.next()))
-            return facts
-                    .filter { it.entityId == eid }
-                    .groupBy { it.attribute!! }
-                    .mapValues { it.value.last().value!! }
-                    .takeIf { it.isNotEmpty() }
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
+    fun pull(eid: EID): Map<String, Any>? = index.entityById(eid)
 
-    private fun EID.next() = EID(this.iid, this.eid + 1)
+    fun entitiesByAttr(attr: String, value: Any) = index.entitiesByAttr(attr, value)
 
     fun findSubgraph(uuid: DbUuid): Node {
         return graph.findSubgraph(head, uuid)

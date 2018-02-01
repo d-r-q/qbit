@@ -48,4 +48,31 @@ class IndexTest {
 
     }
 
+    @Test
+    fun testEntitiesByAttr() {
+        val idx = Index()
+                .add(listOf(f(0, "uid", 0, 0),
+                        f(0, "uid", 1, 1),
+                        f(1, "uid", 0, 1),
+                        f(0, "foo", 0, "bar"),
+                        f(1, "foo", 0, "bar"),
+                        f(2, "foo", 0, "baz")
+                ))
+
+        var lst = idx.entitiesByAttr("uid", 0)
+        assertEquals(1, lst.size)
+        assertEquals(0, lst.first().eid)
+
+        lst = idx.entitiesByAttr("uid", 1)
+        assertEquals(2, lst.size)
+        assertEquals(0, lst.sorted().toList()[0].eid)
+        assertEquals(1, lst.sorted().toList()[1].eid)
+
+        lst = idx.entitiesByAttr("foo", "bar")
+        assertEquals(2, lst.size)
+        assertEquals(0, lst.sorted().toList()[0].eid)
+        assertEquals(1, lst.sorted().toList()[1].eid)
+    }
+
+    private fun f(eid: Int, attr: String, time: Long, value: Any) = StoredFact(EID(0, eid), attr, time, value)
 }

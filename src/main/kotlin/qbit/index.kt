@@ -39,6 +39,28 @@ class Index(
         return add(listOf(fact))
     }
 
+    fun entityById(eid: EID): Map<String, Any>? {
+        try {
+            val facts = eavt.subSet(FactPattern(entityId = eid), FactPattern(entityId = eid.next()))
+            return facts
+                    .filter { it.entityId == eid }
+                    .groupBy { it.attribute!! }
+                    .mapValues { it.value.last().value!! }
+                    .takeIf { it.isNotEmpty() }
+        } catch (e: Exception) {
+            throw QBitException(cause = e)
+        }
+    }
+
+    private fun EID.next() = EID(this.iid, this.eid + 1)
+
+    fun entitiesByAttr(attr: String, value: Any): Set<EID> {
+        return avet.tailSet(FactPattern(attribute = attr, value = value))
+                .takeWhile { it.attribute == attr && it.value == value }
+                .map { it.entityId!! }
+                .toSet()
+    }
+
 }
 
 fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, c3: (FactPattern) -> Any?, c4: (FactPattern) -> Any?) =
