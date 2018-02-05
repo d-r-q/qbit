@@ -1,29 +1,18 @@
 package qbit
 
-import qbit.serialization.SimpleSerialization.serializeNode
-import java.security.MessageDigest
-
 data class DbUuid(val iid: IID)
 
 data class Fact(val entityId: EID, val attribute: String, val value: Any)
 
 class NodeData(val trx: Array<out Fact>)
 
-const val HASH_LEN = 20
+sealed class Node(val hash: Hash)
 
-val nullHash = ByteArray(HASH_LEN)
-
-fun hash(data: ByteArray): ByteArray = MessageDigest.getInstance("SHA-1").digest(data)
-
-fun hash(parent1: ByteArray, parent2: ByteArray, source: DbUuid, timestamp: Long, data: NodeData) = hash(serializeNode(NodeRef(parent1), NodeRef(parent2), source, timestamp, data))
-
-sealed class Node(val hash: ByteArray)
-
-class NodeRef(hash: ByteArray) : Node(hash) {
+class NodeRef(hash: Hash) : Node(hash) {
     constructor(n: Node) : this(n.hash)
 }
 
-sealed class NodeVal(hash: ByteArray, val source: DbUuid, val timestamp: Long, val data: NodeData) : Node(hash)
+sealed class NodeVal(hash: Hash, val source: DbUuid, val timestamp: Long, val data: NodeData) : Node(hash)
 
 class Root(source: DbUuid, timestamp: Long, data: NodeData) : NodeVal(hash(nullHash, nullHash, source, timestamp, data), source, timestamp, data)
 
@@ -96,4 +85,3 @@ class Graph(private val resolve: (NodeRef) -> NodeVal?) {
 
 }
 
-fun ByteArray.toHexString() = this.joinToString("") { Integer.toHexString(it.toInt() and 0xFF) }

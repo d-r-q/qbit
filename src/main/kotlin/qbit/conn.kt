@@ -100,7 +100,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : 
 
     override fun push(noveltyRoot: Node): Merge {
         val newDb = writer().append(noveltyRoot)
-        val myNovelty = db.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash.toHexString() }.toSet())
+        val myNovelty = db.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
         val head = merge(db.head, newDb)
         db = Db(head, nodesStorage)
         return Merge(myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)

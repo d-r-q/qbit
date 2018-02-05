@@ -29,9 +29,9 @@ object SimpleSerialization : Serialization {
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
-            parent1.contentEquals(nullHash) && parent2.contentEquals(nullHash) -> Root(DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            parent1.contentEquals(nullHash) && !parent2.contentEquals(nullHash) -> Leaf(NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            !parent1.contentEquals(nullHash) && !parent2.contentEquals(nullHash) -> Merge(NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 == nullHash -> Root(DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 != nullHash -> Leaf(NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 != nullHash && parent2 != nullHash -> Merge(NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
             else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
@@ -42,7 +42,7 @@ object SimpleSerialization : Serialization {
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         when (a) {
-            is Node -> byteArray('N', a.hash)
+            is Node -> byteArray('N', a.hash.bytes)
             is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
             is Byte -> byteArray('b', a)
             is Int -> byteArray('I', serializeInt(a))
@@ -99,7 +99,7 @@ internal object ByteMark : DataMark<Byte>()
 internal object IntMark : DataMark<Int>()
 internal object LongMark : DataMark<Long>()
 internal object BytesMark : DataMark<ByteArray>()
-internal object NodeMark : DataMark<ByteArray>()
+internal object NodeMark : DataMark<Hash>()
 internal object StringMark : DataMark<String>()
 
 internal val char2mark = mapOf(
@@ -135,7 +135,7 @@ private fun <T> readMark(expectedMark: DataMark<T>, ins: InputStream): T {
         ByteMark -> ins.read().toByte()
         IntMark -> readInt(ins)
         LongMark -> readLong(ins)
-        NodeMark -> readBytes(ins, HASH_LEN)
+        NodeMark -> Hash(readBytes(ins, HASH_LEN))
 
         BytesMark -> readInt(ins).let { count ->
             readBytes(ins, count)

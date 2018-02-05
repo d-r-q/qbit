@@ -29,9 +29,9 @@ class Db(val head: NodeVal, resolve: (NodeRef) -> NodeVal?) {
     /**
      * sgRoot - root of the subgraph
      */
-    fun findSubgraph(n: Node, sgRootsHashes: Set<String>): Node = when {
-        n is Leaf && n.parent.hash.toHexString() in sgRootsHashes -> Leaf(NodeRef(n.parent), n.source, n.timestamp, n.data)
-        n is Leaf && n.parent.hash.toHexString() !in sgRootsHashes -> findSubgraph(n.parent, sgRootsHashes)
+    fun findSubgraph(n: Node, sgRootsHashes: Set<Hash>): Node = when {
+        n is Leaf && n.parent.hash in sgRootsHashes -> Leaf(NodeRef(n.parent), n.source, n.timestamp, n.data)
+        n is Leaf && n.parent.hash !in sgRootsHashes -> findSubgraph(n.parent, sgRootsHashes)
         n is Merge -> Merge(findSubgraph(n.parent1, sgRootsHashes), findSubgraph(n.parent2, sgRootsHashes), n.source, n.timestamp, n.data)
         else -> throw AssertionError("Should never happen, n is $n root is $sgRootsHashes")
     }
