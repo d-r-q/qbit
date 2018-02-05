@@ -1,6 +1,5 @@
 package qbit
 
-import qbit.serialization.SimpleSerialization
 import java.security.MessageDigest
 import java.util.*
 
@@ -9,10 +8,6 @@ const val HASH_LEN = 20
 val nullHash = Hash(ByteArray(HASH_LEN))
 
 fun hash(data: ByteArray): Hash = Hash(MessageDigest.getInstance("SHA-1").digest(data))
-
-// TODO: remove dependency to SimpleSerialization
-fun hash(parent1: Hash, parent2: Hash, source: DbUuid, timestamp: Long, data: NodeData) =
-        hash(SimpleSerialization.serializeNode(NodeRef(parent1), NodeRef(parent2), source, timestamp, data))
 
 class Hash(val bytes: ByteArray) {
 

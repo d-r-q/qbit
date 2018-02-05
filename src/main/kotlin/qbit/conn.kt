@@ -6,28 +6,28 @@ import qbit.storage.Storage
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(0, 4)
     val dbUuid = DbUuid(iid)
-    val g = Root(dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
+    val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
             Fact(EID(iid.value, 0), "forks", 0),
             Fact(EID(iid.value, 0), "entities", 0))))
-    NodesStorage(storage).store(g)
-    return LocalConn(dbUuid, storage, g)
+    val storedRoot = NodesStorage(storage).store(root)
+    return LocalConn(dbUuid, storage, storedRoot)
 }
 
 interface Conn {
 
     val dbUuid: DbUuid
 
-    val head: NodeVal
+    val head: NodeVal<Hash>
 
-    fun fork(): Pair<DbUuid, NodeVal>
+    fun fork(): Pair<DbUuid, NodeVal<Hash>>
 
-    fun push(noveltyRoot: Node): Merge
+    fun push(noveltyRoot: Node<Hash>): Merge<Hash>
 
 }
 
-class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : Conn {
+class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Hash>) : Conn {
 
-    override val head: NodeVal
+    override val head: NodeVal<Hash>
         get() = db.head
 
     private val nodesStorage = NodesStorage(storage)
@@ -42,7 +42,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : 
      */
     private val instanceEid = EID(dbUuid.iid.value, 0)
 
-    override fun fork(): Pair<DbUuid, NodeVal> {
+    override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
             val forks = db.pull(instanceEid)!!["forks"] as Int
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
@@ -84,7 +84,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : 
         try {
             val novelty = db.findSubgraph(another.dbUuid)
             val newRoot = another.push(novelty)
-            db = Db(writer().append(newRoot), nodesStorage)
+            db = Db(writer().appendGraph(newRoot), nodesStorage)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
@@ -92,21 +92,21 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal) : 
 
     fun fetch(source: Conn) {
         try {
-            db = Db(writer().append(source.head), nodesStorage)
+            db = Db(writer().appendGraph(source.head), nodesStorage)
         } catch (e: Exception) {
             throw QBitException("Fetch failed", e)
         }
     }
 
-    override fun push(noveltyRoot: Node): Merge {
-        val newDb = writer().append(noveltyRoot)
+    override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
+        val newDb = writer().appendGraph(noveltyRoot)
         val myNovelty = db.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
-        val head = merge(db.head, newDb)
+        val head = writer().appendNode(merge(db.head, newDb))
         db = Db(head, nodesStorage)
-        return Merge(myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
+        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
     }
 
-    private fun merge(head1: NodeVal, head2: Node): Merge = Merge(head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
+    private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> = Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
 
 }
 

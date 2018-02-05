@@ -6,15 +6,19 @@ import java.io.InputStream
 
 object SimpleSerialization : Serialization {
 
-    override fun serializeNode(n: NodeVal): ByteArray = when (n) {
-        is Root -> serializeNode(NodeRef(nullHash), NodeRef(nullHash), n.source, n.timestamp, n.data)
-        is Leaf -> serializeNode(NodeRef(nullHash), n.parent, n.source, n.timestamp, n.data)
-        is Merge -> serializeNode(n.parent1, n.parent2, n.source, n.timestamp, n.data)
+    private val nullNode = NodeRef(nullHash)
+
+    override fun serializeNode(n: NodeVal<Hash?>): ByteArray {
+        return when (n) {
+            is Root -> serializeNode(nullNode, nullNode, n.source, n.timestamp, n.data)
+            is Leaf -> serializeNode(nullNode, n.parent, n.source, n.timestamp, n.data)
+            is Merge -> serializeNode(n.parent1, n.parent2, n.source, n.timestamp, n.data)
+        }
     }
 
-    override fun serializeNode(parent1: Node, parent2: Node, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
+    override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
-    override fun deserializeNode(ins: InputStream): NodeVal {
+    override fun deserializeNode(ins: InputStream): NodeVal<Hash?> {
         val parent1 = deserialize(ins, NodeMark)
         val parent2 = deserialize(ins, NodeMark)
         val iid = deserialize(ins, IntMark)
@@ -29,9 +33,9 @@ object SimpleSerialization : Serialization {
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
-            parent1 == nullHash && parent2 == nullHash -> Root(DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            parent1 == nullHash && parent2 != nullHash -> Leaf(NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            parent1 != nullHash && parent2 != nullHash -> Merge(NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
             else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
@@ -42,7 +46,7 @@ object SimpleSerialization : Serialization {
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         when (a) {
-            is Node -> byteArray('N', a.hash.bytes)
+            is Node<*> -> byteArray('N', a.hash!!.bytes)
             is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
             is Byte -> byteArray('b', a)
             is Int -> byteArray('I', serializeInt(a))
