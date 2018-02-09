@@ -16,7 +16,7 @@ class StorageTest {
     }
 
     @Test
-    fun testStorage2() {
+    fun testFilesStorage() {
         val root = Files.createTempDirectory("qbit")
         val storage = FileSystemStorage(root)
         testStorage(storage)
