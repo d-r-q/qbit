@@ -28,21 +28,47 @@ import kotlin.reflect.KClass
 sealed class DataType<T : Any> {
 
     abstract val kotlinType: KClass<T>
+    abstract val code: Byte
 
     companion object {
 
+        val values: Array<DataType<*>>
+            get() = arrayOf(QByte, QInt, QLong, QString, QBytes, QEID)
+
+        fun ofCode(code: Byte): DataType<out Any>? = values.firstOrNull { it.code == code }
+
         fun of(value: Any) = when (value) {
+            is Byte -> QByte
+            is Int -> QInt
             is Long -> QLong
             is String -> QString
             is ByteArray -> QBytes
             is EID -> QEID
-            else -> throw IllegalArgumentException("Unsupported value type: $value")
+            else -> null
         }
     }
 
 }
 
+object QByte : DataType<Byte>() {
+
+    override val code = 1.toByte()
+
+    override val kotlinType = Byte::class
+
+}
+
+object QInt : DataType<Int>() {
+
+    override val code = 2.toByte()
+
+    override val kotlinType = Int::class
+
+}
+
 object QLong : DataType<Long>() {
+
+    override val code = 3.toByte()
 
     override val kotlinType = Long::class
 
@@ -50,17 +76,23 @@ object QLong : DataType<Long>() {
 
 object QString : DataType<String>() {
 
+    override val code = 31.toByte()
+
     override val kotlinType = String::class
 
 }
 
 object QBytes : DataType<ByteArray>() {
 
+    override val code = 32.toByte()
+
     override val kotlinType = ByteArray::class
 
 }
 
 object QEID : DataType<EID>() {
+
+    override val code = 51.toByte()
 
     override val kotlinType = EID::class
 
