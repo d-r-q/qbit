@@ -19,17 +19,17 @@ object SimpleSerialization : Serialization {
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: InputStream): NodeVal<Hash?> {
-        val parent1 = deserialize(ins, NodeMark)
-        val parent2 = deserialize(ins, NodeMark)
-        val iid = deserialize(ins, IntMark)
-        val instanceBits = deserialize(ins, ByteMark)
-        val timestamp = deserialize(ins, LongMark)
-        val factsCount = deserialize(ins, IntMark)
+        val parent1 = Hash(deserialize(ins, QBytes))
+        val parent2 = Hash(deserialize(ins, QBytes))
+        val iid = deserialize(ins, QInt)
+        val instanceBits = deserialize(ins, QByte)
+        val timestamp = deserialize(ins, QLong)
+        val factsCount = deserialize(ins, QInt)
         val facts = (1..factsCount).asSequence().map {
-            val eid = deserialize(ins, LongMark)
-            val attr = deserialize(ins, StringMark)
-            val value = deserialize<Any>(ins)
-            Fact(EID(eid), attr, value)
+            val eid = deserialize(ins, QEID)
+            val attr = deserialize(ins, QString)
+            val value = deserialize(ins)
+            Fact(eid, attr, value)
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
@@ -46,16 +46,16 @@ object SimpleSerialization : Serialization {
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         when (a) {
-            is Node<*> -> byteArray('N', a.hash!!.bytes)
+            is Node<*> -> serialize(a.hash!!.bytes)
             is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
-            is Byte -> byteArray('b', a)
-            is Int -> byteArray('I', serializeInt(a))
-            is Long -> byteArray('L', serializeLong(a))
-            is String -> byteArray('S', serializeInt(a.toByteArray().size), a.toByteArray(Charsets.UTF_8))
+            is Byte -> byteArray(QByte.code, a)
+            is Int -> byteArray(QInt.code, serializeInt(a))
+            is Long -> byteArray(QLong.code, serializeLong(a))
+            is String -> byteArray(QString.code, serializeInt(a.toByteArray(Charsets.UTF_8).size), a.toByteArray(Charsets.UTF_8))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
             is Fact -> serialize(a.entityId, a.attribute, a.value)
-            is EID -> byteArray('L', serializeLong(a.value()))
-            is ByteArray -> byteArray('B', serializeInt(a.size), a)
+            is EID -> byteArray(QEID.code, serializeLong(a.value()))
+            is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             else -> throw AssertionError("Should never happen, a is $a")
         }
     }
@@ -74,7 +74,7 @@ internal fun byteArray(vararg parts: Any): ByteArray = ByteArray(parts.sumBy { s
         is ByteArray -> part[ci]
         is Byte -> part
         is Char -> String(charArrayOf(part)).toByteArray()[ci]
-        else -> throw AssertionError("Should never happe, part is $part")
+        else -> throw AssertionError("Should never happen, part is $part")
     }
 }
 
@@ -97,58 +97,40 @@ internal fun byteOf(idx: Int, i: Long) = i.shr(8 * idx).and(0xFF).toByte()
 
 // Deserialization
 
-internal sealed class DataMark<T>
-
-internal object ByteMark : DataMark<Byte>()
-internal object IntMark : DataMark<Int>()
-internal object LongMark : DataMark<Long>()
-internal object BytesMark : DataMark<ByteArray>()
-internal object NodeMark : DataMark<Hash>()
-internal object StringMark : DataMark<String>()
-
-internal val char2mark = mapOf(
-        'I' to IntMark,
-        'L' to LongMark,
-        'B' to BytesMark,
-        'N' to NodeMark,
-        'S' to StringMark,
-        'b' to ByteMark)
-
-internal fun <T> deserialize(ins: InputStream, mark: DataMark<T>): T {
+internal fun <T : Any> deserialize(ins: InputStream, mark: DataType<T>): T {
     val byte = ins.read()
     when {
         byte == -1 -> throw EOFException("Unexpected end of input")
-        char2mark[byte.toChar()] != mark && byte.toChar() in char2mark.keys -> throw DeserializationException("Mark is ${byte.toChar()} while $mark expected")
-        byte.toChar() !in char2mark -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
+        byte.toByte() != mark.code -> throw DeserializationException("Code is $byte while $mark expected")
+        DataType.ofCode(byte.toByte()) == null -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
-    return readMark(mark, ins)
+    return readMark(ins, mark)
 }
 
-internal fun <T> deserialize(ins: InputStream): T {
+internal fun deserialize(ins: InputStream): Any {
     val byte = ins.read()
-    val mark = when {
-        byte == -1 -> throw DeserializationException(cause = EOFException())
-        byte.toChar() !in char2mark.keys -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
-        else -> char2mark[byte.toChar()] as DataMark<T>
+    val mark: DataType<out Any> = when (byte) {
+        -1 -> throw DeserializationException(cause = EOFException())
+        else -> (DataType.ofCode(byte.toByte())) ?: throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
-    return readMark(mark, ins)
+    return readMark(ins, mark)
 }
 
-private fun <T> readMark(expectedMark: DataMark<T>, ins: InputStream): T {
+@Suppress("UNCHECKED_CAST")
+private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): T {
     return when (expectedMark) {
-        ByteMark -> ins.read().toByte()
-        IntMark -> readInt(ins)
-        LongMark -> readLong(ins)
-        NodeMark -> Hash(readBytes(ins, HASH_LEN))
-
-        BytesMark -> readInt(ins).let { count ->
-            readBytes(ins, count)
+        QByte -> ins.read().toByte() as T
+        QInt -> readInt(ins) as T
+        QLong -> readLong(ins) as T
+        QBytes -> readInt(ins).let { count ->
+            readBytes(ins, count) as T
         }
 
-        StringMark -> readInt(ins).let { count ->
-            String(readBytes(ins, count), Charsets.UTF_8)
+        QString -> readInt(ins).let { count ->
+            String(readBytes(ins, count), Charsets.UTF_8) as T
         }
-    } as T
+        QEID -> EID(readLong(ins)) as T
+    }
 }
 
 internal fun readBytes(ins: InputStream, count: Int): ByteArray {
