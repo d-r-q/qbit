@@ -5,7 +5,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
-import qbit.storage.Namespace
 import qbit.storage.Storage
 import java.nio.file.Files
 

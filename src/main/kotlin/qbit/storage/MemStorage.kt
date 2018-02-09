@@ -1,5 +1,7 @@
 package qbit.storage
 
+import qbit.Key
+import qbit.Namespace
 import qbit.QBitException
 import java.util.concurrent.ConcurrentHashMap
 
