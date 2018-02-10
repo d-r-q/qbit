@@ -20,7 +20,9 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     fun pull(eid: EID): Map<String, Any>? = index.entityById(eid)
 
-    fun entitiesByAttr(attr: String, value: Any) = index.entitiesByAttr(attr, value)
+    fun entitiesByAttr(attr: String, value: Any? = null) =
+            if (value != null) index.entitiesByAttrVal(attr, value)
+            else index.entitiesByAttr(attr)
 
     fun findSubgraph(uuid: DbUuid): Node<Hash> {
         return graph.findSubgraph(head, uuid)

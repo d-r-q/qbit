@@ -59,7 +59,13 @@ class Index(
 
     private fun EID.next() = EID(this.iid, this.eid + 1)
 
-    fun entitiesByAttr(attr: String, value: Any): Set<EID> {
+    fun entitiesByAttr(attr: String): Set<EID> {
+        return avet.tailSet(FactPattern(attribute = attr))
+                .takeWhile { it.attribute == attr }
+                .map { it.entityId!! }
+                .toSet()
+    }
+    fun entitiesByAttrVal(attr: String, value: Any?): Set<EID> {
         return avet.tailSet(FactPattern(attribute = attr, value = value))
                 .takeWhile { it.attribute == attr && it.value == value }
                 .map { it.entityId!! }
@@ -67,6 +73,12 @@ class Index(
     }
 
 }
+
+val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::value, FactPattern::time)
+
+val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::entityId, FactPattern::time)
+
+val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::time, FactPattern::value)
 
 fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, c3: (FactPattern) -> Any?, c4: (FactPattern) -> Any?) =
         { f1: FactPattern, f2: FactPattern ->
@@ -78,12 +90,6 @@ fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, 
                     .ifZero { c(f1, f2, c3) }
                     .ifZero { c(f1, f2, c4) }
         }
-
-val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::value, FactPattern::time)
-
-val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::entityId, FactPattern::time)
-
-val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::time, FactPattern::value)
 
 private fun Int.ifZero(body: (Int) -> Int) =
         if (this == 0) body(this)
