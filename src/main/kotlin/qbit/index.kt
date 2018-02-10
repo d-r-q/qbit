@@ -24,13 +24,18 @@ class Index(
         val eavt: TreeSet<FactPattern> = TreeSet(eavtCmp)) {
 
     fun add(facts: List<StoredFact>): Index {
-        val newAvet = TreeSet<FactPattern>(avetCmp)
-        newAvet.addAll(avet)
-        newAvet.addAll(facts)
-
         val newEavt = TreeSet<FactPattern>(eavtCmp)
         newEavt.addAll(eavt)
-        newEavt.addAll(facts)
+
+        val distinctFacts = facts
+                .sortedWith(kotlin.Comparator(eatvCmp).reversed())
+                .distinctBy { it.entityId to it.attribute }
+        distinctFacts.forEach { newEavt.remove(FactPattern(it.entityId, it.attribute))}
+        newEavt.addAll(distinctFacts)
+
+
+        val newAvet = TreeSet<FactPattern>(avetCmp)
+        newAvet.addAll(newEavt)
 
         return Index(newAvet, newEavt)
     }
@@ -77,6 +82,8 @@ fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, 
 val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::value, FactPattern::time)
 
 val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::entityId, FactPattern::time)
+
+val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::time, FactPattern::value)
 
 private fun Int.ifZero(body: (Int) -> Int) =
         if (this == 0) body(this)

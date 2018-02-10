@@ -1,6 +1,7 @@
 package qbit
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class IndexTest {
@@ -59,11 +60,7 @@ class IndexTest {
                         f(2, "foo", 0, "baz")
                 ))
 
-        var lst = idx.entitiesByAttr("uid", 0)
-        assertEquals(1, lst.size)
-        assertEquals(0, lst.first().eid)
-
-        lst = idx.entitiesByAttr("uid", 1)
+        var lst = idx.entitiesByAttr("uid", 1)
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
@@ -72,6 +69,15 @@ class IndexTest {
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
+    }
+
+    @Test
+    fun testEntityByOldAttrValue() {
+        val idx = Index()
+                .add(listOf(f(0, "attr",0, 0),
+                        f(0, "attr",1, 1)))
+        val entities = idx.entitiesByAttr("attr", 0)
+        assertEquals(0, entities.size)
     }
 
     private fun f(eid: Int, attr: String, time: Long, value: Any) = StoredFact(EID(0, eid), attr, time, value)
