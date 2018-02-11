@@ -1,14 +1,44 @@
 package qbit
 
+import qbit.schema.Schema
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(0, 4)
     val dbUuid = DbUuid(iid)
-    val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(arrayOf(
-            Fact(EID(iid.value, 0), "forks", 0),
-            Fact(EID(iid.value, 0), "entities", 0))))
+
+    var eid = 0
+    var trx = listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/name"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QString.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", true))
+    eid++
+    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/type"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QByte.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    eid++
+    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/unique"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QBoolean.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    eid++
+    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/forks"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    eid++
+    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/entities"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    eid++
+    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/iid"),
+            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
+            Fact(EID(iid.value, eid), "qbit.attrs/unique", true))
+    eid++
+    trx += listOf(
+            Fact(EID(iid.value, eid), "qbit.instance/iid", 0),
+            Fact(EID(iid.value, eid), "qbit.instance/forks", 0),
+            Fact(EID(iid.value, eid), "qbit.instance/entities", eid))
+
+    val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
     return LocalConn(dbUuid, storage, storedRoot)
 }
@@ -40,17 +70,19 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
      *   entities - count of entities created by this instance
      * }
      */
-    private val instanceEid = EID(dbUuid.iid.value, 0)
+    private val instanceEid = db.entitiesByAttr("qbit.instance/entities")
+            .first { it.eid.iid == dbUuid.iid.value }
+            .eid
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
-            val forks = db.pull(instanceEid)!!["forks"] as Int
+            val forks = db.pull(instanceEid)!!["qbit.instance/forks"] as Int
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
             val newHead = writer().store(
-                    Fact(instanceEid, "forks", forks + 1),
-                    Fact(forkInstanceEid, "forks", 0),
-                    Fact(forkInstanceEid, "entities", 0))
+                    Fact(instanceEid, "qbit.instance/forks", forks + 1),
+                    Fact(forkInstanceEid, "qbit.instance/forks", 0),
+                    Fact(forkInstanceEid, "qbit.instance/entities", 0))
             db = Db(newHead, nodesStorage)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
@@ -60,7 +92,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     fun create(e: Map<String, Any>): Pair<Db, EID> {
         try {
-            val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!!["entities"] as Int + 1)
+            val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!!["qbit.instance/entities"] as Int + 1)
             val db = addEntity(eid, e)
             return db to eid
         } catch (e: Exception) {
@@ -70,15 +102,14 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     fun addEntity(eid: EID, e: Map<String, Any>): Db {
         try {
-            val entity = e.entries.map { Fact(eid, it.key, it.value) } + Fact(instanceEid, "entities", eid.eid)
+            val entity = e.entries.map { Fact(eid, it.key, it.value) } + Fact(instanceEid, "qbit.instance/entities", eid.eid)
+            validate(Schema(db), entity)
             db = Db(writer().store(entity), nodesStorage)
             return db
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
-
-    private fun writer() = Writer(db, nodesStorage, dbUuid)
 
     fun sync(another: Conn) {
         try {
@@ -105,6 +136,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         db = Db(head, nodesStorage)
         return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
     }
+
+    private fun writer() = Writer(db, nodesStorage, dbUuid)
 
     private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> = Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
 

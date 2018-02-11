@@ -25,6 +25,7 @@ import kotlin.reflect.KClass
  * - List<Ref>
  */
 
+@Suppress("UNCHECKED_CAST")
 sealed class DataType<T : Any> {
 
     abstract val kotlinType: KClass<T>
@@ -33,20 +34,31 @@ sealed class DataType<T : Any> {
     companion object {
 
         val values: Array<DataType<*>>
-            get() = arrayOf(QByte, QInt, QLong, QString, QBytes, QEID)
+            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID)
 
-        fun ofCode(code: Byte): DataType<out Any>? = values.firstOrNull { it.code == code }
+        fun ofCode(code: Byte): DataType<*>? = values.firstOrNull { it.code == code }
 
-        fun of(value: Any) = when (value) {
-            is Byte -> QByte
-            is Int -> QInt
-            is Long -> QLong
-            is String -> QString
-            is ByteArray -> QBytes
-            is EID -> QEID
+        fun <T : Any> of(value: T?): DataType<T>? = when (value) {
+            is Boolean -> QBoolean as DataType<T>
+            is Byte -> QByte as DataType<T>
+            is Int -> QInt as DataType<T>
+            is Long -> QLong as DataType<T>
+            is String -> QString as DataType<T>
+            is ByteArray -> QBytes as DataType<T>
+            is EID -> QEID as DataType<T>
             else -> null
         }
     }
+
+    fun compare(v1: T, v2: T): Int = (v1 as Comparable<T>).compareTo(v2)
+
+}
+
+object QBoolean : DataType<Boolean>() {
+
+    override val code = 0.toByte()
+
+    override val kotlinType = Boolean::class
 
 }
 

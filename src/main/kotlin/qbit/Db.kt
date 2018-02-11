@@ -18,11 +18,15 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
         }
     }
 
-    fun pull(eid: EID): Map<String, Any>? = index.entityById(eid)
+    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let { MapEntity(eid, it) }
 
-    fun entitiesByAttr(attr: String, value: Any? = null) =
-            if (value != null) index.entitiesByAttrVal(attr, value)
-            else index.entitiesByAttr(attr)
+    fun entitiesByAttr(attr: String, value: Any? = null): List<StoredEntity> {
+        val eids =
+                if (value != null) index.entitiesByAttrVal(attr, value)
+                else index.entitiesByAttr(attr)
+
+        return eids.map { pull(it)!! }
+    }
 
     fun findSubgraph(uuid: DbUuid): Node<Hash> {
         return graph.findSubgraph(head, uuid)
@@ -39,3 +43,10 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
     }
 
 }
+
+private class MapEntity(
+        override val eid: EID,
+        private val map: Map<String, Any>
+) :
+        StoredEntity,
+        Map<String, Any> by map

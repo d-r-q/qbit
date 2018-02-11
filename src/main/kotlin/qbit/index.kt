@@ -99,7 +99,8 @@ private fun <T : Any?> c(f1: FactPattern, f2: FactPattern, g: (FactPattern) -> T
     val v1 = g(f1)
     val v2 = g(f2)
     return if (v1 != null && v2 != null) {
-        cmpA(v1, v2)
+        val type = DataType.of<Any>(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
+        type.compare(v1, v2)
     } else if (v1 == null && v2 != null) {
         return -1
     } else if (v1 != null && v2 == null) {
@@ -108,21 +109,3 @@ private fun <T : Any?> c(f1: FactPattern, f2: FactPattern, g: (FactPattern) -> T
         0
     }
 }
-
-private fun cmpA(v1: Any, v2: Any): Int {
-    return cmpI(v1, v2) ?:
-            cmpL(v1, v2) ?:
-            cmpS(v1, v2) ?:
-            cmpE(v1, v2) ?:
-            throw IllegalArgumentException("Unsupported values $v1, $v2")
-}
-
-private fun cmpI(v1: Any, v2: Any) = c2<Int>(v1, v2)
-private fun cmpL(v1: Any, v2: Any) = c2<Long>(v1, v2)
-private fun cmpS(v1: Any, v2: Any) = c2<String>(v1, v2)
-private fun cmpE(v1: Any, v2: Any) = c2<EID>(v1, v2)
-
-private inline fun <reified T : Comparable<T>> c2(v1: Any, v2: Any) =
-        if (v1 is T && v2 is T) v1.compareTo(v2)
-        else null
-

@@ -48,6 +48,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
         when (a) {
             is Node<*> -> serialize(a.hash!!.bytes)
             is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
+            is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
             is Byte -> byteArray(QByte.code, a)
             is Int -> byteArray(QInt.code, serializeInt(a))
             is Long -> byteArray(QLong.code, serializeLong(a))
@@ -119,6 +120,7 @@ internal fun deserialize(ins: InputStream): Any {
 @Suppress("UNCHECKED_CAST")
 private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): T {
     return when (expectedMark) {
+        QBoolean -> (ins.read().toByte() == 1.toByte()) as T
         QByte -> ins.read().toByte() as T
         QInt -> readInt(ins) as T
         QLong -> readLong(ins) as T
