@@ -6,16 +6,25 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
     private val index = createIndex(graph, head)
 
     companion object {
-        private fun createIndex(graph: Graph, head: Node<Hash>): Index {
-            var res = Index()
-            graph.walk(head, { n ->
-                if (n is NodeVal) {
-                    res = n.data.trx.fold(res, { acc, f -> acc.add(StoredFact(f.entityId, f.attribute, n.timestamp, f.value)) })
-                }
-                false
-            })
-            return res
+        fun createIndex(graph: Graph, head: NodeVal<Hash>): Index {
+            val parentIdx =
+                    when (head) {
+                        is Root -> Index()
+                        is Leaf -> createIndex(graph, graph.resolve(head.parent))
+                        is Merge -> {
+                            val idx1 = createIndex(graph, graph.resolve(head.parent1))
+                            val idx2 = createIndex(graph, graph.resolve(head.parent2))
+                            idx2.add(idx1.eavt.filterIsInstance<StoredFact>().toList())
+                        }
+                    }
+            return parentIdx.add(head.data.trx.map { StoredFact(it.entityId, it.attribute, head.timestamp, it.value) })
         }
+
+        private fun Graph.resolve(n: Node<Hash>) = when (n) {
+            is NodeVal<Hash> -> n
+            is NodeRef -> this.resolve(n) ?: throw QBitException("Corrupted graph, could not resovle $n")
+        }
+
     }
 
     fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let { MapEntity(eid, it) }

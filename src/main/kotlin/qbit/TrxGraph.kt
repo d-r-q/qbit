@@ -21,7 +21,7 @@ class Leaf<out H : Hash?>(hash: H, val parent: Node<Hash>, source: DbUuid, times
 class Merge<out H : Hash?>(hash: H, val parent1: Node<Hash>, val parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) :
         NodeVal<H>(hash, source, timestamp, data)
 
-class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
+class Graph(val resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     companion object {
 

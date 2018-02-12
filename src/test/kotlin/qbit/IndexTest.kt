@@ -75,8 +75,13 @@ class IndexTest {
         val idx = Index()
                 .add(listOf(f(0, "attr",0, 0),
                         f(0, "attr",1, 1)))
-        val entities = idx.entitiesByAttrVal("attr", 0)
-        assertEquals(0, entities.size)
+        assertEquals(0, idx.entitiesByAttrVal("attr", 0).size)
+        assertEquals(1, idx.entitiesByAttrVal("attr", 1).size)
+
+        val idx2 = idx.add(f(0, "attr", 2, 2))
+        assertEquals(0, idx2.entitiesByAttrVal("attr", 0).size)
+        assertEquals(0, idx2.entitiesByAttrVal("attr", 1).size)
+        assertEquals(1, idx2.entitiesByAttrVal("attr", 2).size)
     }
 
     @Test

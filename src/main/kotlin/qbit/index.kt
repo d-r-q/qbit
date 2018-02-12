@@ -30,7 +30,7 @@ class Index(
         val distinctFacts = facts
                 .sortedWith(kotlin.Comparator(eatvCmp).reversed())
                 .distinctBy { it.entityId to it.attribute }
-        distinctFacts.forEach { newEavt.remove(FactPattern(it.entityId, it.attribute))}
+        distinctFacts.forEach { newEavt.removePattern(FactPattern(it.entityId, it.attribute))}
         newEavt.addAll(distinctFacts)
 
 
@@ -38,6 +38,16 @@ class Index(
         newAvet.addAll(newEavt)
 
         return Index(newAvet, newEavt)
+    }
+
+    private fun TreeSet<FactPattern>.removePattern(pattern: FactPattern) {
+        this.removeIf {
+            pattern.entityId?.equals(it.entityId) ?: true &&
+                    pattern.attribute?.equals(it.attribute) ?: true &&
+                    pattern.value?.equals(it.value) ?: true &&
+                    pattern.time?.equals(it.time) ?: true
+
+        }
     }
 
     fun add(fact: StoredFact): Index {
@@ -98,14 +108,14 @@ private fun Int.ifZero(body: (Int) -> Int) =
 private fun <T : Any?> c(f1: FactPattern, f2: FactPattern, g: (FactPattern) -> T): Int {
     val v1 = g(f1)
     val v2 = g(f2)
-    return if (v1 != null && v2 != null) {
-        val type = DataType.of<Any>(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
-        type.compare(v1, v2)
-    } else if (v1 == null && v2 != null) {
-        return -1
-    } else if (v1 != null && v2 == null) {
-        return 1
-    } else {
-        0
+    return when {
+        v1 != null && v2 != null -> {
+            val type = DataType.of<Any>(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
+            type.compare(v1, v2)
+        }
+
+        v1 == null && v2 != null -> -1
+        v1 != null && v2 == null -> 1
+        else -> 0
     }
 }
