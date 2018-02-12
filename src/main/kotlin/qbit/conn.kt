@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.schema.Schema
+import qbit.schema.*
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 
@@ -9,34 +9,34 @@ fun qbit(storage: Storage): LocalConn {
     val dbUuid = DbUuid(iid)
 
     var eid = 0
-    var trx = listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/name"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QString.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", true))
+    var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, QString.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/type"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QByte.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._type.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, QByte.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.attrs/unique"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QBoolean.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._unique.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/forks"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/entities"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entities.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, _entities.type.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, _entities.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), "qbit.attrs/name", "qbit.instance/iid"),
-            Fact(EID(iid.value, eid), "qbit.attrs/type", QLong.code),
-            Fact(EID(iid.value, eid), "qbit.attrs/unique", true))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str),
+            Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, _iid.unique))
     eid++
     trx += listOf(
-            Fact(EID(iid.value, eid), "qbit.instance/iid", 0),
-            Fact(EID(iid.value, eid), "qbit.instance/forks", 0),
-            Fact(EID(iid.value, eid), "qbit.instance/entities", eid))
+            Fact(EID(iid.value, eid), qbit.schema._iid, 0),
+            Fact(EID(iid.value, eid), qbit.schema._forks, 0),
+            Fact(EID(iid.value, eid), qbit.schema._entities, eid))
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -70,19 +70,20 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
      *   entities - count of entities created by this instance
      * }
      */
-    private val instanceEid = db.entitiesByAttr("qbit.instance/entities")
+    private val instanceEid =
+            db.entitiesByAttr(qbit.schema._entities)
             .first { it.eid.iid == dbUuid.iid.value }
             .eid
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
-            val forks = db.pull(instanceEid)!!["qbit.instance/forks"] as Int
+            val forks = db.pull(instanceEid)!![_forks] as Int
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
             val newHead = writer().store(
-                    Fact(instanceEid, "qbit.instance/forks", forks + 1),
-                    Fact(forkInstanceEid, "qbit.instance/forks", 0),
-                    Fact(forkInstanceEid, "qbit.instance/entities", 0))
+                    Fact(instanceEid, qbit.schema._iid, forks + 1),
+                    Fact(forkInstanceEid, qbit.schema._forks, 0),
+                    Fact(forkInstanceEid, qbit.schema._entities, 0))
             db = Db(newHead, nodesStorage)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
@@ -90,9 +91,9 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         }
     }
 
-    fun create(e: Map<String, Any>): Pair<Db, EID> {
+    fun create(e: Map<Attr<*>, Any>): Pair<Db, EID> {
         try {
-            val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!!["qbit.instance/entities"] as Int + 1)
+            val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!![_entities] as Int + 1)
             val db = addEntity(eid, e)
             return db to eid
         } catch (e: Exception) {
@@ -100,10 +101,10 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         }
     }
 
-    fun addEntity(eid: EID, e: Map<String, Any>): Db {
+    fun addEntity(eid: EID, e: Map<Attr<*>, Any>): Db {
         try {
-            val entity = e.entries.map { Fact(eid, it.key, it.value) } + Fact(instanceEid, "qbit.instance/entities", eid.eid)
-            validate(Schema(db), entity)
+            val entity = e.entries.map { (attr, value) -> Fact(eid, attr, value) } + Fact(instanceEid, qbit.schema._entities, eid.eid)
+            validate(db.schema, entity)
             db = Db(writer().store(entity), nodesStorage)
             return db
         } catch (e: Exception) {

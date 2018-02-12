@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import qbit.Db.Companion.createIndex
+import qbit.schema.Attr
 import qbit.serialization.SimpleSerialization
 
 class DbTest {
@@ -13,23 +14,27 @@ class DbTest {
         val time1 = System.currentTimeMillis()
         val eid = EID(0, 0)
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, "attr1", 0))))
+        val _attr1 = Attr(root["attr1"], QInt)
+        val _attr2 = Attr(root["attr2"], QInt)
+        val _attr3 = Attr(root["attr3"], QInt)
+
+        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
-                Fact(eid, "attr1", 1),
-                Fact(eid, "attr2", 0))))
+                Fact(eid, _attr1, 1),
+                Fact(eid, _attr2, 0))))
         val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2, NodeData(arrayOf(
-                Fact(eid, "attr1", 2),
-                Fact(eid, "attr2", 1),
-                Fact(eid, "attr3", 0))))
+                Fact(eid, _attr1, 2),
+                Fact(eid, _attr2, 1),
+                Fact(eid, _attr3, 0))))
 
         val index = createIndex(Graph({ _ -> null }), n3)
-        assertEquals(0, index.entitiesByAttrVal("attr1", 0).size)
-        assertEquals(0, index.entitiesByAttrVal("attr1", 1).size)
-        assertEquals(0, index.entitiesByAttrVal("attr2", 0).size)
+        assertEquals(0, index.entitiesByAttrVal("/attr1", 0).size)
+        assertEquals(0, index.entitiesByAttrVal("/attr1", 1).size)
+        assertEquals(0, index.entitiesByAttrVal("/attr2", 0).size)
         assertEquals(3, index.eavt.size)
-        assertEquals(2, index.entityById(eid)!!["attr1"]!!)
-        assertEquals(1, index.entityById(eid)!!["attr2"]!!)
-        assertEquals(0, index.entityById(eid)!!["attr3"]!!)
+        assertEquals(2, index.entityById(eid)!!["/attr1"]!!)
+        assertEquals(1, index.entityById(eid)!!["/attr2"]!!)
+        assertEquals(0, index.entityById(eid)!!["/attr3"]!!)
     }
 
     fun toHashed(n: NodeVal<Hash?>): Node<Hash> {

@@ -2,6 +2,8 @@ package qbit
 
 import java.util.Arrays.asList
 
+val root = Namespace(null, "")
+
 data class Namespace(val parent: Namespace?, val name: String) {
 
     constructor(name: String) : this(null, name)

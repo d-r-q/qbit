@@ -3,21 +3,21 @@ package qbit
 import java.util.*
 
 open class FactPattern(
-        open val entityId: EID? = null,
+        open val eid: EID? = null,
         open val attribute: String? = null,
         open val time: Long? = null,
         open val value: Any? = null) {
 
     override fun toString(): String {
-        return "FactPattern(entityId=$entityId, attribute=$attribute, time=$time, value=$value)"
+        return "FactPattern(eid=$eid, attribute=$attribute, time=$time, value=$value)"
     }
 }
 
 class StoredFact(
-        entityId: EID,
-        attribute: String,
+        override val eid: EID,
+        attr: String,
         time: Long,
-        value: Any) : FactPattern(entityId, attribute, time, value)
+        value: Any) : FactPattern(eid, attr, time, value)
 
 class Index(
         val avet: TreeSet<FactPattern> = TreeSet(avetCmp),
@@ -29,8 +29,8 @@ class Index(
 
         val distinctFacts = facts
                 .sortedWith(kotlin.Comparator(eatvCmp).reversed())
-                .distinctBy { it.entityId to it.attribute }
-        distinctFacts.forEach { newEavt.removePattern(FactPattern(it.entityId, it.attribute))}
+                .distinctBy { it.eid to it.attribute }
+        distinctFacts.forEach { newEavt.removePattern(FactPattern(it.eid, it.attribute))}
         newEavt.addAll(distinctFacts)
 
 
@@ -42,7 +42,7 @@ class Index(
 
     private fun TreeSet<FactPattern>.removePattern(pattern: FactPattern) {
         this.removeIf {
-            pattern.entityId?.equals(it.entityId) ?: true &&
+            pattern.eid?.equals(it.eid) ?: true &&
                     pattern.attribute?.equals(it.attribute) ?: true &&
                     pattern.value?.equals(it.value) ?: true &&
                     pattern.time?.equals(it.time) ?: true
@@ -56,9 +56,9 @@ class Index(
 
     fun entityById(eid: EID): Map<String, Any>? {
         try {
-            val facts = eavt.subSet(FactPattern(entityId = eid), FactPattern(entityId = eid.next()))
+            val facts = eavt.subSet(FactPattern(eid = eid), FactPattern(eid = eid.next()))
             return facts
-                    .filter { it.entityId == eid }
+                    .filter { it.eid == eid }
                     .groupBy { it.attribute!! }
                     .mapValues { it.value.last().value!! }
                     .takeIf { it.isNotEmpty() }
@@ -69,26 +69,39 @@ class Index(
 
     private fun EID.next() = EID(this.iid, this.eid + 1)
 
+    fun factsByEid(eid: EID): Map<String, Any>? = eavt.subSet(FactPattern(eid = eid), FactPattern(eid.next()))
+            .filter { it.eid == eid }
+            .groupBy { it.attribute!! }
+            .mapValues { it.value.last().value!! }
+            .takeIf { it.isNotEmpty() }
+
+    fun factsByAttr(attr: String): List<StoredFact> {
+        return avet.tailSet(FactPattern(attribute = attr))
+                .takeWhile { it.attribute == attr }
+                .filterIsInstance<StoredFact>()
+    }
+
     fun entitiesByAttr(attr: String): Set<EID> {
         return avet.tailSet(FactPattern(attribute = attr))
                 .takeWhile { it.attribute == attr }
-                .map { it.entityId!! }
+                .map { it.eid!! }
                 .toSet()
     }
+
     fun entitiesByAttrVal(attr: String, value: Any?): Set<EID> {
         return avet.tailSet(FactPattern(attribute = attr, value = value))
                 .takeWhile { it.attribute == attr && it.value == value }
-                .map { it.entityId!! }
+                .map { it.eid!! }
                 .toSet()
     }
 
 }
 
-val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::value, FactPattern::time)
+val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::eid, FactPattern::attribute, FactPattern::value, FactPattern::time)
 
-val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::entityId, FactPattern::time)
+val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attribute, FactPattern::value, FactPattern::eid, FactPattern::time)
 
-val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::entityId, FactPattern::attribute, FactPattern::time, FactPattern::value)
+val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::eid, FactPattern::attribute, FactPattern::time, FactPattern::value)
 
 fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, c3: (FactPattern) -> Any?, c4: (FactPattern) -> Any?) =
         { f1: FactPattern, f2: FactPattern ->

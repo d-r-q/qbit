@@ -1,8 +1,12 @@
 package qbit
 
+import qbit.schema.Attr
+
 data class DbUuid(val iid: IID)
 
-data class Fact(val entityId: EID, val attribute: String, val value: Any)
+fun Fact(eid: EID, attr: Attr<*>, value: Any) = Fact(eid, attr.str, value)
+
+data class Fact(val eid: EID, val attr: String, val value: Any)
 
 class NodeData(val trx: Array<out Fact>)
 

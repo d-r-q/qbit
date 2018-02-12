@@ -2,8 +2,12 @@ package qbit
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.schema.Attr
 
 class IndexTest {
+
+    private val _uid = Attr(root["uid"], QInt)
+    private val _foo = Attr(root["foo"], QString)
 
     @Test
     fun testVaet() {
@@ -51,20 +55,20 @@ class IndexTest {
     @Test
     fun testEntitiesByAttrVal() {
         val idx = Index()
-                .add(listOf(f(0, "uid", 0, 0),
-                        f(0, "uid", 1, 1),
-                        f(1, "uid", 0, 1),
-                        f(0, "foo", 0, "bar"),
-                        f(1, "foo", 0, "bar"),
-                        f(2, "foo", 0, "baz")
+                .add(listOf(f(0, _uid, 0, 0),
+                        f(0, _uid, 1, 1),
+                        f(1, _uid, 0, 1),
+                        f(0, _foo, 0, "bar"),
+                        f(1, _foo, 0, "bar"),
+                        f(2, _foo, 0, "baz")
                 ))
 
-        var lst = idx.entitiesByAttrVal("uid", 1)
+        var lst = idx.entitiesByAttrVal("/uid", 1)
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
 
-        lst = idx.entitiesByAttrVal("foo", "bar")
+        lst = idx.entitiesByAttrVal("/foo", "bar")
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
@@ -73,30 +77,30 @@ class IndexTest {
     @Test
     fun testEntityByOldAttrValue() {
         val idx = Index()
-                .add(listOf(f(0, "attr",0, 0),
-                        f(0, "attr",1, 1)))
-        assertEquals(0, idx.entitiesByAttrVal("attr", 0).size)
-        assertEquals(1, idx.entitiesByAttrVal("attr", 1).size)
+                .add(listOf(f(0, _uid,0, 0),
+                        f(0, _uid,1, 1)))
+        assertEquals(0, idx.entitiesByAttrVal("/uid", 0).size)
+        assertEquals(1, idx.entitiesByAttrVal("/uid", 1).size)
 
-        val idx2 = idx.add(f(0, "attr", 2, 2))
-        assertEquals(0, idx2.entitiesByAttrVal("attr", 0).size)
-        assertEquals(0, idx2.entitiesByAttrVal("attr", 1).size)
-        assertEquals(1, idx2.entitiesByAttrVal("attr", 2).size)
+        val idx2 = idx.add(f(0, _uid, 2, 2))
+        assertEquals(0, idx2.entitiesByAttrVal("/uid", 0).size)
+        assertEquals(0, idx2.entitiesByAttrVal("/uid", 1).size)
+        assertEquals(1, idx2.entitiesByAttrVal("/uid", 2).size)
     }
 
     @Test
     fun testEntitiesByAttr() {
         val idx = Index()
-                .add(listOf(f(0, "uid", 0, 0),
-                        f(1, "uid", 0, 1),
-                        f(0, "foo", 0, "bar"),
-                        f(1, "foo", 0, "bar"),
-                        f(2, "foo", 0, "baz")
+                .add(listOf(f(0, _uid, 0, 0),
+                        f(1, _uid, 0, 1),
+                        f(0, _foo, 0, "bar"),
+                        f(1, _foo, 0, "bar"),
+                        f(2, _foo, 0, "baz")
                 ))
 
-        assertEquals(2, idx.entitiesByAttr("uid").size)
-        assertEquals(3, idx.entitiesByAttr("foo").size)
+        assertEquals(2, idx.entitiesByAttr("/uid").size)
+        assertEquals(3, idx.entitiesByAttr("/foo").size)
     }
 
-    private fun f(eid: Int, attr: String, time: Long, value: Any) = StoredFact(EID(0, eid), attr, time, value)
+    private fun <T : Any> f(eid: Int, attr: Attr<T>, time: Long, value: T) = StoredFact(EID(0, eid), attr.str, time, value)
 }

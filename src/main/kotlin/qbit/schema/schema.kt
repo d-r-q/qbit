@@ -2,53 +2,40 @@ package qbit.schema
 
 import qbit.*
 
-private val qbitAttrs = Namespace("qbit").subNs("attrs")
+val qbitAttrs = Namespace("qbit").subNs("attrs")
+val qbitInstance = Namespace.of("qbit", "instance")
 
-val attrName = qbitAttrs["name"]
-val attrType = qbitAttrs["type"]
-val attrUnique = qbitAttrs["unique"]
+val _name = Attr(qbitAttrs["name"], QString, unique = true)
+val _type = Attr(qbitAttrs["type"], QByte)
+val _unique = Attr(qbitAttrs["unique"], QByte)
 
-val name = Attr(attrName, QString, unique = true)
-val type = Attr(attrType, QByte)
+val _forks = Attr(qbitInstance["forks"], QLong, false)
+val _entities = Attr(qbitInstance["entities"], QLong, false)
+val _iid = Attr(qbitInstance["iid"], QLong, true)
 
 private const val nsSep = "."
 private const val keySep = "/"
 
-data class Attr(val name: Key, val type: DataType<*>,
-                val unique: Boolean = false) : Entity,
-        Map<String, Any> by mapOf(attrName.toStr() to name.toStr(),
-                attrType.toStr() to type.code,
-                attrUnique.toStr() to unique) {
+data class Attr<T : Any>(val name: Key, val type: DataType<T>,
+                         val unique: Boolean = false) : Entity,
+        Map<Attr<*>, Any> by mapOf(_name to name.toStr(),
+                _type to type.code,
+                _unique to unique) {
 
-    override fun get(key: String): Any? {
-        return when (parseAttrName(key)) {
-            attrName -> this.name.toStr()
-            attrType -> type.code
-            attrUnique -> unique
-            else -> null
-        }
-    }
+    val str: String = this[_name] as String
 
 }
 
+class Schema(private val attrs: List<Attr<*>>) {
 
-class Schema(db: Db) {
-
-    private val attrs = db.entitiesByAttr(attrName.toStr())
-            .map {
-                Attr(parseAttrName(it.get(attrName.toStr(), String::class)!!),
-                        DataType.ofCode(it.get(attrType.toStr(), Byte::class)!!)!!,
-                        it.get(attrUnique.toStr(), Boolean::class)!!)
-            }
-
-    fun find(attrName: String): Attr? = attrs
-            .firstOrNull { it[qbit.schema.attrName.toStr()] == attrName }
+    fun find(attrName: Key): Attr<*>? = attrs
+            .firstOrNull { it.name == attrName }
 
 }
 
 private fun Key.toStr() = this.ns.parts.joinToString(nsSep) + keySep + this.name
 
-private fun parseAttrName(keyStr: String): Key {
+fun parseAttrName(keyStr: String): Key {
     val parts = keyStr.split(keySep)
     if (parts.size != 2) {
         throw IllegalArgumentException("Malformed attribute name: $keyStr")

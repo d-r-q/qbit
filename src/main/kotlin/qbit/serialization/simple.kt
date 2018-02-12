@@ -54,7 +54,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is Long -> byteArray(QLong.code, serializeLong(a))
             is String -> byteArray(QString.code, serializeInt(a.toByteArray(Charsets.UTF_8).size), a.toByteArray(Charsets.UTF_8))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
-            is Fact -> serialize(a.entityId, a.attribute, a.value)
+            is Fact -> serialize(a.eid, a.attr, a.value)
             is EID -> byteArray(QEID.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             else -> throw AssertionError("Should never happen, a is $a")

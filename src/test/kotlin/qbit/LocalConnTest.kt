@@ -16,12 +16,13 @@ class LocalConnTest {
     @Test
     fun testUpdate() {
         val conn = qbit(MemStorage())
-        val e = mapOf("user/attr" to "value")
-        conn.create(Attr(Namespace("user")["attr"], QString))
-        val (_, eid) = conn.create(e)
-        conn.addEntity(eid, mapOf("user/attr" to "value2"))
+        val _attr = Attr(Namespace("user")["attr"], QString)
+        conn.create(_attr)
+        val e = mapOf(_attr to "value")
+        val (_, eid) = conn.create(e as Map<Attr<*>, Any>)
+        conn.addEntity(eid, mapOf(_attr to "value2"))
         val pulledE2 = conn.db.pull(eid)
-        assertEquals("value2", pulledE2!!["user/attr"] as String)
+        assertEquals("value2", pulledE2!![_attr] as String)
     }
 
 }

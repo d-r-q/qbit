@@ -1,9 +1,14 @@
 package qbit
 
+import qbit.schema.Attr
+import qbit.schema.Schema
+import qbit.schema.parseAttrName
+
 class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     private val graph = Graph(resolve)
     private val index = createIndex(graph, head)
+    val schema = Schema(loadAttrs(index))
 
     companion object {
         fun createIndex(graph: Graph, head: NodeVal<Hash>): Index {
@@ -17,22 +22,34 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
                             idx2.add(idx1.eavt.filterIsInstance<StoredFact>().toList())
                         }
                     }
-            return parentIdx.add(head.data.trx.map { StoredFact(it.entityId, it.attribute, head.timestamp, it.value) })
+            return parentIdx.add(head.data.trx.map { StoredFact(it.eid, it.attr, head.timestamp, it.value) })
         }
 
         private fun Graph.resolve(n: Node<Hash>) = when (n) {
             is NodeVal<Hash> -> n
-            is NodeRef -> this.resolve(n) ?: throw QBitException("Corrupted graph, could not resovle $n")
+            is NodeRef -> this.resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
         }
 
+
+        private fun loadAttrs(index: Index): List<Attr<*>> {
+            val factsByAttr: List<StoredFact> = index.factsByAttr(qbit.schema._name.str)
+            return factsByAttr
+                    .map {
+                        val e = index.factsByEid(it.eid)!!
+                        val name = e[qbit.schema._name.str]!! as String
+                        val type = e[qbit.schema._type.str]!! as Byte
+                        val unique = e[qbit.schema._unique.str] as? Boolean ?: false
+                        Attr(qbit.schema.parseAttrName(name), DataType.ofCode(type)!!, unique)
+                    }
+        }
     }
 
-    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let { MapEntity(eid, it) }
+    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let { MapEntity(eid, it.mapKeys { schema.find(parseAttrName(it.key))!! }) }
 
-    fun entitiesByAttr(attr: String, value: Any? = null): List<StoredEntity> {
+    fun <T : Any> entitiesByAttr(attr: Attr<T>, value: T? = null): List<StoredEntity> {
         val eids =
-                if (value != null) index.entitiesByAttrVal(attr, value)
-                else index.entitiesByAttr(attr)
+                if (value != null) index.entitiesByAttrVal(attr.str, value)
+                else index.entitiesByAttr(attr.str)
 
         return eids.map { pull(it)!! }
     }
@@ -55,7 +72,7 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
 
 private class MapEntity(
         override val eid: EID,
-        private val map: Map<String, Any>
+        private val map: Map<Attr<*>, Any>
 ) :
         StoredEntity,
-        Map<String, Any> by map
+        Map<Attr<*>, Any> by map

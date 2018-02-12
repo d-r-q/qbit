@@ -87,8 +87,8 @@ class SimpleSerializationTest {
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
-        assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
+        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
+        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
         assertEquals(root.data.trx[0].value, res.data.trx[0].value)
     }
 
@@ -101,8 +101,8 @@ class SimpleSerializationTest {
         assertEquals(root.parent.hash, res.parent.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
-        assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
+        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
+        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
         assertEquals(root.data.trx[0].value, res.data.trx[0].value)
     }
 
@@ -115,8 +115,8 @@ class SimpleSerializationTest {
         assertEquals(root.parent2.hash, res.parent2.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].entityId, res.data.trx[0].entityId)
-        assertEquals(root.data.trx[0].attribute, res.data.trx[0].attribute)
+        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
+        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
         assertEquals(root.data.trx[0].value, res.data.trx[0].value)
     }
 

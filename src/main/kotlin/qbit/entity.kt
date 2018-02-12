@@ -1,12 +1,13 @@
 package qbit
 
+import qbit.schema.Attr
 import kotlin.reflect.KClass
 
 
-interface Entity : Map<String, Any> {
+interface Entity : Map<Attr<*>, Any> {
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> get(keyStr: String, type: KClass<T>): T? = get(keyStr)?.let {
+    fun <T : Any> get(keyStr: Attr<T>, type: KClass<T>): T? = get(keyStr)?.let {
         if (type == Byte::class && it is Byte) {
             it as T
         } else if (type == Boolean::class && it is Boolean) {

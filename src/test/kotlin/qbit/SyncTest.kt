@@ -12,8 +12,10 @@ class SyncTest {
     fun testSync() {
         val db1Storage = FileSystemStorage(Files.createTempDirectory("qbit-db1-"))
         val conn1 = qbit(db1Storage)
-        conn1.create(Attr(Namespace("user")["attr1"], QString))
-        conn1.create(Attr(Namespace("user")["attr2"], QString))
+        val _attr1 = Attr(Namespace("user")["attr1"], QString)
+        conn1.create(_attr1)
+        val _attr2 = Attr(Namespace("user")["attr2"], QString)
+        conn1.create(_attr2)
 
         val (id, head) = conn1.fork()
 
@@ -21,17 +23,17 @@ class SyncTest {
         val conn2 = LocalConn(id, db2Storage, head)
         conn2.fetch(conn1)
 
-        val e1 = mapOf("user/attr1" to "value1")
-        val (_, e1id) = conn1.create(e1)
+        val e1 = mapOf(_attr1 to "value1")
+        val (_, e1id) = conn1.create(e1 as Map<Attr<*>, Any>)
 
-        val e2 = mapOf("user/attr2" to "value2")
-        val (_, e2id) = conn2.create(e2)
+        val e2 = mapOf(_attr2 to "value2")
+        val (_, e2id) = conn2.create(e2 as Map<Attr<*>, Any>)
 
         conn2.sync(conn1)
-        assertEquals("value1", conn1.db.pull(e1id)!!["user/attr1"])
-        assertEquals("value2", conn1.db.pull(e2id)!!["user/attr2"])
-        assertEquals("value1", conn2.db.pull(e1id)!!["user/attr1"])
-        assertEquals("value2", conn2.db.pull(e2id)!!["user/attr2"])
+        assertEquals("value1", conn1.db.pull(e1id)!![_attr1])
+        assertEquals("value2", conn1.db.pull(e2id)!![_attr2])
+        assertEquals("value1", conn2.db.pull(e1id)!![_attr1])
+        assertEquals("value2", conn2.db.pull(e2id)!![_attr2])
     }
 
 }
