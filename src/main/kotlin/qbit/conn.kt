@@ -91,7 +91,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         }
     }
 
-    fun create(e: Map<Attr<*>, Any>): Pair<Db, EID> {
+    fun create(e: Entity): Pair<Db, EID> {
         try {
             val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!![_entities] as Int + 1)
             val db = addEntity(eid, e)
@@ -101,7 +101,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         }
     }
 
-    fun addEntity(eid: EID, e: Map<Attr<*>, Any>): Db {
+    fun addEntity(eid: EID, e: Entity): Db {
         try {
             val entity = e.entries.map { (attr, value) -> Fact(eid, attr, value) } + Fact(instanceEid, qbit.schema._entities, eid.eid)
             validate(db.schema, entity)

@@ -44,7 +44,8 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
         }
     }
 
-    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let { MapEntity(eid, it.mapKeys { schema.find(parseAttrName(it.key))!! }) }
+    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let {
+        Entity(eid, it.map { schema.find(parseAttrName(it.key))!! to it.value }) }
 
     fun <T : Any> entitiesByAttr(attr: Attr<T>, value: T? = null): List<StoredEntity> {
         val eids =
@@ -69,10 +70,3 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
     }
 
 }
-
-private class MapEntity(
-        override val eid: EID,
-        private val map: Map<Attr<*>, Any>
-) :
-        StoredEntity,
-        Map<Attr<*>, Any> by map

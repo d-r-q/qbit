@@ -17,12 +17,20 @@ private const val nsSep = "."
 private const val keySep = "/"
 
 data class Attr<T : Any>(val name: Key, val type: DataType<T>,
-                         val unique: Boolean = false) : Entity,
-        Map<Attr<*>, Any> by mapOf(_name to name.toStr(),
-                _type to type.code,
-                _unique to unique) {
+                         val unique: Boolean = false) : Entity {
+    override val keys: Set<Attr<*>>
+        get() = setOf(_name, _type, _unique)
 
-    val str: String = this[_name] as String
+    override fun get(key: Attr<*>): Any? {
+        return when (key) {
+            _name -> name.toStr()
+            _type -> type.code
+            _unique -> unique
+            else -> null
+        }
+    }
+
+    val str = name.toStr()
 
 }
 
