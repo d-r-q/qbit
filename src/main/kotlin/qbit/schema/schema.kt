@@ -13,8 +13,7 @@ val _forks = Attr(qbitInstance["forks"], QLong, false)
 val _entities = Attr(qbitInstance["entities"], QLong, false)
 val _iid = Attr(qbitInstance["iid"], QLong, true)
 
-private const val nsSep = "."
-private const val keySep = "/"
+fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false) = Attr(Key(name), type, unique)
 
 data class Attr<T : Any>(val name: Key, val type: DataType<T>,
                          val unique: Boolean = false) : Entity {
@@ -36,14 +35,17 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
 
 class Schema(private val attrs: List<Attr<*>>) {
 
-    fun find(attrName: Key): Attr<*>? = attrs
-            .firstOrNull { it.name == attrName }
+    fun find(attrName: String): Attr<*>? = attrs
+            .firstOrNull { it.str == attrName }
 
 }
 
+private const val nsSep = "."
+private const val keySep = "/"
+
 private fun Key.toStr() = this.ns.parts.joinToString(nsSep) + keySep + this.name
 
-fun parseAttrName(keyStr: String): Key {
+private fun Key(keyStr: String): Key {
     val parts = keyStr.split(keySep)
     if (parts.size != 2) {
         throw IllegalArgumentException("Malformed attribute name: $keyStr")

@@ -2,7 +2,6 @@ package qbit
 
 import qbit.schema.Attr
 import qbit.schema.Schema
-import qbit.schema.parseAttrName
 
 class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
 
@@ -39,13 +38,13 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
                         val name = e[qbit.schema._name.str]!! as String
                         val type = e[qbit.schema._type.str]!! as Byte
                         val unique = e[qbit.schema._unique.str] as? Boolean ?: false
-                        Attr(qbit.schema.parseAttrName(name), DataType.ofCode(type)!!, unique)
+                        Attr(name, DataType.ofCode(type)!!, unique)
                     }
         }
     }
 
     fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let {
-        Entity(eid, it.map { schema.find(parseAttrName(it.key))!! to it.value }) }
+        Entity(eid, it.map { schema.find(it.key)!! to it.value }) }
 
     fun <T : Any> entitiesByAttr(attr: Attr<T>, value: T? = null): List<StoredEntity> {
         val eids =
