@@ -33,10 +33,9 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
 
 }
 
-class Schema(private val attrs: List<Attr<*>>) {
+class Schema(private val attrs: Map<String, Attr<*>>) {
 
-    fun find(attrName: String): Attr<*>? = attrs
-            .firstOrNull { it.str == attrName }
+    fun find(attrName: String): Attr<*>? = attrs[attrName]
 
 }
 

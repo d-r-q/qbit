@@ -30,7 +30,7 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
         }
 
 
-        private fun loadAttrs(index: Index): List<Attr<*>> {
+        private fun loadAttrs(index: Index): Map<String, Attr<*>> {
             val factsByAttr: List<StoredFact> = index.factsByAttr(qbit.schema._name.str)
             return factsByAttr
                     .map {
@@ -38,8 +38,9 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
                         val name = e[qbit.schema._name.str]!! as String
                         val type = e[qbit.schema._type.str]!! as Byte
                         val unique = e[qbit.schema._unique.str] as? Boolean ?: false
-                        Attr(name, DataType.ofCode(type)!!, unique)
+                        name to Attr(name, DataType.ofCode(type)!!, unique)
                     }
+                    .toMap()
         }
     }
 
