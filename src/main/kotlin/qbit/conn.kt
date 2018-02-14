@@ -47,7 +47,7 @@ interface Conn {
 
     val dbUuid: DbUuid
 
-    val head: NodeVal<Hash>
+    var head: NodeVal<Hash>
 
     fun fork(): Pair<DbUuid, NodeVal<Hash>>
 
@@ -55,13 +55,13 @@ interface Conn {
 
 }
 
-class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Hash>) : Conn {
-
-    override val head: NodeVal<Hash>
-        get() = db.head
+class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head: NodeVal<Hash>) : Conn {
 
     private val nodesStorage = NodesStorage(storage)
-    var db = Db(head, nodesStorage)
+    private val graph = Graph(nodesStorage)
+    private val writer = Writer(nodesStorage, dbUuid)
+
+    var db = Db(Index(graph, head))
 
     /**
      * Instance descriptor eid
@@ -75,16 +75,22 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
             .first { it.eid.iid == dbUuid.iid.value }
             .eid
 
+    private fun swapHead(newHead: NodeVal<Hash>) {
+        head = newHead
+        db = Db(Index(graph, newHead))
+    }
+
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
             val forks = db.pull(instanceEid)!![_forks] as Int
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
-            val newHead = writer().store(
+            val newHead = writer.store(
+                    head,
                     Fact(instanceEid, qbit.schema._iid, forks + 1),
                     Fact(forkInstanceEid, qbit.schema._forks, 0),
                     Fact(forkInstanceEid, qbit.schema._entities, 0))
-            db = Db(newHead, nodesStorage)
+            swapHead(newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
             throw QBitException(cause = e)
@@ -105,7 +111,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
         try {
             val entity = e.entries.map { (attr, value) -> Fact(eid, attr, value) } + Fact(instanceEid, qbit.schema._entities, eid.eid)
             validate(db, entity)
-            db = Db(writer().store(entity), nodesStorage)
+            swapHead(writer.store(head, entity))
             return db
         } catch (e: Exception) {
             throw QBitException(cause = e)
@@ -114,9 +120,9 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     fun sync(another: Conn) {
         try {
-            val novelty = db.findSubgraph(another.dbUuid) ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
+            val novelty = graph.findSubgraph(head, another.dbUuid) ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
             val newRoot = another.push(novelty)
-            db = Db(writer().appendGraph(newRoot), nodesStorage)
+            swapHead(writer.appendGraph(newRoot))
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
@@ -124,21 +130,19 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     fun fetch(source: Conn) {
         try {
-            db = Db(writer().appendGraph(source.head), nodesStorage)
+            swapHead(writer.appendGraph(source.head))
         } catch (e: Exception) {
             throw QBitException("Fetch failed", e)
         }
     }
 
     override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
-        val newDb = writer().appendGraph(noveltyRoot)
-        val myNovelty = Graph.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
-        val head = writer().appendNode(merge(db.head, newDb))
-        db = Db(head, nodesStorage)
+        val newDb = writer.appendGraph(noveltyRoot)
+        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
+        val head = writer.appendNode(merge(head, newDb))
+        swapHead(head)
         return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
     }
-
-    private fun writer() = Writer(db, nodesStorage, dbUuid)
 
     private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> = Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
 

@@ -19,6 +19,21 @@ class StoredFact(
         time: Long,
         value: Any) : FactPattern(eid, attr, time, value)
 
+
+fun Index(graph: Graph, head: NodeVal<Hash>): Index {
+    val parentIdx =
+            when (head) {
+                is Root -> Index()
+                is Leaf -> Index(graph, graph.resolveNode(head.parent))
+                is Merge -> {
+                    val idx1 = Index(graph, graph.resolveNode(head.parent1))
+                    val idx2 = Index(graph, graph.resolveNode(head.parent2))
+                    idx2.add(idx1.eavt.filterIsInstance<StoredFact>().toList())
+                }
+            }
+    return parentIdx.add(head.data.trx.map { StoredFact(it.eid, it.attr, head.timestamp, it.value) })
+}
+
 class Index(
         val avet: TreeSet<FactPattern> = TreeSet(avetCmp),
         val eavt: TreeSet<FactPattern> = TreeSet(eavtCmp)) {

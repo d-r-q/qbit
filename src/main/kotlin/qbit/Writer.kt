@@ -2,19 +2,19 @@ package qbit
 
 import qbit.storage.NodesStorage
 
-class Writer(private val db: Db, private val storage: NodesStorage, private val dbUuid: DbUuid) {
+class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
 
-    fun store(e: List<Fact>): NodeVal<Hash> {
+    fun store(head: NodeVal<Hash>, e: List<Fact>): NodeVal<Hash> {
         try {
-            return store(*e.toTypedArray())
+            return store(head, *e.toTypedArray())
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
 
-    fun store(vararg e: Fact): NodeVal<Hash> {
+    fun store(head: NodeVal<Hash>, vararg e: Fact): NodeVal<Hash> {
         try {
-            return storage.store(Leaf(null, db.head, dbUuid, System.currentTimeMillis(), NodeData(e)))
+            return storage.store(Leaf(null, head, dbUuid, System.currentTimeMillis(), NodeData(e)))
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }

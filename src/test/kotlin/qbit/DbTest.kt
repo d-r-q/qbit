@@ -2,7 +2,6 @@ package qbit
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import qbit.Db.Companion.createIndex
 import qbit.schema.Attr
 import qbit.serialization.SimpleSerialization
 
@@ -27,7 +26,7 @@ class DbTest {
                 Fact(eid, _attr2, 1),
                 Fact(eid, _attr3, 0))))
 
-        val index = createIndex(Graph({ _ -> null }), n3)
+        val index = Index(Graph({ _ -> null }), n3)
         assertEquals(0, index.entitiesByAttrVal("/attr1", 0).size)
         assertEquals(0, index.entitiesByAttrVal("/attr1", 1).size)
         assertEquals(0, index.entitiesByAttrVal("/attr2", 0).size)
@@ -37,7 +36,7 @@ class DbTest {
         assertEquals(0, index.entityById(eid)!!["/attr3"]!!)
     }
 
-    fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
+    private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
         val data = SimpleSerialization.serializeNode(n)
         val hash = hash(data)
         return when (n) {
