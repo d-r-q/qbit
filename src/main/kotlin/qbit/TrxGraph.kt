@@ -25,17 +25,30 @@ class Leaf<out H : Hash?>(hash: H, val parent: Node<Hash>, source: DbUuid, times
 class Merge<out H : Hash?>(hash: H, val parent1: Node<Hash>, val parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) :
         NodeVal<H>(hash, source, timestamp, data)
 
-class Graph(val resolve: (NodeRef) -> NodeVal<Hash>?) {
+class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     companion object {
 
+        /**
+         * Finds set of {@code NodeRef}'s reachable from given node
+         */
         fun refs(root: Node<Hash>): Set<NodeRef> {
             return when (root) {
                 is NodeRef -> setOf(root)
                 is Leaf<Hash> -> refs(root.parent)
                 is Merge<Hash> -> refs(root.parent1) + refs(root.parent2)
-                is Root<Hash> -> throw QBitException("Could not find ref")
+                is Root<Hash> -> setOf()
             }
+        }
+
+        /**
+         * sgRoot - root of the subgraph
+         */
+        fun findSubgraph(n: Node<Hash>, sgRootsHashes: Set<Hash>): Node<Hash> = when {
+            n is Leaf && n.parent.hash in sgRootsHashes -> Leaf(n.hash, NodeRef(n.parent), n.source, n.timestamp, n.data)
+            n is Leaf && n.parent.hash !in sgRootsHashes -> findSubgraph(n.parent, sgRootsHashes)
+            n is Merge -> Merge(n.hash, findSubgraph(n.parent1, sgRootsHashes), findSubgraph(n.parent2, sgRootsHashes), n.source, n.timestamp, n.data)
+            else -> throw AssertionError("Should never happen, n is $n root is $sgRootsHashes")
         }
     }
 
@@ -54,38 +67,9 @@ class Graph(val resolve: (NodeRef) -> NodeVal<Hash>?) {
         else -> throw AssertionError("Should never happen")
     }
 
-    /**
-     * @param walker nodes handler. Should return `true` if walk should be stopped or `false` otherwise
-     */
-    fun walk(head: Node<Hash>, walker: (Node<Hash>) -> Boolean) {
-        walkFrom(walker, hashSetOf(), head)
-    }
-
-    private fun walkFrom(walker: (Node<Hash>) -> Boolean, visited: MutableSet<Node<Hash>>, head: Node<Hash>): Boolean {
-        if (walker(head)) {
-            return true
-        }
-        visited.add(head)
-        val toVisit: List<Node<Hash>> = when (head) {
-            is Root -> listOf()
-            is Leaf -> listOf(head.parent)
-            is Merge -> listOf(head.parent1, head.parent2)
-            is NodeRef -> resolve(head).let { h ->
-                when (h) {
-                    is Root -> listOf()
-                    is Leaf -> listOf(h.parent)
-                    is Merge -> listOf(h.parent1, h.parent2)
-                    else -> throw AssertionError("Should never happen")
-                }
-            }
-        }
-
-        toVisit.filter { it !in visited }.forEach { node ->
-            if (walkFrom(walker, visited, node)) {
-                return true
-            }
-        }
-        return false
+    fun resolveNode(n: Node<Hash>) = when (n) {
+        is NodeVal<Hash> -> n
+        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 
 }

@@ -104,7 +104,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
     fun addEntity(eid: EID, e: Entity): Db {
         try {
             val entity = e.entries.map { (attr, value) -> Fact(eid, attr, value) } + Fact(instanceEid, qbit.schema._entities, eid.eid)
-            validate(db.schema, entity)
+            validate(db, entity)
             db = Db(writer().store(entity), nodesStorage)
             return db
         } catch (e: Exception) {
@@ -132,7 +132,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
         val newDb = writer().appendGraph(noveltyRoot)
-        val myNovelty = db.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
+        val myNovelty = Graph.findSubgraph(db.head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
         val head = writer().appendNode(merge(db.head, newDb))
         db = Db(head, nodesStorage)
         return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
