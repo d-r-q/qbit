@@ -20,7 +20,7 @@ class Db(val head: NodeVal<Hash>, resolve: (NodeRef) -> NodeVal<Hash>?) {
         return eids.map { pull(it)!! }
     }
 
-    fun findSubgraph(uuid: DbUuid): Node<Hash> {
+    fun findSubgraph(uuid: DbUuid): Node<Hash>? {
         return graph.findSubgraph(head, uuid)
     }
 

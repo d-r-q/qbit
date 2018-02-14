@@ -27,6 +27,29 @@ class Merge<out H : Hash?>(hash: H, val parent1: Node<Hash>, val parent2: Node<H
 
 class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
 
+    fun findSubgraph(n: Node<Hash>, sgRootSource: DbUuid): Node<Hash>? {
+        val nv = resolveNode(n)
+        return when  {
+            nv.source == sgRootSource -> NodeRef(n)
+            nv is Root -> null
+            nv is Leaf -> {
+                val parent = findSubgraph(nv.parent, sgRootSource) ?: return null
+                Leaf(n.hash, parent, nv.source, nv.timestamp, nv.data)
+            }
+            nv is Merge -> {
+                val parent1 = findSubgraph(nv.parent1, sgRootSource) ?: return null
+                val parent2 = findSubgraph(nv.parent2, sgRootSource) ?: return null
+                Merge(n.hash, parent1, parent2, nv.source, nv.timestamp, nv.data)
+            }
+            else -> throw AssertionError("Should never happen")
+        }
+    }
+
+    fun resolveNode(n: Node<Hash>) = when (n) {
+        is NodeVal<Hash> -> n
+        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
+    }
+
     companion object {
 
         /**
@@ -50,26 +73,6 @@ class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
             n is Merge -> Merge(n.hash, findSubgraph(n.parent1, sgRootsHashes), findSubgraph(n.parent2, sgRootsHashes), n.source, n.timestamp, n.data)
             else -> throw AssertionError("Should never happen, n is $n root is $sgRootsHashes")
         }
-    }
-
-    fun findSubgraph(n: Node<Hash>, sgRootSource: DbUuid): Node<Hash> = when {
-        n is NodeRef -> resolve(n).let { findSubgraph(it!!, sgRootSource) }
-        n is NodeVal && n.source == sgRootSource -> NodeRef(n.hash)
-        n is Leaf -> {
-            val parent = findSubgraph(n.parent, sgRootSource)
-            Leaf(n.hash, parent, n.source, n.timestamp, n.data)
-        }
-        n is Merge -> {
-            val parent1 = findSubgraph(n.parent1, sgRootSource)
-            val parent2 = findSubgraph(n.parent2, sgRootSource)
-            Merge(n.hash, parent1, parent2, n.source, n.timestamp, n.data)
-        }
-        else -> throw AssertionError("Should never happen")
-    }
-
-    fun resolveNode(n: Node<Hash>) = when (n) {
-        is NodeVal<Hash> -> n
-        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 
 }

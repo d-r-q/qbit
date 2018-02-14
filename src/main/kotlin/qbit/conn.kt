@@ -114,7 +114,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, head: NodeVal<Has
 
     fun sync(another: Conn) {
         try {
-            val novelty = db.findSubgraph(another.dbUuid)
+            val novelty = db.findSubgraph(another.dbUuid) ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
             val newRoot = another.push(novelty)
             db = Db(writer().appendGraph(newRoot), nodesStorage)
         } catch (e: Exception) {
