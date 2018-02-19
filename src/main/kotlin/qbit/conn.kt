@@ -102,6 +102,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
             val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!![_entities] as Int + 1)
             val db = addEntity(eid, e)
             return db to eid
+        } catch (qe: QBitException) {
+            throw qe
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
@@ -113,6 +115,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
             validate(db, entity)
             swapHead(writer.store(head, entity))
             return db
+        } catch (qe: QBitException) {
+            throw qe
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
