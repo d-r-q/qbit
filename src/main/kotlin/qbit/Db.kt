@@ -26,7 +26,7 @@ class Db(private val index: Index) {
             val factsByAttr: List<StoredFact> = index.factsByAttr(qbit.schema._name.str)
             return factsByAttr
                     .map {
-                        val e = index.factsByEid(it.eid)!!
+                        val e = index.entityById(it.eid)!!
                         val name = e[qbit.schema._name.str]!! as String
                         val type = e[qbit.schema._type.str]!! as Byte
                         val unique = e[qbit.schema._unique.str] as? Boolean ?: false
