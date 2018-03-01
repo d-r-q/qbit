@@ -18,7 +18,7 @@ qbit stores data locally and uses entity graph information model, and for develo
 
 Protect users privacy. And make development fun again.
 
-## Evolution progress: [====----------] (30%)
+## Evolution progress: [=====---------] (36%)
 
  * Datastore
    * :white_check_mark: ~Fetch data by id~
@@ -29,7 +29,7 @@ Protect users privacy. And make development fun again.
  * DataBase
    * :white_check_mark: ~Query by attribute value~
    * :white_check_mark: ~Schema~
-   * Unique constraints
+   * :white_check_mark: ~Unique constraints~
    * Programmatic range queries
    * Programmatic joins
    * Query language (Datalog and/or something SQL-like)
