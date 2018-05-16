@@ -7,8 +7,15 @@ class Db(private val index: Index) {
 
     private val schema = Schema(loadAttrs(index))
 
-    fun pull(eid: EID): StoredEntity? = index.entityById(eid)?.let {
-        Entity(eid, it.map { schema.find(it.key)!! to it.value }) }
+    fun pull(eid: EID): StoredEntity? {
+        val entity = index.entityById(eid) ?: return null
+        val attrValues = entity.map {
+            val attr = schema.find(it.key)
+            require(attr != null)
+            attr!! to it.value
+        }
+        return Entity(eid, attrValues)
+    }
 
     fun <T : Any> entitiesByAttr(attr: Attr<T>, value: T? = null): List<StoredEntity> {
         val eids =
@@ -23,7 +30,7 @@ class Db(private val index: Index) {
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr<*>> {
-            val factsByAttr: List<StoredFact> = index.factsByAttr(qbit.schema._name.str)
+            val factsByAttr = index.factsByAttr(qbit.schema._name.str)
             return factsByAttr
                     .map {
                         val e = index.entityById(it.eid)!!

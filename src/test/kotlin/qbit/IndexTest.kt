@@ -11,56 +11,37 @@ class IndexTest {
 
     @Test
     fun testVaet() {
-        val f1 = StoredFact(EID(1, 0), "attr2", 1, "value2")
-        assertEquals(0, avetCmp(f1, f1))
+        val f1 = Fact(EID(1, 0), "attr1", "value1")
+        val f2 = Fact(EID(2, 0), "attr2", "value2")
+        val f3 = Fact(EID(3, 0), "attr3", "value3")
 
-        val byAttr = FactPattern(null, "attr2", null, null)
-        assertEquals(1, avetCmp(f1, byAttr))
-        assertEquals(-1, avetCmp(byAttr, f1))
+        assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
 
-        val lesserAttr = FactPattern(null, "attr1", null, null)
-        assertEquals(1, avetCmp(f1, lesserAttr))
-        assertEquals(-1, avetCmp(lesserAttr, f1))
+        val byAttr = attrPattern("attr2")
+        assertEquals(-1, byAttr(f1))
+        assertEquals(0, byAttr(f2))
+        assertEquals(1, byAttr(f3))
 
-        val greaterAttr = FactPattern(null, "attr3", null, null)
-        assertEquals(-1, avetCmp(f1, greaterAttr))
-        assertEquals(1, avetCmp(greaterAttr, f1))
+        val byValue = valuePattern("value2")
+        assertEquals(-1, byValue(f1))
+        assertEquals(0, byValue(f2))
+        assertEquals(1, byValue(f3))
 
-        val lesserValue = FactPattern(null, "attr2", null, "value1")
-        assertEquals(1, avetCmp(f1, lesserValue))
-        assertEquals(-1, avetCmp(lesserValue, f1))
-
-        val greaterValue = FactPattern(null, "attr2", null, "value3")
-        assertEquals(-1, avetCmp(f1, greaterValue))
-        assertEquals(1, avetCmp(greaterValue, f1))
-
-        val lesserEid = FactPattern(EID(0, 0), "attr2", null, "value2")
-        assertEquals(1, avetCmp(f1, lesserEid))
-        assertEquals(-1, avetCmp(lesserEid, f1))
-
-        val greaterEid = FactPattern(EID(2, 0), "attr2", null, "value2")
-        assertEquals(-1, avetCmp(f1, greaterEid))
-        assertEquals(1, avetCmp(greaterEid, f1))
-
-        val lesserTime = FactPattern(EID(1, 0), "attr2", 0, "value2")
-        assertEquals(1, avetCmp(f1, lesserTime))
-        assertEquals(-1, avetCmp(lesserTime, f1))
-
-        val greaterTime = FactPattern(EID(1, 0), "attr2", 3, "value2")
-        assertEquals(-1, avetCmp(f1, greaterTime))
-        assertEquals(1, avetCmp(greaterTime, f1))
-
+        val byEid = eidPattern(EID(2, 0))
+        assertEquals(-1, byEid(f1))
+        assertEquals(0, byEid(f2))
+        assertEquals(1, byEid(f3))
     }
 
     @Test
     fun testEntitiesByAttrVal() {
         val idx = Index()
-                .add(listOf(f(0, _uid, 0, 0),
-                        f(0, _uid, 1, 1),
-                        f(1, _uid, 0, 1),
-                        f(0, _foo, 0, "bar"),
-                        f(1, _foo, 0, "bar"),
-                        f(2, _foo, 0, "baz")
+                .add(listOf(f(0, _uid, 0),
+                        f(1, _uid, 1),
+                        f(0, _uid, 1),
+                        f(0, _foo, "bar"),
+                        f(1, _foo, "bar"),
+                        f(2, _foo, "baz")
                 ))
 
         var lst = idx.entitiesByAttrVal("/uid", 1)
@@ -77,12 +58,12 @@ class IndexTest {
     @Test
     fun testEntityByOldAttrValue() {
         val idx = Index()
-                .add(listOf(f(0, _uid,0, 0),
-                        f(0, _uid,1, 1)))
+                .add(listOf(f(0, _uid, 0),
+                        f(0, _uid, 1)))
         assertEquals(0, idx.entitiesByAttrVal("/uid", 0).size)
         assertEquals(1, idx.entitiesByAttrVal("/uid", 1).size)
 
-        val idx2 = idx.add(f(0, _uid, 2, 2))
+        val idx2 = idx.add(f(0, _uid, 2))
         assertEquals(0, idx2.entitiesByAttrVal("/uid", 0).size)
         assertEquals(0, idx2.entitiesByAttrVal("/uid", 1).size)
         assertEquals(1, idx2.entitiesByAttrVal("/uid", 2).size)
@@ -91,16 +72,16 @@ class IndexTest {
     @Test
     fun testEntitiesByAttr() {
         val idx = Index()
-                .add(listOf(f(0, _uid, 0, 0),
-                        f(1, _uid, 0, 1),
-                        f(0, _foo, 0, "bar"),
-                        f(1, _foo, 0, "bar"),
-                        f(2, _foo, 0, "baz")
+                .add(listOf(f(0, _uid, 0),
+                        f(1, _uid, 1),
+                        f(0, _foo, "bar"),
+                        f(1, _foo, "bar"),
+                        f(2, _foo, "baz")
                 ))
 
         assertEquals(2, idx.entitiesByAttr("/uid").size)
         assertEquals(3, idx.entitiesByAttr("/foo").size)
     }
 
-    private fun <T : Any> f(eid: Int, attr: Attr<T>, time: Long, value: T) = StoredFact(EID(0, eid), attr.str, time, value)
+    private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Fact(EID(0, eid), attr, value)
 }

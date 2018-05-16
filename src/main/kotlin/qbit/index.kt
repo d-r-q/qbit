@@ -1,24 +1,6 @@
 package qbit
 
-import java.util.*
-
-open class FactPattern(
-        open val eid: EID? = null,
-        open val attr: String? = null,
-        open val time: Long? = null,
-        open val value: Any? = null) {
-
-    override fun toString(): String {
-        return "FactPattern(eid=$eid, attr=$attr, time=$time, value=$value)"
-    }
-}
-
-class StoredFact(
-        override val eid: EID,
-        attr: String,
-        time: Long,
-        value: Any) : FactPattern(eid, attr, time, value)
-
+import qbit.collections.BTree
 
 fun Index(graph: Graph, head: NodeVal<Hash>): Index {
     val parentIdx =
@@ -28,116 +10,116 @@ fun Index(graph: Graph, head: NodeVal<Hash>): Index {
                 is Merge -> {
                     val idx1 = Index(graph, graph.resolveNode(head.parent1))
                     val idx2 = Index(graph, graph.resolveNode(head.parent2))
-                    idx2.add(idx1.eavt.filterIsInstance<StoredFact>().toList())
+                    idx2.add(idx1.eavt.toList())
                 }
             }
-    return parentIdx.add(head.data.trx.map { StoredFact(it.eid, it.attr, head.timestamp, it.value) })
+    return parentIdx.add(head.data.trx.toList())
+}
+
+val eidCmp = Comparator<Fact> { o1, o2 -> o1.eid.compareTo(o2.eid) }
+val attrCmp = Comparator<Fact> { o1, o2 -> o1.attr.compareTo(o2.attr) }
+val valueCmp = Comparator<Fact> { o1, o2 -> compareValues(o1, o2) }
+
+fun composeComparators(vararg cmps: Comparator<Fact>): Comparator<Fact> = Comparator { o1: Fact, o2: Fact ->
+    cmps.asSequence()
+            .map { it.compare(o1, o2) }
+            .dropWhile { it == 0 }
+            .firstOrNull() ?: 0
+}
+
+fun eidPattern(eid: EID) = { other: Fact -> other.eid.compareTo(eid) }
+
+fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
+
+fun eidAttrPattern(eid: EID, attr: String) = composeComparable(eidPattern(eid), attrPattern(attr))
+
+fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
+
+fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
+
+fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
+    cmps.asSequence()
+            .map { it(fact) }
+            .dropWhile { it == 0 }
+            .firstOrNull() ?: 0
+}
+
+val eavtCmp = composeComparators(eidCmp, attrCmp)
+
+val avetCmp = composeComparators(attrCmp, valueCmp, eidCmp)
+
+fun compareValues(f1: Fact, f2: Fact) =
+        compareValues(f1.value, f2.value)
+
+fun compareValues(v1: Any, v2: Any): Int {
+    val type = DataType.of(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
+    return type.compare(v1, v2)
 }
 
 class Index(
-        val avet: TreeSet<FactPattern> = TreeSet(avetCmp),
-        val eavt: TreeSet<FactPattern> = TreeSet(eavtCmp)) {
+        val eavt: BTree<Fact> = BTree(eavtCmp),
+        val avet: BTree<Fact> = BTree(avetCmp)
+) {
 
-    fun add(facts: List<StoredFact>): Index {
-        val newEavt = TreeSet<FactPattern>(eavtCmp)
-        newEavt.addAll(eavt)
+    fun add(facts: List<Fact>): Index {
+        var newEavt = eavt
+        var newAvet = avet
 
+        // add only last values
         val distinctFacts = facts
-                .sortedWith(kotlin.Comparator(eatvCmp).reversed())
+                .reversed()
                 .distinctBy { it.eid to it.attr }
-        distinctFacts.forEach { newEavt.removePattern(FactPattern(it.eid, it.attr))}
-        newEavt.addAll(distinctFacts)
 
-
-        val newAvet = TreeSet<FactPattern>(avetCmp)
-        newAvet.addAll(newEavt)
-
-        return Index(newAvet, newEavt)
-    }
-
-    private fun TreeSet<FactPattern>.removePattern(pattern: FactPattern) {
-        this.removeIf {
-            pattern.eid?.equals(it.eid) ?: true &&
-                    pattern.attr?.equals(it.attr) ?: true &&
-                    pattern.value?.equals(it.value) ?: true &&
-                    pattern.time?.equals(it.time) ?: true
-
+        for (f in distinctFacts) {
+            val toRemove = newEavt.select(eidAttrPattern(f.eid, f.attr)).asSequence().firstOrNull()
+            if (toRemove != null) {
+                newEavt = newEavt.remove(toRemove)
+                newAvet = newAvet.remove(toRemove)
+            }
+            newEavt = newEavt.add(f)
+            newAvet = newAvet.add(f)
         }
+
+        return Index(newEavt, newAvet)
     }
 
-    fun add(fact: StoredFact): Index {
+    fun add(fact: Fact): Index {
         return add(listOf(fact))
     }
 
     fun entityById(eid: EID): Map<String, Any>? {
         try {
-            val facts = eavt.subSet(FactPattern(eid = eid), FactPattern(eid = eid.next()))
-            return facts
-                    .filter { it.eid == eid }
-                    .groupBy { it.attr!! }
-                    .mapValues { it.value.last().value!! }
+            val facts = eavt.select(eidPattern(eid))
+            val grouped = facts
+                    .asSequence()
+                    .groupBy { it.attr }
+            val mapped = grouped
+                    .mapValues { it.value.last().value }
+            return mapped
                     .takeIf { it.isNotEmpty() }
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
 
-    private fun EID.next() = EID(this.iid, this.eid + 1)
-
-    fun factsByAttr(attr: String): List<StoredFact> {
-        return avet.tailSet(FactPattern(attr = attr))
-                .takeWhile { it.attr == attr }
-                .filterIsInstance<StoredFact>()
+    fun factsByAttr(attr: String): List<Fact> {
+        return avet.select(attrPattern(attr))
+                .asSequence()
+                .toList()
     }
 
     fun entitiesByAttr(attr: String): Set<EID> {
-        return avet.tailSet(FactPattern(attr = attr))
-                .takeWhile { it.attr == attr }
-                .map { it.eid!! }
+        return avet.select(attrPattern(attr))
+                .asSequence()
+                .map { it.eid }
                 .toSet()
     }
 
-    fun entitiesByAttrVal(attr: String, value: Any?): Set<EID> {
-        return avet.tailSet(FactPattern(attr = attr, value = value))
-                .takeWhile { it.attr == attr && it.value == value }
-                .map { it.eid!! }
+    fun entitiesByAttrVal(attr: String, value: Any): Set<EID> {
+        return avet.select(attrValuePattern(attr, value))
+                .asSequence()
+                .map { it.eid }
                 .toSet()
     }
 
-}
-
-val eavtCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::eid, FactPattern::attr, FactPattern::value, FactPattern::time)
-
-val avetCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::attr, FactPattern::value, FactPattern::eid, FactPattern::time)
-
-val eatvCmp: (FactPattern, FactPattern) -> Int = cmp(FactPattern::eid, FactPattern::attr, FactPattern::time, FactPattern::value)
-
-fun <T : Comparable<T>> cmp(c1: (FactPattern) -> T?, c2: (FactPattern) -> Any?, c3: (FactPattern) -> Any?, c4: (FactPattern) -> Any?) =
-        { f1: FactPattern, f2: FactPattern ->
-            if (c1(f1) == null || c1(f2) == null) {
-                throw IllegalArgumentException("could not compare $f1 and $f2 with $c1")
-            }
-            c1(f1)!!.compareTo(c1(f2)!!)
-                    .ifZero { c(f1, f2, c2) }
-                    .ifZero { c(f1, f2, c3) }
-                    .ifZero { c(f1, f2, c4) }
-        }
-
-private fun Int.ifZero(body: (Int) -> Int) =
-        if (this == 0) body(this)
-        else this
-
-private fun <T : Any?> c(f1: FactPattern, f2: FactPattern, g: (FactPattern) -> T): Int {
-    val v1 = g(f1)
-    val v2 = g(f2)
-    return when {
-        v1 != null && v2 != null -> {
-            val type = DataType.of<Any>(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
-            type.compare(v1, v2)
-        }
-
-        v1 == null && v2 != null -> -1
-        v1 != null && v2 == null -> 1
-        else -> 0
-    }
 }

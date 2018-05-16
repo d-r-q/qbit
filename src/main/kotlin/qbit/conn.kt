@@ -148,7 +148,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
         return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
     }
 
-    private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> = Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
+    private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> =
+            Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
 
 }
 
