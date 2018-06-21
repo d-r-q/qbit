@@ -108,6 +108,9 @@ class Index(
                 .toList()
     }
 
+    /**
+     * Selects set of EIDs of entities, that have given attribute
+     */
     fun entitiesByAttr(attr: String): Set<EID> {
         return avet.select(attrPattern(attr))
                 .asSequence()

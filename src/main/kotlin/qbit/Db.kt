@@ -30,10 +30,10 @@ class Db(private val index: Index) {
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr<*>> {
-            val factsByAttr = index.factsByAttr(qbit.schema._name.str)
-            return factsByAttr
+            val attrs = index.entitiesByAttr(qbit.schema._name.str)
+            return attrs
                     .map {
-                        val e = index.entityById(it.eid)!!
+                        val e = index.entityById(it)!!
                         val name = e[qbit.schema._name.str]!! as String
                         val type = e[qbit.schema._type.str]!! as Byte
                         val unique = e[qbit.schema._unique.str] as? Boolean ?: false
