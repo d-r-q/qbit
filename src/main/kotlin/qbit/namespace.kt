@@ -16,7 +16,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
 
             val name = parts.last()
             val parent = parts.take(parts.size - 1)
-                    .fold(null, { parent: Namespace?, n: String -> Namespace(parent, n) })
+                    .fold(null) { parent: Namespace?, n: String -> Namespace(parent, n) }
             return Namespace(parent, name)
         }
     }

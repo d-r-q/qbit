@@ -1,8 +1,10 @@
 package qbit
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import qbit.schema.Attr
+import qbit.serialization.SimpleSerialization
 
 class IndexTest {
 
@@ -83,5 +85,82 @@ class IndexTest {
         assertEquals(3, idx.entitiesByAttr("/foo").size)
     }
 
+    @Test
+    fun testCreateIndex() {
+        val dbUuid = DbUuid(IID(0, 1))
+        val time1 = System.currentTimeMillis()
+        val eid = EID(0, 0)
+
+        val _attr1 = Attr(root["attr1"], QInt)
+        val _attr2 = Attr(root["attr2"], QInt)
+        val _attr3 = Attr(root["attr3"], QInt)
+
+        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
+        val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
+                Fact(eid, _attr1, 1),
+                Fact(eid, _attr2, 0))))
+        val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2, NodeData(arrayOf(
+                Fact(eid, _attr1, 2),
+                Fact(eid, _attr2, 1),
+                Fact(eid, _attr3, 0))))
+
+        val index = Index(Graph { _ -> null }, n3)
+        assertEquals(0, index.entitiesByAttrVal("/attr1", 0).size)
+        assertEquals(0, index.entitiesByAttrVal("/attr1", 1).size)
+        assertEquals(0, index.entitiesByAttrVal("/attr2", 0).size)
+        assertEquals(3, index.eavt.size)
+        assertEquals(2, index.entityById(eid)!!["/attr1"]!!)
+        assertEquals(1, index.entityById(eid)!!["/attr2"]!!)
+        assertEquals(0, index.entityById(eid)!!["/attr3"]!!)
+    }
+
+    @Test
+    fun testRangeSearch() {
+        val dbUuid = DbUuid(IID(0, 1))
+        val time1 = System.currentTimeMillis()
+        val eid0 = EID(0, 0)
+        val eid1 = EID(0, 1)
+        val eid2 = EID(0, 2)
+        val eid3 = EID(0, 3)
+
+        val eids = generateSequence(eid0) { eid -> eid.next(1) }
+                .iterator()
+
+        val _date = Attr(root["date"], QLong)
+
+        val e1 = Entity(_date to 1L)
+        val e2 = Entity(_date to 2L)
+        val e3 = Entity(_date to 3L)
+        val e4 = Entity(_date to 4L)
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
+        val index = Index(Graph { _ -> null }, root)
+
+        val vRes = index.entitiesByPred(AttrValue(_date, 2L))
+        assertEquals(1, vRes.size)
+        assertEquals(eid1, vRes.first())
+
+        assertArrayEquals(arrayOf(eid0, eid1, eid2),
+                index.entitiesByPred(AttrRange(_date, 1L, 3L)).toTypedArray())
+        assertArrayEquals(arrayOf(eid0, eid1, eid2, eid3),
+                index.entitiesByPred(AttrRange(_date, 0L, 5L)).toTypedArray())
+        assertArrayEquals(arrayOf(eid1, eid2),
+                index.entitiesByPred(AttrRange(_date, 2L, 3L)).toTypedArray())
+        assertArrayEquals(arrayOf(eid0, eid1),
+                index.entitiesByPred(AttrRange(_date, 1L, 2L)).toTypedArray())
+        assertArrayEquals(arrayOf(eid1, eid2),
+                index.entitiesByPred(AttrRange(_date, 2L, 3L)).toTypedArray())
+    }
+
+    private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
+        val data = SimpleSerialization.serializeNode(n)
+        val hash = hash(data)
+        return when (n) {
+            is Root -> Root(hash, n.source, n.timestamp, n.data)
+            is Leaf -> Leaf(hash, n.parent, n.source, n.timestamp, n.data)
+            else -> throw IllegalArgumentException("Unexpected $n")
+        }
+    }
+
     private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Fact(EID(0, eid), attr, value)
+
 }

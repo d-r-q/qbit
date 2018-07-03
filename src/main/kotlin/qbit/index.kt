@@ -125,4 +125,17 @@ class Index(
                 .toSet()
     }
 
+    fun entitiesByPred(pred: AttrP<*>): Set<EID> {
+        return avet.select {
+            if (it.attr == pred.attr.str) {
+                (pred as AttrP<Any>).compareTo(it.value)
+            } else {
+                it.attr.compareTo(pred.attr.str)
+            }
+        }
+                .asSequence()
+                .map { it.eid }
+                .toSet()
+    }
+
 }

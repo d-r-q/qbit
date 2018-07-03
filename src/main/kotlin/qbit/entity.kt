@@ -34,6 +34,8 @@ interface Entity {
         }
     }
 
+    fun toFacts(eid: EID) =
+            this.entries.map { (attr, value) -> Fact(eid, attr, value) }
 }
 
 interface StoredEntity : Entity {
