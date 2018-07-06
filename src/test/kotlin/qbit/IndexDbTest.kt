@@ -30,7 +30,7 @@ class DbTest {
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((date.toFacts(eids.next()) + cat.toFacts(eids.next()) + e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
         val index = Index(Graph { _ -> null }, root)
 
-        val db = Db(index)
-        assertArrayEquals(arrayOf(eid2), db.query(AttrRange(_date, 1L, 3L), AttrValue(_cat, "C2")).map { it.eid }.toTypedArray())
+        val db = IndexDb(index)
+        assertArrayEquals(arrayOf(eid2), db.query(attrIn(_date, 1L, 3L), attrIs(_cat, "C2")).map { it.eid }.toTypedArray())
     }
 }

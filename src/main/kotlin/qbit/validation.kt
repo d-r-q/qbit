@@ -14,7 +14,7 @@ fun validate(db: Db, facts: List<Fact>) {
 
     facts.forEach {
         val attr: Attr<Any> = factAttrs[it]!! as Attr<Any>
-        if (attr.unique && db.entitiesByAttr(attr, it.value).isNotEmpty()) {
+        if (attr.unique && db.query(attrIs(attr, it.value)).isNotEmpty()) {
             throw QBitException("Duplicate fact $it for unique attribute")
         }
     }

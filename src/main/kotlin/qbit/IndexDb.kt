@@ -3,19 +3,37 @@ package qbit
 import qbit.schema.Attr
 import qbit.schema.Schema
 
-interface AttrP<T : Any> {
-    val attr: Attr<T>
+interface QueryPred {
+    val attrName: String
 
-    fun compareTo(another: T): Int
+    fun compareTo(another: Any): Int
 }
 
-data class AttrValue<T : Any>(override val attr: Attr<T>, val value: T) : AttrP<T> {
-    override fun compareTo(another: T): Int =
-            compareValues(value, another)
+fun hasAttr(attr: Attr<*>): QueryPred =
+        AttrPred(attr.str)
+
+fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
+        AttrValuePred(attr.str, value)
+
+fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
+        AttrRangePred(attr.str, from, to)
+
+internal data class AttrPred(override val attrName: String) : QueryPred {
+
+    override fun compareTo(another: Any): Int = 0
+
 }
 
-data class AttrRange<T : Any>(override val attr: Attr<T>, val from: T, val to: T) : AttrP<T> {
-    override fun compareTo(another: T): Int {
+internal data class AttrValuePred(override val attrName: String, val value: Any) : QueryPred {
+
+    override fun compareTo(another: Any): Int =
+            compareValues(another, value)
+
+}
+
+internal data class AttrRangePred(override val attrName: String, val from: Any, val to: Any) : QueryPred {
+
+    override fun compareTo(another: Any): Int {
         val r1 = compareValues(another, from)
         if (r1 < 0) {
             return r1
@@ -26,13 +44,24 @@ data class AttrRange<T : Any>(override val attr: Attr<T>, val from: T, val to: T
         }
         return 0
     }
+
 }
 
-class Db(private val index: Index) {
+interface Db {
+
+    fun pull(eid: EID): StoredEntity?
+
+    fun query(vararg preds: QueryPred): List<StoredEntity>
+
+    fun attr(attr: String): Attr<*>?
+
+}
+
+class IndexDb(private val index: Index) : Db {
 
     private val schema = Schema(loadAttrs(index))
 
-    fun pull(eid: EID): StoredEntity? {
+    override fun pull(eid: EID): StoredEntity? {
         val entity = index.entityById(eid) ?: return null
         val attrValues = entity.map {
             val attr = schema.find(it.key)
@@ -42,19 +71,11 @@ class Db(private val index: Index) {
         return Entity(eid, attrValues)
     }
 
-    fun <T : Any> entitiesByAttr(attr: Attr<T>, value: T? = null): List<StoredEntity> {
-        val eids =
-                if (value != null) index.entitiesByAttrVal(attr.str, value)
-                else index.entitiesByAttr(attr.str)
-
-        return eids.map { pull(it)!! }
-    }
-
-    fun query(vararg preds: AttrP<*>): List<StoredEntity> {
+    override fun query(vararg preds: QueryPred): List<StoredEntity> {
         val eidSets = ArrayList<Set<EID>>(preds.size)
         var minSet: Set<EID>? = null
         for (pred in preds) {
-            eidSets.add(index.entitiesByPred(pred as AttrP<Any>))
+            eidSets.add(index.eidsByPred(pred))
             if (minSet == null || eidSets.last().size < minSet.size) {
                 minSet = eidSets.last()
             }
@@ -65,12 +86,12 @@ class Db(private val index: Index) {
         return res.map { pull(it)!! }
     }
 
-    fun attr(attr: String): Attr<*>? = schema.find(attr)
+    override fun attr(attr: String): Attr<*>? = schema.find(attr)
 
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr<*>> {
-            val attrs = index.entitiesByAttr(qbit.schema._name.str)
+            val attrs = index.eidsByPred(hasAttr(qbit.schema._name))
             return attrs
                     .map {
                         val e = index.entityById(it)!!

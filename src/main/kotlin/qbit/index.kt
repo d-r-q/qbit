@@ -102,35 +102,12 @@ class Index(
         }
     }
 
-    fun factsByAttr(attr: String): List<Fact> {
-        return avet.select(attrPattern(attr))
-                .asSequence()
-                .toList()
-    }
-
-    /**
-     * Selects set of EIDs of entities, that have given attribute
-     */
-    fun entitiesByAttr(attr: String): Set<EID> {
-        return avet.select(attrPattern(attr))
-                .asSequence()
-                .map { it.eid }
-                .toSet()
-    }
-
-    fun entitiesByAttrVal(attr: String, value: Any): Set<EID> {
-        return avet.select(attrValuePattern(attr, value))
-                .asSequence()
-                .map { it.eid }
-                .toSet()
-    }
-
-    fun entitiesByPred(pred: AttrP<*>): Set<EID> {
+    fun eidsByPred(pred: QueryPred): Set<EID> {
         return avet.select {
-            if (it.attr == pred.attr.str) {
-                (pred as AttrP<Any>).compareTo(it.value)
+            if (it.attr == pred.attrName) {
+                pred.compareTo(it.value)
             } else {
-                it.attr.compareTo(pred.attr.str)
+                it.attr.compareTo(pred.attrName)
             }
         }
                 .asSequence()

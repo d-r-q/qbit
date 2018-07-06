@@ -61,7 +61,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
     private val graph = Graph(nodesStorage)
     private val writer = Writer(nodesStorage, dbUuid)
 
-    var db = Db(Index(graph, head))
+    var db = IndexDb(Index(graph, head))
 
     /**
      * Instance descriptor eid
@@ -71,13 +71,13 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
      * }
      */
     private val instanceEid =
-            db.entitiesByAttr(qbit.schema._entities)
+            db.query(hasAttr(qbit.schema._entities))
             .first { it.eid.iid == dbUuid.iid.value }
             .eid
 
     private fun swapHead(newHead: NodeVal<Hash>) {
         head = newHead
-        db = Db(Index(graph, newHead))
+        db = IndexDb(Index(graph, newHead))
     }
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
@@ -111,7 +111,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
 
     fun addEntity(eid: EID, e: Entity): Db {
         try {
-            val entity = e.entries.map { (attr, value) -> Fact(eid, attr, value) } + Fact(instanceEid, qbit.schema._entities, eid.eid)
+            val entity = e.toFacts(eid) + Fact(instanceEid, qbit.schema._entities, eid.eid)
             validate(db, entity)
             swapHead(writer.store(head, entity))
             return db

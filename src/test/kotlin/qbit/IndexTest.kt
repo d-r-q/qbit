@@ -46,12 +46,12 @@ class IndexTest {
                         f(2, _foo, "baz")
                 ))
 
-        var lst = idx.entitiesByAttrVal("/uid", 1)
+        var lst = idx.eidsByPred(AttrValuePred("/uid", 1))
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
 
-        lst = idx.entitiesByAttrVal("/foo", "bar")
+        lst = idx.eidsByPred(AttrValuePred("/foo", "bar"))
         assertEquals(2, lst.size)
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
@@ -62,13 +62,13 @@ class IndexTest {
         val idx = Index()
                 .add(listOf(f(0, _uid, 0),
                         f(0, _uid, 1)))
-        assertEquals(0, idx.entitiesByAttrVal("/uid", 0).size)
-        assertEquals(1, idx.entitiesByAttrVal("/uid", 1).size)
+        assertEquals(0, idx.eidsByPred(AttrValuePred("/uid", 0)).size)
+        assertEquals(1, idx.eidsByPred(AttrValuePred("/uid", 1)).size)
 
         val idx2 = idx.add(f(0, _uid, 2))
-        assertEquals(0, idx2.entitiesByAttrVal("/uid", 0).size)
-        assertEquals(0, idx2.entitiesByAttrVal("/uid", 1).size)
-        assertEquals(1, idx2.entitiesByAttrVal("/uid", 2).size)
+        assertEquals(0, idx2.eidsByPred(AttrValuePred("/uid", 0)).size)
+        assertEquals(0, idx2.eidsByPred(AttrValuePred("/uid", 1)).size)
+        assertEquals(1, idx2.eidsByPred(AttrValuePred("/uid", 2)).size)
     }
 
     @Test
@@ -81,8 +81,8 @@ class IndexTest {
                         f(2, _foo, "baz")
                 ))
 
-        assertEquals(2, idx.entitiesByAttr("/uid").size)
-        assertEquals(3, idx.entitiesByAttr("/foo").size)
+        assertEquals(2, idx.eidsByPred(AttrPred("/uid")).size)
+        assertEquals(3, idx.eidsByPred(AttrPred("/foo")).size)
     }
 
     @Test
@@ -105,9 +105,9 @@ class IndexTest {
                 Fact(eid, _attr3, 0))))
 
         val index = Index(Graph { _ -> null }, n3)
-        assertEquals(0, index.entitiesByAttrVal("/attr1", 0).size)
-        assertEquals(0, index.entitiesByAttrVal("/attr1", 1).size)
-        assertEquals(0, index.entitiesByAttrVal("/attr2", 0).size)
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).size)
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).size)
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).size)
         assertEquals(3, index.eavt.size)
         assertEquals(2, index.entityById(eid)!!["/attr1"]!!)
         assertEquals(1, index.entityById(eid)!!["/attr2"]!!)
@@ -135,20 +135,20 @@ class IndexTest {
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
         val index = Index(Graph { _ -> null }, root)
 
-        val vRes = index.entitiesByPred(AttrValue(_date, 2L))
+        val vRes = index.eidsByPred(attrIs(_date, 2L))
         assertEquals(1, vRes.size)
         assertEquals(eid1, vRes.first())
 
         assertArrayEquals(arrayOf(eid0, eid1, eid2),
-                index.entitiesByPred(AttrRange(_date, 1L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 1L, 3L)).toTypedArray())
         assertArrayEquals(arrayOf(eid0, eid1, eid2, eid3),
-                index.entitiesByPred(AttrRange(_date, 0L, 5L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 0L, 5L)).toTypedArray())
         assertArrayEquals(arrayOf(eid1, eid2),
-                index.entitiesByPred(AttrRange(_date, 2L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toTypedArray())
         assertArrayEquals(arrayOf(eid0, eid1),
-                index.entitiesByPred(AttrRange(_date, 1L, 2L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 1L, 2L)).toTypedArray())
         assertArrayEquals(arrayOf(eid1, eid2),
-                index.entitiesByPred(AttrRange(_date, 2L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toTypedArray())
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
