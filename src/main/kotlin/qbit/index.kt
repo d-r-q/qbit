@@ -16,6 +16,10 @@ fun Index(graph: Graph, head: NodeVal<Hash>): Index {
     return parentIdx.add(head.data.trx.toList())
 }
 
+fun Index(facts: List<Fact>): Index =
+        Index(BTree(eavtCmp), BTree(avetCmp))
+                .add(facts)
+
 val eidCmp = Comparator<Fact> { o1, o2 -> o1.eid.compareTo(o2.eid) }
 val attrCmp = Comparator<Fact> { o1, o2 -> o1.attr.compareTo(o2.attr) }
 val valueCmp = Comparator<Fact> { o1, o2 -> compareValues(o1, o2) }

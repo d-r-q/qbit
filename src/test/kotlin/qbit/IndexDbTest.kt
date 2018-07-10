@@ -15,8 +15,7 @@ class DbTest {
         val eid2 = EID(0, 4)
         val eid3 = EID(0, 5)
 
-        val eids = generateSequence(EID(0, 0)) { eid -> eid.next(1) }
-                .iterator()
+        val eids = eids()
 
         val _date = Attr(root["date"], QLong)
         val _cat = Attr(root["cat"], QString)
@@ -33,4 +32,5 @@ class DbTest {
         val db = IndexDb(index)
         assertArrayEquals(arrayOf(eid2), db.query(attrIn(_date, 1L, 3L), attrIs(_cat, "C2")).map { it.eid }.toTypedArray())
     }
+
 }
