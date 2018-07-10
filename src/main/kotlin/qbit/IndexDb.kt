@@ -1,7 +1,6 @@
 package qbit
 
-import qbit.schema.Attr
-import qbit.schema.Schema
+import qbit.schema.*
 
 interface QueryPred {
     val attrName: String
@@ -53,7 +52,7 @@ interface Db {
 
     fun query(vararg preds: QueryPred): List<StoredEntity>
 
-    fun attr(attr: String): Attr<*>?
+    fun attr(attr: String): Attr<Any>?
 
 }
 
@@ -86,21 +85,22 @@ class IndexDb(private val index: Index) : Db {
         return res.map { pull(it)!! }
     }
 
-    override fun attr(attr: String): Attr<*>? = schema.find(attr)
+    override fun attr(attr: String): Attr<Any>? = schema.find(attr)
 
     companion object {
 
-        private fun loadAttrs(index: Index): Map<String, Attr<*>> {
-            val attrs = index.eidsByPred(hasAttr(qbit.schema._name))
-            return attrs
+        private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
+            val attrEidss = index.eidsByPred(hasAttr(qbit.schema._name))
+            val attrFacts = attrEidss
                     .map {
                         val e = index.entityById(it)!!
-                        val name = e[qbit.schema._name.str]!! as String
-                        val type = e[qbit.schema._type.str]!! as Byte
-                        val unique = e[qbit.schema._unique.str] as? Boolean ?: false
-                        name to Attr(name, DataType.ofCode(type)!!, unique)
+                        val name = e[_name.str]!! as String
+                        val type = e[_type.str]!! as Byte
+                        val unique = e[_unique.str] as? Boolean ?: false
+                        val attr = Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
+                        (name to attr)
                     }
-                    .toMap()
+            return attrFacts.toMap()
         }
     }
 

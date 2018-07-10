@@ -13,10 +13,11 @@ val _forks = Attr(qbitInstance["forks"], QLong, false)
 val _entities = Attr(qbitInstance["entities"], QLong, false)
 val _iid = Attr(qbitInstance["iid"], QLong, true)
 
-fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false) = Attr(Key(name), type, unique)
+fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false): Attr<T> = Attr(Key(name), type, unique)
 
 data class Attr<T : Any>(val name: Key, val type: DataType<T>,
                          val unique: Boolean = false) : Entity {
+
     override val keys: Set<Attr<*>>
         get() = setOf(_name, _type, _unique)
 
@@ -33,9 +34,9 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
 
 }
 
-class Schema(private val attrs: Map<String, Attr<*>>) {
+class Schema(private val attrs: Map<String, Attr<Any>>) {
 
-    fun find(attrName: String): Attr<*>? = attrs[attrName]
+    fun find(attrName: String): Attr<Any>? = attrs[attrName]
 
 }
 
