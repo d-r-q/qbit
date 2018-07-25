@@ -35,4 +35,11 @@ class EID(val iid: Int, val eid: Int) : Comparable<EID> {
     }
 
     override fun toString() = "$iid/$eid"
+
+    fun next(step: Int = 1): EID =
+            EID(this.iid, this.eid + step)
+
+    fun nextEids(): Iterator<EID> =
+            generateSequence(this) { eid -> eid.next() }
+                    .iterator()
 }

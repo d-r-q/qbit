@@ -15,7 +15,7 @@ class DbTest {
         val eid2 = EID(0, 4)
         val eid3 = EID(0, 5)
 
-        val eids = eids()
+        val eids = EID(0, 0).nextEids()
 
         val _date = Attr(root["date"], QLong)
         val _cat = Attr(root["cat"], QString)
