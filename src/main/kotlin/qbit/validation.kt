@@ -13,7 +13,7 @@ fun validate(db: Db, facts: List<Fact>) {
             .filter { factAttrs[it.attr]!!.unique }
             .groupBy { it.attr }
             .filterValues { it.size > 1 }
-            .forEach { throw QBitException("Unique violation for attr ${it.key}") }
+            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}") }
 
     facts.forEach {
         val attr = factAttrs[it.attr]!!
