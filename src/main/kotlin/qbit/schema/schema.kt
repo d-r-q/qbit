@@ -18,6 +18,18 @@ fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false): At
 data class Attr<T : Any>(val name: Key, val type: DataType<T>,
                          val unique: Boolean = false) : Entity {
 
+    override fun <V : Any> set(key: Attr<V>, value: V): Attr<T> {
+        var newName = name
+        var newType = type
+        var newUnique = unique
+        when (key) {
+            _name -> newName = Key(value as String)
+            _type -> newType = DataType.ofCode(value as Byte) as DataType<T>
+            _unique -> newUnique = value as Boolean
+        }
+        return Attr(newName, newType, newUnique)
+    }
+
     override val keys: Set<Attr<*>>
         get() = setOf(_name, _type, _unique)
 
@@ -31,6 +43,9 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
     }
 
     val str = name.toStr()
+
+    override fun toStored(eid: EID): StoredEntity =
+            Entity(eid, listOf(_name to name.toStr(), _type to type.code, _unique to unique))
 
 }
 

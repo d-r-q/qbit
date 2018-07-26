@@ -36,7 +36,7 @@ fun qbit(storage: Storage): LocalConn {
     trx += listOf(
             Fact(EID(iid.value, eid), qbit.schema._iid, 0),
             Fact(EID(iid.value, eid), qbit.schema._forks, 0),
-            Fact(EID(iid.value, eid), qbit.schema._entities, eid))
+            Fact(EID(iid.value, eid), qbit.schema._entities, eid + 1)) // + 1 - is current (instance) entity
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -72,8 +72,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
      */
     private val instanceEid =
             db.query(hasAttr(qbit.schema._entities))
-            .first { it.eid.iid == dbUuid.iid.value }
-            .eid
+                    .first { it.eid.iid == dbUuid.iid.value }
+                    .eid
 
     private fun swapHead(newHead: NodeVal<Hash>) {
         head = newHead
@@ -97,24 +97,25 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
         }
     }
 
-    fun create(e: Entity): Pair<Db, EID> {
-        try {
-            val eid = EID(dbUuid.iid.value, db.pull(instanceEid)!![_entities] as Int + 1)
-            val db = addEntity(eid, e)
-            return db to eid
-        } catch (qe: QBitException) {
-            throw qe
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
+    fun persist(e: Entity): Pair<Db, StoredEntity> =
+            persist(*arrayOf(e))
+                    .map { db, list -> db to list[0] }
 
-    fun addEntity(eid: EID, e: Entity): Db {
+    fun persist(vararg es: Entity): Pair<Db, List<StoredEntity>> {
         try {
-            val entity = e.toFacts(eid) + Fact(instanceEid, qbit.schema._entities, eid.eid)
-            validate(db, entity)
-            swapHead(writer.store(head, entity))
-            return db
+            val curEntities = db.pull(instanceEid)!![_entities] as Int
+            val eids = EID(dbUuid.iid.value, curEntities).nextEids()
+            val storedEs = es.map {
+                it as? StoredEntity ?: it.toStored(eids.next())
+            }
+            var facts = storedEs.flatMap { it.toFacts() }
+            val newEntities = eids.next().eid
+            if (curEntities < newEntities) {
+                facts += Fact(instanceEid, qbit.schema._entities, newEntities)
+            }
+            validate(db, facts)
+            swapHead(writer.store(head, facts))
+            return db to storedEs
         } catch (qe: QBitException) {
             throw qe
         } catch (e: Exception) {
@@ -124,7 +125,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
 
     fun sync(another: Conn) {
         try {
-            val novelty = graph.findSubgraph(head, another.dbUuid) ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
+            val novelty = graph.findSubgraph(head, another.dbUuid)
+                    ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
             val newRoot = another.push(novelty)
             swapHead(writer.appendGraph(newRoot))
         } catch (e: Exception) {
@@ -151,5 +153,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
     private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> =
             Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
 
+    private fun <T1, T2, T3, T4> Pair<T1, T2>.map(m: (T1, T2) -> Pair<T3, T4>) =
+            m(this.first, this.second)
 }
 
