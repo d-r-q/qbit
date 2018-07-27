@@ -148,11 +148,11 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
         val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
         val head = writer.appendNode(merge(head, newDb))
         swapHead(head)
-        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, System.currentTimeMillis(), head.data)
+        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, head.timestamp, head.data)
     }
 
-    private fun merge(head1: NodeVal<Hash>, head2: NodeVal<Hash>): Merge<Hash?> =
-            Merge(null, head1, head2, head1.source, System.currentTimeMillis(), NodeData(emptyArray()))
+    private fun merge(head1: Node<Hash>, head2: Node<Hash>): Merge<Hash?> =
+            Merge(null, head1, head2, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
 
     private fun <T1, T2, T3, T4> Pair<T1, T2>.map(m: (T1, T2) -> Pair<T3, T4>) =
             m(this.first, this.second)

@@ -13,6 +13,9 @@ class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal<Hash>? {
     fun store(n: NodeVal<Hash?>): NodeVal<Hash> {
         val data = SimpleSerialization.serializeNode(n)
         val hash = hash(data)
+        if (n.hash != null && n.hash != hash) {
+            throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+        }
         if (!storage.hasKey(hash.key())) {
             storage.add(hash.key(), data)
         }
