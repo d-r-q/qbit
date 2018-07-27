@@ -48,4 +48,7 @@ class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal<Hash>? {
         is Leaf -> Leaf(hash, n.parent, n.source, n.timestamp, n.data)
         is Merge -> Merge(hash, n.parent1, n.parent2, n.source, n.timestamp, n.data)
     }
+
+    fun hasNode(head: Node<Hash>): Boolean =
+            storage.hasKey(head.key())
 }
