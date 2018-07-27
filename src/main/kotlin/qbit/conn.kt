@@ -8,6 +8,13 @@ import qbit.storage.Storage
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(0, 4)
     val dbUuid = DbUuid(iid)
+    val headHash = storage.load(Namespace("refs")["head"])
+    if (headHash != null) {
+        val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
+                ?: throw QBitException("Corrupted head: no such node")
+        // TODO: fix dbUuid retrieving
+        return LocalConn(dbUuid, storage, head)
+    }
 
     var eid = 0
     var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str),
@@ -41,6 +48,7 @@ fun qbit(storage: Storage): LocalConn {
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
+    storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
     return LocalConn(dbUuid, storage, storedRoot)
 }
 
@@ -56,7 +64,7 @@ interface Conn {
 
 }
 
-class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head: NodeVal<Hash>) : Conn {
+class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var head: NodeVal<Hash>) : Conn {
 
     private val nodesStorage = NodesStorage(storage)
     private val graph = Graph(nodesStorage)
@@ -83,6 +91,8 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
         } else {
             IndexDb(db.index.add(newHead.data.trx.toList()))
         }
+
+        storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
     }
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
