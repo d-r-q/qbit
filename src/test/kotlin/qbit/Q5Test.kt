@@ -6,9 +6,8 @@ import java.io.File
 import java.text.ParseException
 import java.text.SimpleDateFormat
 
-val ns = Namespace("q5")
-val cat = ns.subNs("category")
-val trx = ns.subNs("transaction")
+val cat = Namespace.of("q5", "category")
+val trx = Namespace.of("q5", "transaction")
 val trxSum = Attr(trx["sum"], QLong)
 val trxDateTime = Attr(trx["dateTime"], QLong)
 val trxCategory = Attr(trx["category"], QEID)

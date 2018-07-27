@@ -2,7 +2,7 @@ package qbit.schema
 
 import qbit.*
 
-val qbitAttrs = Namespace("qbit").subNs("attrs")
+val qbitAttrs = Namespace.of("qbit", "attrs")
 val qbitInstance = Namespace.of("qbit", "instance")
 
 val _name = Attr(qbitAttrs["name"], QString, unique = true)

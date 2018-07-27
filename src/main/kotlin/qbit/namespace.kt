@@ -20,6 +20,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
             return Namespace(parent, name)
         }
     }
+
     val parts: List<String> =
             if (parent == null) asList(name)
             else parent.parts + name
