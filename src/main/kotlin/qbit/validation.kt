@@ -11,7 +11,7 @@ fun validate(db: Db, facts: List<Fact>) {
 
     facts
             .filter { factAttrs[it.attr]!!.unique }
-            .groupBy { it.attr }
+            .groupBy { it.attr to it.value }
             .filterValues { it.size > 1 }
             .forEach { throw QBitException("Uniqueness violation for attr ${it.key}") }
 
