@@ -10,6 +10,18 @@ import java.nio.file.Paths
 
 class FileSystemStorage(private val root: Path) : Storage {
 
+    constructor(root: Path, origin: Storage) : this(root) {
+        fun copyNs(ns: Namespace) {
+            origin.keys(ns).forEach {
+                add(it, origin.load(it)!!)
+            }
+            origin.subNamespaces(ns).forEach {
+                copyNs(it)
+            }
+        }
+        copyNs(qbit.ns.root)
+    }
+
     @Throws(IOException::class)
     override fun add(key: Key, value: ByteArray) {
         val dir = root.resolve(key.ns.toPath()).toFile()
@@ -47,6 +59,13 @@ class FileSystemStorage(private val root: Path) : Storage {
         val dir = root.resolve(namespace.toPath()).toFile()
         return dir.listFiles { f -> f.isFile }
                 .map { namespace[it.name] }
+    }
+
+    @Throws(IOException::class)
+    override fun subNamespaces(namespace: Namespace): Collection<Namespace> {
+        val dir = root.resolve(namespace.toPath()).toFile()
+        return dir.listFiles { f -> f.isDirectory }
+                .map { namespace.subNs(it.name) }
     }
 
     override fun hasKey(key: Key): Boolean {

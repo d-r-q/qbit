@@ -27,6 +27,11 @@ class MemStorage : Storage {
 
     override fun keys(namespace: Namespace): Collection<Key> = data[namespace]?.keys ?: setOf()
 
+    override fun subNamespaces(namespace: Namespace): Collection<Namespace> =
+            data.keys().asSequence()
+                    .filter { it.parent == namespace }
+                    .toList()
+
     override fun hasKey(key: Key): Boolean = nsMap(key).containsKey(key)
 
 }

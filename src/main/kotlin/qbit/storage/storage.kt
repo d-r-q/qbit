@@ -13,6 +13,8 @@ interface Storage {
 
     fun keys(namespace: Namespace): Collection<Key>
 
+    fun subNamespaces(namespace: Namespace): Collection<Namespace>
+
     fun hasKey(key: Key): Boolean
 
 }

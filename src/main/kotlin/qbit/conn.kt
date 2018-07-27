@@ -78,7 +78,11 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
 
     private fun swapHead(newHead: NodeVal<Hash>) {
         head = newHead
-        db = IndexDb(db.index.add(newHead.data.trx.toList()))
+        db = if (newHead is Merge) {
+            IndexDb(Index(graph, newHead))
+        } else {
+            IndexDb(db.index.add(newHead.data.trx.toList()))
+        }
     }
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
@@ -90,7 +94,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
                     head,
                     Fact(instanceEid, qbit.schema._iid, forks + 1),
                     Fact(forkInstanceEid, qbit.schema._forks, 0),
-                    Fact(forkInstanceEid, qbit.schema._entities, 0))
+                    Fact(forkInstanceEid, qbit.schema._entities, 1))
             swapHead(newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {

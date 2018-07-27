@@ -5,6 +5,7 @@ import org.junit.Test
 import qbit.ns.Namespace
 import qbit.schema.Attr
 import qbit.storage.FileSystemStorage
+import qbit.storage.NodesStorage
 import java.nio.file.Files
 
 class SyncTest {
@@ -20,7 +21,7 @@ class SyncTest {
 
         val (id, head) = conn1.fork()
 
-        val db2Storage = FileSystemStorage(Files.createTempDirectory("qbit-db2-"))
+        val db2Storage = FileSystemStorage(Files.createTempDirectory("qbit-db2-"), db1Storage)
         val conn2 = LocalConn(id, db2Storage, head)
         conn2.fetch(conn1)
 
