@@ -30,4 +30,8 @@ class Hash(val bytes: ByteArray) {
         return bytes.joinToString("") { Integer.toHexString(it.toInt() and 0xFF) }
     }
 
+    override fun toString(): String {
+        return "Hash(bytes=${Arrays.toString(bytes)})"
+    }
+
 }

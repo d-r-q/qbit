@@ -56,7 +56,7 @@ interface Db {
 
 }
 
-class IndexDb(val index: Index) : Db {
+class IndexDb(internal val index: Index) : Db {
 
     private val schema = Schema(loadAttrs(index))
 
@@ -91,6 +91,7 @@ class IndexDb(val index: Index) : Db {
 
         private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
             val attrEidss = index.eidsByPred(hasAttr(qbit.schema._name))
+            @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEidss
                     .map {
                         val e = index.entityById(it)!!
