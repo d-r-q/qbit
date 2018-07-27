@@ -56,7 +56,7 @@ interface Db {
 
 }
 
-class IndexDb(private val index: Index) : Db {
+class IndexDb(val index: Index) : Db {
 
     private val schema = Schema(loadAttrs(index))
 

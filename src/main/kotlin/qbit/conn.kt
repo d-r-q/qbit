@@ -77,7 +77,7 @@ class LocalConn(override val dbUuid: DbUuid, storage: Storage, override var head
 
     private fun swapHead(newHead: NodeVal<Hash>) {
         head = newHead
-        db = IndexDb(Index(graph, newHead))
+        db = IndexDb(db.index.add(newHead.data.trx.toList()))
     }
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
