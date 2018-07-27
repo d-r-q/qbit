@@ -1,4 +1,4 @@
-package qbit
+package qbit.ns
 
 import java.util.Arrays.asList
 

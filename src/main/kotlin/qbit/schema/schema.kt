@@ -1,6 +1,8 @@
 package qbit.schema
 
 import qbit.*
+import qbit.ns.Key
+import qbit.ns.Namespace
 
 val qbitAttrs = Namespace.of("qbit", "attrs")
 val qbitInstance = Namespace.of("qbit", "instance")

@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.ns.Namespace
 import qbit.schema.Attr
 import qbit.storage.FileSystemStorage
 import java.io.File

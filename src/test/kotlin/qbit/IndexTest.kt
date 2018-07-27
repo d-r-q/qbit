@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.ns.root
 import qbit.schema.Attr
 import qbit.serialization.SimpleSerialization
 

@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.ns.Namespace
 import qbit.schema.*
 import qbit.storage.NodesStorage
 import qbit.storage.Storage

@@ -2,6 +2,7 @@ package qbit
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.ns.Namespace
 
 class NamespaceTest {
 

@@ -2,6 +2,7 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.ns.Namespace
 import qbit.schema.Attr
 import qbit.storage.MemStorage
 

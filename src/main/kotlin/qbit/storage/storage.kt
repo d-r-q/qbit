@@ -1,7 +1,7 @@
 package qbit.storage
 
-import qbit.Key
-import qbit.Namespace
+import qbit.ns.Key
+import qbit.ns.Namespace
 
 interface Storage {
 

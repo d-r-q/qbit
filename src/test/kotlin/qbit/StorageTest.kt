@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.ns.Namespace
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import qbit.storage.Storage

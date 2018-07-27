@@ -2,6 +2,7 @@ package qbit
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import qbit.ns.root
 import qbit.schema.Attr
 
 class DbTest {
