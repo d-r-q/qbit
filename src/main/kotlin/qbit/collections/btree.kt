@@ -1,5 +1,9 @@
 package qbit.collections
 
+import kotlin.math.abs
+import kotlin.math.log
+import kotlin.math.roundToInt
+
 private const val DEFAULT_DEGREE = 1024
 
 fun <E : Any> BTree(cmp: Comparator<E>, degree: Int = DEFAULT_DEGREE): BTree<E> = Leaf(arrayListOf(), degree, cmp, true)
@@ -31,22 +35,25 @@ sealed class BTree<E : Any>(
                 root[0]
             }
         }
+        root.assertInvariants()
+        check(root.root)
         return root
     }
 
-    abstract fun remove(value: E): BTree<E>
+    fun remove(value: E): BTree<E> {
+        val root = removeImpl(value)
+        root.assertInvariants()
+        check(root.root)
+        return root
+    }
+
+    internal abstract fun removeImpl(value: E): BTree<E>
 
     abstract fun find(c: (E) -> Int): Iterator<E>
 
     abstract fun first(): E
 
     abstract fun last(): E
-
-    abstract override val size: Int
-
-    abstract override fun contains(element: E): Boolean
-
-    abstract override fun iterator(): Iterator<E>
 
     override fun containsAll(elements: Collection<E>): Boolean =
             elements.all { contains(it) }
@@ -90,6 +97,8 @@ sealed class BTree<E : Any>(
         }
     }
 
+    internal abstract fun assertInvariants()
+
 }
 
 class Node<E : Any>(
@@ -102,18 +111,6 @@ class Node<E : Any>(
 ) : BTree<E>(separators, degree, cmp, height, root) {
 
     override val size = children.sumBy { it.size }
-
-    init {
-        require(separators.size == children.size - 1)
-        assert(sorted(separators, cmp))
-        if (heights(this).toSet().size > 1) {
-            println("test")
-        }
-        assert(heights(this).toSet().size == 1)
-        assert(children.asSequence().windowed(2).all { cmp.compare(it[0].last(), it[1].first()) < 0 })
-        assert(separators.withIndex().all { idx -> cmp.compare(children[idx.index].last(), idx.value) < 0 })
-        assert(cmp.compare(separators.last(), children.last().first()) <= 0)
-    }
 
     override fun add(value: E): BTree<E> =
             addAll(value)
@@ -155,9 +152,9 @@ class Node<E : Any>(
         return children[childIdx].contains(element)
     }
 
-    override fun remove(value: E): BTree<E> {
+    override fun removeImpl(value: E): BTree<E> {
         val childIdx = findChildFor(value)
-        val nChild = children[childIdx].remove(value)
+        val nChild = children[childIdx].removeImpl(value)
 
         if (nChild == children[childIdx]) {
             return this
@@ -180,21 +177,27 @@ class Node<E : Any>(
             else -> Pair(children[lIdx], nChild)
         }
 
-        val merge = left.items.size + right.items.size <= degree
-        return if (merge) {
+        val merge = left.items.size + right.items.size + 1 <= degree
+        val (nItms, nChildren) = if (merge) {
             val m = merge(left, right)
-            if (children.size == 2) {
+            if (!root && children.size <= minItems) {
                 return m
             }
 
             val nItms = remove(items, lIdx)
             val nChildren = replace(children, m, lIdx, rIdx)
-            Node(nItms, nChildren, degree, cmp, height, root)
+            Pair(nItms, nChildren)
         } else {
             val (nLeft, nRight) = rotate(left, right, items[lIdx])
             val nItms = replace(items, nRight.first(), lIdx)
             val nChildren = replaceAll(children, listOf(nLeft, nRight), lIdx, rIdx)
-            Node(nItms, nChildren, degree, cmp, height, root)
+            Pair(nItms, nChildren)
+        }
+
+        return when (nChildren.size) {
+            0 -> throw AssertionError("Should never happen")
+            1 -> nChildren[0].withRoot(root)
+            else -> Node(nItms, nChildren, degree, cmp, height, root)
         }
     }
 
@@ -223,7 +226,7 @@ class Node<E : Any>(
     private fun rotate(left: BTree<E>, right: BTree<E>, splitter: E): Pair<BTree<E>, BTree<E>> =
             when {
                 left is Node<E> && right is Node<E> -> {
-                    if (left.size < right.size) {
+                    if (left.items.size < right.items.size) {
                         val lItms = insert(left.items, splitter, left.items.size)
                         val lChildren = insert(left.children, right.children[0], left.children.size)
                         val rItms = remove(right.items, 0)
@@ -269,6 +272,23 @@ class Node<E : Any>(
     override fun iterator(): Iterator<E> =
             NodeIterator(this, 0, children[0].iterator())
 
+    override fun assertInvariants() {
+        require(root || children.size > minItems)
+        require(root || items.size <= degree)
+        require(root || items.size >= minItems)
+        require(items.size == children.size - 1)
+
+        // check heavy invariants, used in tests
+        qbit.assert { sorted(items, cmp) }
+        qbit.assert { heights(this).toSet().size == 1 }
+        qbit.assert { children.asSequence().windowed(2).all { cmp.compare(it[0].last(), it[1].first()) < 0 } }
+        qbit.assert { items.withIndex().all { idx -> cmp.compare(children[idx.index].last(), idx.value) < 0 } }
+        qbit.assert { cmp.compare(items.last(), children.last().first()) <= 0 }
+        qbit.assert { abs(height - log(size.toDouble(), ((degree + minItems) / 2).toDouble()).roundToInt()) <= 2 }
+        qbit.assert { children.all { it.height < height && !it.root } }
+
+        children.forEach { it.assertInvariants() }
+    }
 }
 
 class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root: Boolean) : BTree<E>(values, degree, cmp, 1, root) {
@@ -298,7 +318,7 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         return values.filter { items.binarySearch(it, cmp) < 0 } as ArrayList<E>
     }
 
-    override fun remove(value: E): BTree<E> {
+    override fun removeImpl(value: E): BTree<E> {
         val idx = items.binarySearch(value, cmp)
         return if (idx < 0) {
             this
@@ -331,7 +351,13 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
     override fun withRoot(root: Boolean): BTree<E> =
             Leaf(items, degree, cmp, root)
 
+    override fun assertInvariants() {
+        require(items.size <= degree)
+        require(root || items.size >= minItems)
+    }
+
 }
+
 
 // Iterators
 
@@ -369,14 +395,6 @@ class NodeIterator<out E : Any>(
 internal fun heights(n: BTree<*>): List<Int> =
         when (n) {
             is Leaf -> listOf(1)
-            is Node -> n.children.flatMap { heights(it).map { it + 1 } }
+            is Node -> n.children.flatMap { bTree -> heights(bTree).map { it + 1 } }
         }
 
-internal fun assertDegreeInv(n: BTree<*>, root: Boolean) {
-    if (!root) {
-        assert((n.items.size >= n.minItems))
-    }
-    if (n is Node) {
-        n.children.forEach { assertDegreeInv(it, false) }
-    }
-}

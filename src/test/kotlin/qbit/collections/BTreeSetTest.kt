@@ -59,17 +59,13 @@ class BTreeSetTest {
         for (i in 0 until els.size) {
             set = set.add(els[i])
             ref.add(els[i])
-            assertEquals(ref.size, set.size)
-            for (j in ref) {
-                assertTrue(set.contains(j))
-            }
-            assertDegreeInv(set, true)
+            validateSet(set, ref)
         }
         val heights = heights(set)
         assertEquals(1, heights.toSet().size)
         val expected = els.sorted().asSequence()
         assertTrue(set.iterator().asSequence().zip(expected).all { it.first == it.second })
-        val iter = set.select({ e: Int -> if (e < 10) -1 else 0 })
+        val iter = set.select { e: Int -> if (e < 10) -1 else 0 }
         val subels = iter.asSequence().take(80).toList()
         assertArrayEquals((10 until 90).toList().toIntArray(), subels.toIntArray())
         assertFalse(set.select { it - 101 }.hasNext())
@@ -115,26 +111,42 @@ class BTreeSetTest {
             }
         }
     }
-
-    @Ignore
+    @Ignore // runs for ~4 minutes
     @Test
     fun longSmokeTest() {
         var set: BTree<Int>
         var ref: TreeSet<Int>
+        var degree = 2
         for (seed in 0..50) {
+            if (seed % 5 == 0) {
+                degree *= 2
+            }
+            println("longSmokeTest: seed $seed, degree: $degree")
             val random = Random(seed.toLong())
-            set = BTree(naturalOrder())
+            set = BTree(naturalOrder(), degree)
             ref = TreeSet()
-            for (i in 0..10000) {
-                val v = random.nextInt(100 * (seed + 1))
-                if (random.nextInt(100) < 75) {
-                    set = set.add(v)
-                    ref.add(v)
+            for (i in 0..(10000 / degree)) {
+                val valuesCount = random.nextInt(degree * 5) + 1
+                val values = (0..valuesCount).map { random.nextInt(100 * (seed + 1)) }
+                if (random.nextInt(100) < ((seed % 5) * 20) + 1) {
+                    if (random.nextInt(100) < 50) {
+                        set = set.addAll(values)
+                        ref.addAll(values)
+                        validateSet(set, ref)
+                    } else {
+                        for (v in values) {
+                            set = set.add(v)
+                            ref.add(v)
+                            validateSet(set, ref)
+                        }
+                    }
                 } else {
-                    set = set.remove(v)
-                    ref.remove(v)
+                    for (v in values) {
+                        set = set.remove(v)
+                        ref.remove(v)
+                        validateSet(set, ref)
+                    }
                 }
-                validateSet(set, ref)
             }
         }
     }
@@ -144,7 +156,9 @@ class BTreeSetTest {
         for (j in ref) {
             assertTrue("BTree does not contain $j", bSet.contains(j))
         }
-        assertDegreeInv(bSet, true)
+        if (bSet.size == 1) {
+            assertTrue(bSet is Leaf)
+        }
     }
 
 }
