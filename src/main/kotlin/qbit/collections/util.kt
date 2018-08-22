@@ -31,8 +31,8 @@ fun <E : Any> merge(arr: ArrayList<E>, el: E, cmp: Comparator<E>): ArrayList<E> 
         merge(arr, arrayListOf(el), cmp)
 
 fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>): ArrayList<E> {
-    assert(sorted(arr1, cmp))
-    assert(sorted(arr2, cmp))
+    qbit.assert { sorted(arr1, cmp) }
+    qbit.assert { sorted(arr2, cmp) }
     val extended = ArrayList<E>(arr1.size + arr2.size)
     var a1 = 0
     var a2 = 0
@@ -45,12 +45,12 @@ fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>):
         }
         extended.add(e)
     }
-    assert(sorted(extended, cmp))
+    qbit.assert { sorted(extended, cmp) }
     return extended
 }
 
 fun <E : Any> replaceAll(arr: ArrayList<E>, el: List<E>, vararg indexes: Int): ArrayList<E> {
-    assert(indexes.toSet().size == indexes.max()!! - indexes.min()!! + 1)
+    qbit.assert { indexes.toSet().size == indexes.max()!! - indexes.min()!! + 1 }
     val new = ArrayList(arr)
     indexes.sortedDescending().forEach { idx ->
         new.removeAt(idx)
