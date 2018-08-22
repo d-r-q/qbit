@@ -2,18 +2,28 @@ package qbit
 
 import qbit.collections.BTree
 
+private fun loadFacts(graph: Graph, head: NodeVal<Hash>, untilDbUuid: DbUuid?): ArrayList<Fact> {
+    if (untilDbUuid != null && head.source == untilDbUuid) {
+        return arrayListOf()
+    }
+    return when (head) {
+        is Root -> head.data.trx.toCollection(ArrayList())
+        is Leaf -> with(loadFacts(graph, graph.resolveNode(head.parent), untilDbUuid)) {
+            addAll(head.data.trx.toCollection(ArrayList()))
+            this
+        }
+        is Merge -> {
+            val p1 = graph.resolveNode(head.parent1)
+            val first = loadFacts(graph, p1, untilDbUuid)
+            val second = loadFacts(graph, graph.resolveNode(head.parent2), p1.source)
+            first.addAll(second)
+            first
+        }
+    }
+}
+
 fun Index(graph: Graph, head: NodeVal<Hash>): Index {
-    val parentIdx =
-            when (head) {
-                is Root -> Index()
-                is Leaf -> Index(graph, graph.resolveNode(head.parent))
-                is Merge -> {
-                    val idx1 = Index(graph, graph.resolveNode(head.parent1))
-                    val idx2 = Index(graph, graph.resolveNode(head.parent2))
-                    idx2.add(idx1.eavt.toList())
-                }
-            }
-    return parentIdx.add(head.data.trx.toList())
+    return Index().add(loadFacts(graph, head, null))
 }
 
 fun Index(facts: List<Fact>): Index =
@@ -80,9 +90,9 @@ class Index(
                 newEavt = newEavt.remove(toRemove)
                 newAvet = newAvet.remove(toRemove)
             }
-            newEavt = newEavt.add(f)
-            newAvet = newAvet.add(f)
         }
+        newEavt = newEavt.addAll(distinctFacts)
+        newAvet = newAvet.addAll(distinctFacts)
 
         return Index(newEavt, newAvet)
     }
