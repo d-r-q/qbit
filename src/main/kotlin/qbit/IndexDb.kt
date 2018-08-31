@@ -81,7 +81,9 @@ class IndexDb(internal val index: Index) : Db {
         }
         eidSets.remove(minSet)
         val res = minSet!!.toMutableSet()
-        res.removeIf { e -> eidSets.any { !it.contains(e) } }
+        if (eidSets.size > 0) {
+            res.removeIf { e -> eidSets.any { !it.contains(e) } }
+        }
         return res.map { pull(it)!! }
     }
 
