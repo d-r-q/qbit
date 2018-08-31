@@ -25,36 +25,42 @@ val timePattern = "HH:mm"
 val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 
 fun main(args: Array<String>) {
-    val dbDir = File("/tmp/q5-db")
+    val dbDir = File("/home/azhidkov/tmp/q5-db")
     if (dbDir.exists()) {
         dbDir.deleteRecursively()
         dbDir.mkdir()
     }
 
+    var start = System.currentTimeMillis()
     val conn = qbit(FileSystemStorage(dbDir.toPath()))
-    conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
+    var stop = System.currentTimeMillis()
+    println("${stop - start}")
 
+    conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
+    start = System.currentTimeMillis()
     val dataFiles = File("/home/azhidkov/0my/Alive/qbit/q5").listFiles()
     dataFiles.forEach {
         it.forEachLine { line ->
             parse(conn, line)
         }
     }
-
-    val start = System.currentTimeMillis()
-    val res = conn.db.query(attrIn(trxDateTime, dateTimeFormat.parse("01.06.2018 00:00").time, dateTimeFormat.parse("30.06.2018 23:59").time))
-    val stop = System.currentTimeMillis()
+    stop = System.currentTimeMillis()
     println("${stop - start}")
+
+    start = System.currentTimeMillis()
+    val res = conn.db.query(attrIn(trxDateTime, dateTimeFormat.parse("01.06.2018 00:00").time, dateTimeFormat.parse("30.06.2018 23:59").time))
+    stop = System.currentTimeMillis()
+    println("${stop - start}: ${res.size}")
 }
 
 fun parse(conn: LocalConn, sourceLine: String) {
     val line = sourceLine
     val fieldsV1 = line
-            .replace("\uFEFF", "") // удаление BOM-ов
+            .replace("\uFEFF", "") // Remove BOM
             .split("\",\"".toRegex())
             .map { it.trim('\"') }
     val fieldsV2 = line
-            .replace("\uFEFF", "") // удаление BOM-ов
+            .replace("\uFEFF", "") // Remove BOM
             .split("\";\"".toRegex())
             .map { it.trim('\"') }
     val v1 = fieldsV1.size > fieldsV2.size
@@ -68,7 +74,6 @@ fun parse(conn: LocalConn, sourceLine: String) {
         val cat = if (fields.size > 3) fields[3] else return
         var catSe = categories[cat]
         if (catSe == null) {
-            conn.db.query(attrIs(catName, cat))
             val (_, stored) = conn.persist(Entity(catName to cat))
             categories[cat] = stored
             catSe = stored
@@ -82,7 +87,7 @@ fun parse(conn: LocalConn, sourceLine: String) {
                 trxComment to comment,
                 trxDevice to device,
                 trxSource to source)
-        conn.persist(e)
+        val (_, _) = conn.persist(e)
     } catch (e: ParseException) {
     }
 }
