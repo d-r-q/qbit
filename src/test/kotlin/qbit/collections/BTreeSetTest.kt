@@ -1,11 +1,8 @@
-package qbit
+package qbit.collections
 
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
-import qbit.collections.BTree
-import qbit.collections.assertDegreeInv
-import qbit.collections.heights
 import java.util.*
 
 class BTreeSetTest {
