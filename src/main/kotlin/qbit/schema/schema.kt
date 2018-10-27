@@ -35,11 +35,11 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
     override val keys: Set<Attr<*>>
         get() = setOf(_name, _type, _unique)
 
-    override fun get(key: Attr<*>): Any? {
+    override fun <T : Any> get(key: Attr<T>): T? {
         return when (key) {
-            _name -> name.toStr()
-            _type -> type.code
-            _unique -> unique
+            _name -> name.toStr() as T?
+            _type -> type.code as T?
+            _unique -> unique as T?
             else -> null
         }
     }

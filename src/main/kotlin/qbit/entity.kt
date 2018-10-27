@@ -11,7 +11,7 @@ interface Entity {
 
     val keys: Set<Attr<*>>
 
-    operator fun get(key: Attr<*>): Any?
+    operator fun <T : Any> get(key: Attr<T>): T?
 
     fun <T : Any> set(key: Attr<T>, value: T): Entity
 
@@ -56,8 +56,13 @@ interface StoredEntity : Entity {
 private class MapEntity(
         private val map: Map<Attr<*>, Any>
 ) :
-        Entity,
-        Map<Attr<*>, Any> by map {
+        Entity {
+
+    override val keys: Set<Attr<*>>
+        get() = map.keys
+
+    override fun <T : Any> get(key: Attr<T>): T? =
+            map[key] as T
 
     override fun <T : Any> set(key: Attr<T>, value: T): Entity {
         val newMap = HashMap(map)
