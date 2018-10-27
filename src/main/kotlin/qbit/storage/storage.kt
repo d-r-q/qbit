@@ -18,3 +18,13 @@ interface Storage {
     fun hasKey(key: Key): Boolean
 
 }
+
+interface CasStorage {
+
+    fun createCasable(key: Key, value: ByteArray): Boolean
+
+    fun cas(key: Key, oldValue: ByteArray, newValue: ByteArray): Boolean
+
+
+    fun load(key: Key): ByteArray?
+}
