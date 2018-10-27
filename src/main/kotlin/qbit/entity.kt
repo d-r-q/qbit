@@ -26,9 +26,9 @@ interface Entity {
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> get(keyStr: Attr<T>, type: KClass<T>): T? = get(keyStr)?.let {
         if (type == Byte::class && it is Byte) {
-            it as T
+            it
         } else if (type == Boolean::class && it is Boolean) {
-            it as T
+            it
         } else if (type.javaObjectType.isAssignableFrom(it.javaClass)) {
             type.java.cast(it)
         } else {
