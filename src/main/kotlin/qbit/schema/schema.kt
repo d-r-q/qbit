@@ -11,8 +11,8 @@ val _name = Attr(qbitAttrs["name"], QString, unique = true)
 val _type = Attr(qbitAttrs["type"], QByte)
 val _unique = Attr(qbitAttrs["unique"], QBoolean)
 
-val _forks = Attr(qbitInstance["forks"], QLong, false)
-val _entities = Attr(qbitInstance["entities"], QLong, false)
+val _forks = Attr(qbitInstance["forks"], QInt, false)
+val _entities = Attr(qbitInstance["entities"], QInt, false)
 val _iid = Attr(qbitInstance["iid"], QLong, true)
 
 fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false): Attr<T> = Attr(Key(name), type, unique)
