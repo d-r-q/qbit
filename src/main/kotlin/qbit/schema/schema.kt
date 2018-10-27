@@ -9,7 +9,7 @@ val qbitInstance = Namespace.of("qbit", "instance")
 
 val _name = Attr(qbitAttrs["name"], QString, unique = true)
 val _type = Attr(qbitAttrs["type"], QByte)
-val _unique = Attr(qbitAttrs["unique"], QByte)
+val _unique = Attr(qbitAttrs["unique"], QBoolean)
 
 val _forks = Attr(qbitInstance["forks"], QLong, false)
 val _entities = Attr(qbitInstance["entities"], QLong, false)
