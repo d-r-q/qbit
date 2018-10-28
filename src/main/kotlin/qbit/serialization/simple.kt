@@ -29,7 +29,8 @@ object SimpleSerialization : Serialization {
             val eid = deserialize(ins, QEID)
             val attr = deserialize(ins, QString)
             val value = deserialize(ins)
-            Fact(eid, attr, value)
+            val deleted = deserialize(ins, QBoolean)
+            Fact(eid, attr, value, deleted)
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
@@ -54,7 +55,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is Long -> byteArray(QLong.code, serializeLong(a))
             is String -> byteArray(QString.code, serializeInt(a.toByteArray(Charsets.UTF_8).size), a.toByteArray(Charsets.UTF_8))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
-            is Fact -> serialize(a.eid, a.attr, a.value)
+            is Fact -> serialize(a.eid, a.attr, a.value, a.deleted)
             is EID -> byteArray(QEID.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             else -> throw AssertionError("Should never happen, a is $a")

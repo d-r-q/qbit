@@ -5,7 +5,7 @@ import kotlin.reflect.KClass
 
 fun Entity(vararg entries: Pair<Attr<*>, Any>): Entity = MapEntity(mapOf(*entries))
 
-internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>): StoredEntity = StoredMapEntity(eid, mapOf(*entries.toTypedArray()))
+internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>): StoredEntity = StoredMapEntity(eid, mapOf(*entries.toTypedArray()), false)
 
 interface Entity {
 
@@ -36,22 +36,30 @@ interface Entity {
         }
     }
 
-    fun toFacts(eid: EID) =
-            this.entries.map { (attr, value) -> Fact(eid, attr, value) }
-
     fun toStored(eid: EID): StoredEntity
 }
+
+internal fun Entity.toFacts(eid: EID) =
+        this.entries.map { (attr, value) -> Fact(eid, attr, value, false) }
+
+
+internal fun Entity.toFacts(eid: EID, deleted: Boolean) =
+        this.entries.map { (attr, value) -> Fact(eid, attr, value, deleted) }
 
 interface StoredEntity : Entity {
 
     val eid: EID
 
-    fun toFacts() =
-            this.toFacts(eid)
+    val deleted: Boolean
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity
 
+    fun delete(): StoredEntity
+
 }
+
+internal fun StoredEntity.toFacts() =
+        this.toFacts(eid, this.deleted)
 
 private class MapEntity(
         private val map: Map<Attr<*>, Any>
@@ -74,20 +82,27 @@ private class MapEntity(
         get() = map.entries
 
     override fun toStored(eid: EID): StoredEntity =
-            StoredMapEntity(eid, map)
+            StoredMapEntity(eid, map, false)
 }
 
 private class StoredMapEntity(
         override val eid: EID,
-        val map: Map<Attr<*>, Any>
+        val map: Map<Attr<*>, Any>,
+        override val deleted: Boolean
 ) :
         Entity by MapEntity(map),
         StoredEntity {
 
+    override fun delete(): StoredEntity =
+            StoredMapEntity(eid, map, true)
+
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity {
+        if (deleted) {
+            throw QBitException("Could not change deleted entity")
+        }
         val newMap = HashMap(map)
         newMap[key] = value
-        return StoredMapEntity(eid, newMap)
+        return StoredMapEntity(eid, newMap, deleted)
     }
 
 }

@@ -97,7 +97,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
-            val forks = db.pull(instanceEid)!![_forks] as Int
+            val forks = db.pull(instanceEid)!![_forks] ?: throw QBitException("Corrupted database metadata")
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
             val newHead = writer.store(
@@ -118,7 +118,8 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     fun persist(vararg es: Entity): Pair<Db, List<StoredEntity>> {
         try {
-            val curEntities = db.pull(instanceEid)!![_entities] as Int
+            // TODO: check for conflict modifications in parallel threads
+            val curEntities = db.pull(instanceEid)!![_entities] ?: throw QBitException("Corrupted database metadata")
             val eids = EID(dbUuid.iid.value, curEntities).nextEids()
             val storedEs = es.map {
                 it as? StoredEntity ?: it.toStored(eids.next())
@@ -159,7 +160,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
         val newDb = writer.appendGraph(noveltyRoot)
-        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).map { it.hash }.toSet())
+        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).asSequence().map { it.hash }.toSet())
         val head = writer.appendNode(merge(head, newDb))
         swapHead(head)
         return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, head.timestamp, head.data)

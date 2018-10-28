@@ -4,9 +4,11 @@ import qbit.schema.Attr
 
 data class DbUuid(val iid: IID)
 
-fun Fact(eid: EID, attr: Attr<*>, value: Any) = Fact(eid, attr.str, value)
+fun Fact(eid: EID, attr: Attr<*>, value: Any) = Fact(eid, attr.str, value, false)
 
-data class Fact(val eid: EID, val attr: String, val value: Any)
+fun Fact(eid: EID, attr: Attr<*>, value: Any, deleted: Boolean) = Fact(eid, attr.str, value, deleted)
+
+data class Fact(val eid: EID, val attr: String, val value: Any, val deleted: Boolean)
 
 class NodeData(val trx: Array<out Fact>)
 

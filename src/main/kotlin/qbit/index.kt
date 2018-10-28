@@ -91,8 +91,9 @@ class Index(
                 newAvet = newAvet.remove(toRemove)
             }
         }
-        newEavt = newEavt.addAll(distinctFacts)
-        newAvet = newAvet.addAll(distinctFacts)
+        val actualFacts = distinctFacts.filter { !it.deleted }
+        newEavt = newEavt.addAll(actualFacts)
+        newAvet = newAvet.addAll(actualFacts)
 
         return Index(newEavt, newAvet)
     }

@@ -41,5 +41,27 @@ class LocalConnTest {
         }
     }
 
+    @Test
+    fun testDelete() {
+        val conn = qbit(MemStorage())
+        val _attr = Attr(Namespace("user")["attr"], QString)
+        conn.persist(_attr)
+
+        val e = Entity(_attr to "value")
+        var (_, se) = conn.persist(e)
+        se = se.set(_attr, "value2")
+        conn.persist(se)
+
+        val pulledE2 = conn.db.pull(se.eid)
+        assertEquals("value2", pulledE2!![_attr] as String)
+
+        val deleted = pulledE2.delete()
+        conn.persist(deleted)
+
+        val deletedPulledE2 = conn.db.pull(se.eid)
+        assertNull(deletedPulledE2)
+        assertEquals(0, conn.db.query(attrIs(_attr, "value")).size)
+        assertEquals(0, conn.db.query(attrIs(_attr, "value2")).size)
+    }
 }
 

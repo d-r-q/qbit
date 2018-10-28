@@ -14,9 +14,9 @@ class IndexTest {
 
     @Test
     fun testVaet() {
-        val f1 = Fact(EID(1, 0), "attr1", "value1")
-        val f2 = Fact(EID(2, 0), "attr2", "value2")
-        val f3 = Fact(EID(3, 0), "attr3", "value3")
+        val f1 = Fact(EID(1, 0), "attr1", "value1", false)
+        val f2 = Fact(EID(2, 0), "attr2", "value2", false)
+        val f3 = Fact(EID(3, 0), "attr3", "value3", false)
 
         assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
 
