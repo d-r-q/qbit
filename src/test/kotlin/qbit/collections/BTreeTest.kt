@@ -79,4 +79,32 @@ class BTreeTest {
         assertEquals(2, root.findChildFor(14))
     }
 
+    @Test
+    fun testReplace() {
+        val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), false)
+        val (added, removed) = leaf.replace(listOf(Pair(IntSelector(5, 5), listOf(5))))
+        assertEquals(5, added.size)
+        assertEquals(0, removed.toList()[0].toList().size)
+        assertArrayEquals(arrayOf(1, 2, 3, 4, 5), added.toTypedArray())
+    }
+
+    class IntSelector(private val from: Int, val to: Int) : Selector<Int, IntSelector> {
+
+        override fun invoke(p1: Int): Int {
+            return when {
+                p1 < from -> -1
+                p1 > to -> 1
+                else -> 0
+            }
+        }
+
+        override fun compareTo(other: IntSelector): Int {
+            return when {
+                from < other.from -> -1
+                from > other.from -> -1
+                else -> 0
+            }
+        }
+
+    }
 }

@@ -8,6 +8,10 @@ private const val DEFAULT_DEGREE = 1024
 
 fun <E : Any> BTree(cmp: Comparator<E>, degree: Int = DEFAULT_DEGREE): BTree<E> = Leaf(arrayListOf(), degree, cmp, true)
 
+typealias QComparator<E> = (E) -> Int
+
+interface Selector<E, S> : QComparator<E>, Comparable<S>
+
 sealed class BTree<E : Any>(
         internal val items: ArrayList<E>,
         val degree: Int,
@@ -35,6 +39,8 @@ sealed class BTree<E : Any>(
         return root
     }
 
+    abstract fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>>
+
     internal abstract fun removeImpl(value: E): BTree<E>
 
     abstract fun find(c: (E) -> Int): Iterator<E>
@@ -53,6 +59,7 @@ sealed class BTree<E : Any>(
             find(cmp).asSequence()
                     .takeWhile { cmp(it) == 0 }
                     .iterator()
+
 
     /**
      * Builds treetop for given list of trees and checks invariants.
@@ -199,6 +206,10 @@ class Node<E : Any>(
         }
     }
 
+    override fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
     internal fun findChildFor(k: E): Int {
         val itemIdx = items.binarySearch(k, cmp)
         return when {
@@ -327,6 +338,34 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
             nItems.addAll(items.subList(idx + 1))
             Leaf(nItems, degree, cmp, root)
         }
+    }
+
+    override fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+        val cleanedItms = ArrayList(items)
+        val itemsToAdd = ArrayList<E>()
+        val removed = ArrayList<ArrayList<E>>()
+        for ((selector, newData) in es) {
+            val fromIdx = items.firstMatchIdx(selector)
+            removed.add(ArrayList())
+            if (fromIdx >= 0 && fromIdx < items.size) {
+                val subItmsIter = cleanedItms.subList(fromIdx, cleanedItms.size).iterator()
+                while (subItmsIter.hasNext()) {
+                    val item = subItmsIter.next()
+                    if (item == 0) {
+                        removed.last().add(item)
+                        subItmsIter.remove()
+                    } else {
+                        break
+                    }
+                }
+            }
+
+            itemsToAdd.addAll(newData)
+        }
+
+        val nItms = merge(cleanedItms, itemsToAdd, cmp)
+
+        return Pair(Leaf(nItms, degree, cmp, root), removed)
     }
 
     override fun contains(element: E): Boolean =
