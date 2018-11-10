@@ -39,8 +39,6 @@ sealed class BTree<E : Any>(
         return root
     }
 
-    abstract fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>>
-
     internal abstract fun removeImpl(value: E): BTree<E>
 
     abstract fun find(c: (E) -> Int): Iterator<E>
@@ -60,6 +58,11 @@ sealed class BTree<E : Any>(
                     .takeWhile { cmp(it) == 0 }
                     .iterator()
 
+    fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+        val (trees, removed) = replaceImpl(es)
+        val root = finishTree(trees)
+        return Pair(root, removed)
+    }
 
     /**
      * Builds treetop for given list of trees and checks invariants.
@@ -71,6 +74,8 @@ sealed class BTree<E : Any>(
         check(root.root)
         return root
     }
+
+    internal abstract fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>>
 
     internal abstract fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>>
 
@@ -206,7 +211,7 @@ class Node<E : Any>(
         }
     }
 
-    override fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -340,7 +345,7 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         }
     }
 
-    override fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
         val cleanedItms = ArrayList(items)
         val itemsToAdd = ArrayList<E>()
         val removed = ArrayList<ArrayList<E>>()
@@ -365,7 +370,13 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
 
         val nItms = merge(cleanedItms, itemsToAdd, cmp)
 
-        return Pair(Leaf(nItms, degree, cmp, root), removed)
+        return if (nItms.size <= degree) {
+            Pair(arrayListOf<BTree<E>>(Leaf(nItms, degree, cmp, root)), removed)
+        } else {
+            val itms = split(nItms, minItems, minItems)
+            val children = itms.map { Leaf(it, degree, cmp, false) as BTree<E> } as ArrayList<BTree<E>>
+            Pair(spread(children, height + 1), removed)
+        }
     }
 
     override fun contains(element: E): Boolean =

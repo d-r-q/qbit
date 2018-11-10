@@ -81,7 +81,17 @@ class BTreeTest {
 
     @Test
     fun testReplace() {
-        val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), false)
+        val leaf = Leaf(arrayListOf(1, 2, 3), 4, naturalOrder(), true)
+        val (added, removed) = leaf.replace(listOf(Pair(IntSelector(4, 4), listOf(4))))
+        added.assertInvariants()
+        assertEquals(4, added.size)
+        assertEquals(0, removed.toList()[0].toList().size)
+        assertArrayEquals(arrayOf(1, 2, 3, 4), added.toTypedArray())
+    }
+
+    @Test
+    fun testReplaceLeafOverflow() {
+        val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), true)
         val (added, removed) = leaf.replace(listOf(Pair(IntSelector(5, 5), listOf(5))))
         assertEquals(5, added.size)
         assertEquals(0, removed.toList()[0].toList().size)
