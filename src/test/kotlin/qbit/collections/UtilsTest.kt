@@ -2,6 +2,7 @@ package qbit.collections
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.*
 
 
 class UtilsTest {
@@ -37,5 +38,24 @@ class UtilsTest {
         assertTrue(resEdges[0].size == 2)
         assertTrue(resEdges[1].size == 0)
         assertTrue(resEdges[2].size == 2)
+    }
+
+    @Test
+    fun splitSmokeTest() {
+        val rnd = Random(1)
+        for (i in 0..10000) {
+            val size = rnd.nextInt(10000)
+            val minChunk = 1 + rnd.nextInt(1 + size / 2)
+            val maxChunk = minChunk * 2
+            val chunk = minChunk + rnd.nextInt(maxChunk - minChunk)
+            val lst = arrayList(size) { it -> true }
+            val sublists = split(lst, chunk, minChunk)
+            sublists.forEach {
+                assertTrue(it.size >= minChunk)
+                assertTrue(it.size < maxChunk)
+            }
+            val (regular, irregular) = sublists.asSequence().partition { it.size == chunk }
+            assertTrue(regular.size >= irregular.size || sublists.size <= 3)
+        }
     }
 }

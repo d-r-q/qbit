@@ -77,7 +77,7 @@ sealed class BTree<E : Any>(
         }
 
         val chunkSize = (minItems + degree) / 2
-        val nChildren = split(children, chunkSize, minItems + 1, degree + 1)
+        val nChildren = split(children, chunkSize, minItems + 1)
         val nItems = arrayListOf<ArrayList<E>>()
         var idx = 0
         for (child in nChildren) {
@@ -292,6 +292,7 @@ class Node<E : Any>(
 }
 
 class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root: Boolean) : BTree<E>(values, degree, cmp, 1, root) {
+
     override val size = values.size
 
     override fun add(value: E): BTree<E> {
@@ -308,7 +309,7 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         return if (nItms.size <= degree) {
             arrayListOf(Leaf(nItms, degree, cmp, root))
         } else {
-            val itms = split(nItms, minItems, minItems, degree)
+            val itms = split(nItms, minItems, minItems)
             val children = itms.map { Leaf(it, degree, cmp, false) as BTree<E> } as ArrayList<BTree<E>>
             spread(children, height + 1, false)
         }

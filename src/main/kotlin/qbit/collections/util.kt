@@ -106,8 +106,13 @@ fun <E : Any> splitToPair(arr: ArrayList<E>): Pair<ArrayList<E>, ArrayList<E>> {
     return Pair(left, right)
 }
 
-fun <E : Any> split(arr: ArrayList<E>, chunkSize: Int, minChunkSize: Int, maxChunkSize: Int): ArrayList<ArrayList<E>> {
-    require(minChunkSize <= chunkSize && chunkSize <= maxChunkSize)
+/**
+ * Splits given list to sublists, where each sublist have size between [minChunkSize] and [minChunkSize] * 2 (exclusive)
+ * and as much as possible sublists have size equal to [chunkSize]
+ */
+fun <E : Any> split(arr: ArrayList<E>, chunkSize: Int, minChunkSize: Int): ArrayList<ArrayList<E>> {
+    val maxChunkSize = minChunkSize * 2
+    require(chunkSize in minChunkSize..maxChunkSize)
 
     val res = ArrayList(arr.asSequence()
             .chunked(chunkSize) { ArrayList(it) }
@@ -116,8 +121,8 @@ fun <E : Any> split(arr: ArrayList<E>, chunkSize: Int, minChunkSize: Int, maxChu
         val last = res.removeAt(res.size - 1)
         res.last().addAll(last)
     }
-    if (res.last().size > maxChunkSize) {
-        res.addAll(split(res.removeAt(res.size - 1), minChunkSize, minChunkSize, maxChunkSize))
+    if (res.last().size >= maxChunkSize) {
+        res.addAll(split(res.removeAt(res.size - 1), minChunkSize, minChunkSize))
     }
     return res
 }
