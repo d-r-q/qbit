@@ -25,19 +25,7 @@ sealed class BTree<E : Any>(
 
     fun addAll(values: Iterable<E>): BTree<E> {
         val trees = addAllImpl(values)
-        val root = when (trees.size) {
-            0 -> throw AssertionError("addAllImpl returned empty list")
-            1 -> trees[0]
-            else -> {
-                val children = trees.map { it.withRoot(false) } as ArrayList<BTree<E>>
-                val root = spread(children, trees[0].height + 1, true)
-                assert(root.size == 1)
-                root[0]
-            }
-        }
-        root.assertInvariants()
-        check(root.root)
-        return root
+        return finishTree(trees)
     }
 
     fun remove(value: E): BTree<E> {
@@ -61,16 +49,50 @@ sealed class BTree<E : Any>(
     override fun isEmpty(): Boolean =
             size == 0
 
-    fun select(cmp: (E) -> Int) =
+    fun select(cmp: (E) -> Int): Iterator<E> =
             find(cmp).asSequence()
                     .takeWhile { cmp(it) == 0 }
                     .iterator()
+
+    /**
+     * Builds treetop for given list of trees and checks invariants.
+     */
+    private fun finishTree(trees: ArrayList<BTree<E>>): BTree<E> {
+        assert(trees.isNotEmpty())
+        val root = spreadTillValid(trees, trees[0].height + 1)
+        root.assertInvariants()
+        check(root.root)
+        return root
+    }
 
     internal abstract fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>>
 
     internal abstract fun withRoot(root: Boolean): BTree<E>
 
-    protected fun spread(children: ArrayList<BTree<E>>, height: Int, canGrow: Boolean): ArrayList<BTree<E>> {
+    /**
+     * Builds tree top for given list of trees
+     */
+    private fun spreadTillValid(trees: ArrayList<BTree<E>>, height: Int): BTree<E> {
+        if (trees.size == 1 && trees[0].items.size <= degree) {
+            // trees list already contains single valid node
+            return trees[0]
+        }
+
+        val items = trees.subList(1).map { it.first() } as ArrayList<E>
+        if (items.size <= degree) {
+            // can build valid node for given trees
+            return Node(items, trees, degree, cmp, height, root)
+        }
+
+
+        // build next level of nodes for given trees...
+        val parents = spread(trees, height)
+
+        // and try to make root from that level
+        return spreadTillValid(parents, height + 1)
+    }
+
+    protected fun spread(children: ArrayList<BTree<E>>, height: Int): ArrayList<BTree<E>> {
         val items = children.subList(1).map { it.first() } as ArrayList<E>
         if (items.size <= degree) {
             return arrayListOf(Node(items, children, degree, cmp, height, root))
@@ -85,16 +107,11 @@ sealed class BTree<E : Any>(
             idx += child.size
         }
         check(nChildren.size == nItems.size)
-        val nodes: ArrayList<BTree<E>> = nChildren.asSequence()
+
+        return nChildren.asSequence()
                 .zip(nItems.asSequence())
                 .map { Node(it.second, it.first, degree, cmp, height, false) }
                 .toCollection(ArrayList())
-
-        return if (canGrow) {
-            spread(nodes, height + 1, canGrow)
-        } else {
-            ArrayList(nodes)
-        }
     }
 
     internal abstract fun assertInvariants()
@@ -144,7 +161,7 @@ class Node<E : Any>(
             }
         }
 
-        return spread(nChildren, height, false)
+        return spread(nChildren, height)
     }
 
     override fun contains(element: E): Boolean {
@@ -311,7 +328,7 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         } else {
             val itms = split(nItms, minItems, minItems)
             val children = itms.map { Leaf(it, degree, cmp, false) as BTree<E> } as ArrayList<BTree<E>>
-            spread(children, height + 1, false)
+            spread(children, height + 1)
         }
     }
 
