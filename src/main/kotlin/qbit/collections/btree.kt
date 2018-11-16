@@ -58,7 +58,7 @@ sealed class BTree<E : Any>(
                     .takeWhile { cmp(it) == 0 }
                     .iterator()
 
-    fun <S : Selector<E, S>> replace(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
+    fun <S : Selector<E, S>> replace(es: Iterable<Pair<S, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
         val (trees, removed) = replaceImpl(es)
         val root = finishTree(trees)
         return Pair(root, removed)
@@ -75,7 +75,7 @@ sealed class BTree<E : Any>(
         return root
     }
 
-    internal abstract fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>>
+    internal abstract fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>>
 
     internal abstract fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>>
 
@@ -211,7 +211,7 @@ class Node<E : Any>(
         }
     }
 
-    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
+    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -345,14 +345,17 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         }
     }
 
-    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<Selector<E, S>, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
+    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
         val cleanedItms = ArrayList(items)
         val itemsToAdd = ArrayList<E>()
         val removed = ArrayList<ArrayList<E>>()
+        var prevSelector: S? = null
         for ((selector, newData) in es) {
-            val fromIdx = items.firstMatchIdx(selector)
+            check(prevSelector == null || prevSelector < selector)
+            prevSelector = selector
+            val fromIdx = cleanedItms.firstMatchIdx(selector)
             removed.add(ArrayList())
-            if (fromIdx >= 0 && fromIdx < items.size) {
+            if (fromIdx >= 0 && fromIdx < cleanedItms.size) {
                 val subItmsIter = cleanedItms.subList(fromIdx, cleanedItms.size).iterator()
                 while (subItmsIter.hasNext()) {
                     val item = subItmsIter.next()

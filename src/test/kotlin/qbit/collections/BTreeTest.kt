@@ -98,7 +98,13 @@ class BTreeTest {
         assertArrayEquals(arrayOf(1, 2, 3, 4, 5), added.toTypedArray())
     }
 
-    class IntSelector(private val from: Int, val to: Int) : Selector<Int, IntSelector> {
+    @Test(expected = AssertionError::class)
+    fun testReplaceUnsortedSelectors() {
+        val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), true)
+        leaf.replace(listOf(Pair(IntSelector(5, 5), listOf(5)), Pair(IntSelector(4, 4), listOf(4))))
+    }
+
+    class IntSelector(private val from: Int, private val to: Int) : Selector<Int, IntSelector> {
 
         override fun invoke(p1: Int): Int {
             return when {
