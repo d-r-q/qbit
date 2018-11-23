@@ -127,14 +127,14 @@ fun <E : Any> split(arr: ArrayList<E>, chunkSize: Int, minChunkSize: Int): Array
     return res
 }
 
-fun <E : Any> splitByArray(arr: Iterable<E>, splitter: List<E>, cmp: Comparator<E>): ArrayList<ArrayList<E>> {
+fun <E : Any, S : Any> splitByArray(arr: Iterable<E>, splitter: List<S>, cmp: (E, S) -> Int): ArrayList<ArrayList<E>> {
     val res = arrayList(splitter.size + 1) { ArrayList<E>() }
 
     val iter = arr.iterator()
     var childIdx = 0
     while (iter.hasNext()) {
         val value = iter.next()
-        while (childIdx < splitter.size && cmp.compare(value, splitter[childIdx]) >= 0) {
+        while (childIdx < splitter.size && cmp.invoke(value, splitter[childIdx]) >= 0) {
             childIdx++
         }
         res[childIdx].add(value)

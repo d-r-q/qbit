@@ -98,7 +98,10 @@ sealed class BTree<E : Any>(
             return arrayListOf(Node(items, children, degree, cmp, height, root))
         }
 
+        // unchecked heuristics, that it's better to keep nodes filled for 3/4
+        // I believe, that this decreses frequency of tree rebuilds
         val chunkSize = (minItems + degree) / 2
+        // split children such way, that each subset satisfies degree invariant
         val nChildren = split(children, chunkSize, minItems + 1)
         val nItems = arrayListOf<ArrayList<E>>()
         var idx = 0
@@ -133,35 +136,13 @@ class Node<E : Any>(
             addAll(value)
 
     override fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>> {
-        val childValues = splitByArray(values, items, cmp)
-        val nItems = ArrayList<E>()
-        val nChildren = ArrayList<BTree<E>>()
-        for (i in 0 until children.size) {
-            if (childValues[i].size > 0) {
-                val reses = children[i].addAllImpl(childValues[i])
-                for (res in reses) {
-                    if (res is Node) {
-                        when {
-                            res.height == height -> {
-                                nItems.addAll(res.items)
-                                nChildren.addAll(res.children)
-                            }
-                            res.height == height - 1 -> nChildren.add(res)
-                            else -> throw AssertionError("Should never happen")
-                        }
-                    } else {
-                        nChildren.add(res)
-                    }
-                }
-            } else {
-                nChildren.add(children[i])
-            }
-            if (i < items.size) {
-                nItems.add(items[i])
-            }
-        }
+        return applyToChildren(values, { e1, e2 -> cmp.compare(e1, e2) }, { c, v -> c.addAllImpl(v) })
+    }
 
-        return spread(nChildren, height)
+    private fun <T : Any> applyToChildren(values: Iterable<T>, splitComparator: (T, E) -> Int, map: (BTree<E>, ArrayList<T>) -> ArrayList<BTree<E>>): ArrayList<BTree<E>> {
+        val valuesForChild = splitByArray(values, items, splitComparator)
+        val nChildren = children.zip(valuesForChild).flatMap { (c, v) -> map(c, v) }
+        return spread(nChildren as ArrayList<BTree<E>>, height)
     }
 
     override fun contains(element: E): Boolean {
@@ -328,7 +309,7 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         } else {
             val itms = split(nItms, minItems, minItems)
             val children = itms.map { Leaf(it, degree, cmp, false) as BTree<E> } as ArrayList<BTree<E>>
-            spread(children, height + 1)
+            children
         }
     }
 

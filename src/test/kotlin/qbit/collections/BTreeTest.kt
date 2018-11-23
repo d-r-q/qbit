@@ -27,7 +27,7 @@ class BTreeTest {
         val fifths = Leaf(arrayListOf(18, 19, 20, 21), 4, naturalOrder(), false)
         val root = Node(arrayListOf(6, 10, 14, 18), arrayListOf(first, second, third, fourth, fifths), 4, Comparator.naturalOrder(), 2, true)
         val newRoot = root.add(5)
-        assert((newRoot as qbit.collections.Node<Int>).children.size == 2)
+        assertEquals((newRoot as qbit.collections.Node<Int>).children.size, 2)
     }
 
     @Test
