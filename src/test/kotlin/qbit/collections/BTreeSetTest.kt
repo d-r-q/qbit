@@ -130,7 +130,7 @@ class BTreeSetTest {
                 val values = (0..valuesCount).map { random.nextInt(100 * (seed + 1)) }
                 if (random.nextInt(100) < ((seed % 5) * 20) + 1) {
                     if (random.nextInt(100) < 50) {
-                        set = set.addAll(values)
+                        set = set.addAll(values.sorted().distinct())
                         ref.addAll(values)
                         validateSet(set, ref)
                     } else {

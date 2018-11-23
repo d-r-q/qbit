@@ -8,7 +8,7 @@ val enabled = try {
     true
 }
 
-fun assert(body: () -> Boolean) {
+inline fun assert(body: () -> Boolean) {
     if (enabled) {
         assert(body())
     }

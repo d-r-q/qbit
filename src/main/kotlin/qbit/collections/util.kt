@@ -44,17 +44,32 @@ fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>):
     qbit.assert { sorted(arr1, cmp) }
     qbit.assert { sorted(arr2, cmp) }
     val extended = ArrayList<E>(arr1.size + arr2.size)
-    var a1 = 0
-    var a2 = 0
-    for (i in 0 until arr1.size + arr2.size) {
-        val e = when {
-            a1 == arr1.size -> arr2[a2++]
-            a2 == arr2.size -> arr1[a1++]
-            cmp.compare(arr1[a1], arr2[a2]) <= 0 -> arr1[a1++]
-            else -> arr2[a2++]
+    val (larger, smaller) = if (arr1.size > arr2.size) Pair(arr1, arr2) else Pair(arr2, arr1)
+    var fromIdx = 0
+    for (e in smaller) {
+        val idx = larger.firstMatchIdx { cmp.compare(it, e) }
+        if (idx < -larger.size || fromIdx == larger.size) {
+            if (cmp.compare(larger[0], e) <= 0) {
+                extended.addAll(larger.subList(fromIdx))
+                extended.add(e)
+            } else {
+                extended.add(e)
+                extended.addAll(larger.subList(fromIdx))
+            }
+            fromIdx = larger.size
+        } else if (idx < 0) {
+            val toIdx = -idx - 1
+            extended.addAll(larger.subList(fromIdx, toIdx))
+            fromIdx = toIdx
+            extended.add(e)
+        } else if (idx >= 0) {
+            extended.addAll(larger.subList(fromIdx, idx))
+            extended.add(e)
+            fromIdx = idx
         }
-        extended.add(e)
     }
+    extended.addAll(larger.subList(fromIdx))
+    check(extended.size == arr1.size + arr2.size)
     qbit.assert { sorted(extended, cmp) }
     return extended
 }

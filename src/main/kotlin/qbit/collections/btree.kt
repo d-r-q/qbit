@@ -24,7 +24,7 @@ sealed class BTree<E : Any>(
             addAll(values.asList())
 
     fun addAll(values: Iterable<E>): BTree<E> {
-        val trees = addAllImpl(values.asSequence().distinct().sortedWith(cmp).asIterable())
+        val trees = addAllImpl(values)
         val root = when (trees.size) {
             0 -> throw AssertionError("addAllImpl returned empty list")
             1 -> trees[0]
@@ -323,7 +323,10 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         return if (idx < 0) {
             this
         } else {
-            Leaf(items.filter { cmp.compare(value, it) != 0 } as ArrayList<E>, degree, cmp, root)
+            val nItems = ArrayList<E>(items.size - 1)
+            nItems.addAll(items.subList(0, idx))
+            nItems.addAll(items.subList(idx + 1))
+            Leaf(nItems, degree, cmp, root)
         }
     }
 

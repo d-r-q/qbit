@@ -30,17 +30,6 @@ fun Index(facts: List<Fact>): Index =
         Index(BTree(eavtCmp), BTree(avetCmp))
                 .add(facts)
 
-val eidCmp = Comparator<Fact> { o1, o2 -> o1.eid.compareTo(o2.eid) }
-val attrCmp = Comparator<Fact> { o1, o2 -> o1.attr.compareTo(o2.attr) }
-val valueCmp = Comparator<Fact> { o1, o2 -> compareValues(o1, o2) }
-
-fun composeComparators(vararg cmps: Comparator<Fact>): Comparator<Fact> = Comparator { o1: Fact, o2: Fact ->
-    cmps.asSequence()
-            .map { it.compare(o1, o2) }
-            .dropWhile { it == 0 }
-            .firstOrNull() ?: 0
-}
-
 fun eidPattern(eid: EID) = { other: Fact -> other.eid.compareTo(eid) }
 
 fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
@@ -58,12 +47,25 @@ fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
             .firstOrNull() ?: 0
 }
 
-val eavtCmp = composeComparators(eidCmp, attrCmp)
+val eavtCmp = Comparator<Fact> { o1, o2 ->
+    var res = o1.eid.compareTo(o2.eid)
+    if (res == 0) {
+        res = o1.attr.compareTo(o2.attr)
+    }
+    res
+}
 
-val avetCmp = composeComparators(attrCmp, valueCmp, eidCmp)
+val avetCmp = Comparator<Fact> { o1, o2 ->
 
-fun compareValues(f1: Fact, f2: Fact) =
-        compareValues(f1.value, f2.value)
+    var res = o1.attr.compareTo(o2.attr)
+    if (res == 0) {
+        res = o1.eid.compareTo(o2.eid)
+    }
+    if (res == 0) {
+        res = compareValues(o1.value, o2.value)
+    }
+    res
+}
 
 fun compareValues(v1: Any, v2: Any): Int {
     val type = DataType.of(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
@@ -92,8 +94,8 @@ class Index(
             }
         }
         val actualFacts = distinctFacts.filter { !it.deleted }
-        newEavt = newEavt.addAll(actualFacts)
-        newAvet = newAvet.addAll(actualFacts)
+        newEavt = newEavt.addAll(actualFacts.sortedWith(eavtCmp))
+        newAvet = newAvet.addAll(actualFacts.sortedWith(avetCmp))
 
         return Index(newEavt, newAvet)
     }
