@@ -111,7 +111,7 @@ class BTreeSetTest {
             }
         }
     }
-    @Ignore // runs for ~4 minutes
+
     @Test
     fun longSmokeTest() {
         var set: BTree<Int>
