@@ -21,7 +21,7 @@ class MemStorage : Storage {
                 ?: throw QBitException("Value with key $key does not exists")
     }
 
-    private fun nsMap(key: Key) = data.getOrPut(key.ns, { ConcurrentHashMap() })
+    private fun nsMap(key: Key) = data.getOrPut(key.ns) { ConcurrentHashMap() }
 
     override fun load(key: Key): ByteArray? = data[key.ns]?.get(key)
 

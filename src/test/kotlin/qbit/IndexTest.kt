@@ -105,7 +105,7 @@ class IndexTest {
                 Fact(eid, _attr2, 1),
                 Fact(eid, _attr3, 0))))
 
-        val index = Index(Graph { _ -> null }, n3)
+        val index = Index(Graph { null }, n3)
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).size)
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).size)
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).size)
@@ -134,7 +134,7 @@ class IndexTest {
         val e3 = Entity(_date to 3L)
         val e4 = Entity(_date to 4L)
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
-        val index = Index(Graph { _ -> null }, root)
+        val index = Index(Graph { null }, root)
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
         assertEquals(1, vRes.size)

@@ -5,7 +5,6 @@ import org.junit.Test
 import qbit.ns.Namespace
 import qbit.schema.Attr
 import qbit.storage.FileSystemStorage
-import qbit.storage.NodesStorage
 import java.nio.file.Files
 
 class SyncTest {

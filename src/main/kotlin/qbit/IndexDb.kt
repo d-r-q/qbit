@@ -65,7 +65,7 @@ class IndexDb(internal val index: Index) : Db {
         val attrValues = entity.map {
             val attr = schema.find(it.key)
             require(attr != null)
-            attr!! to it.value
+            attr to it.value
         }
         return Entity(eid, attrValues)
     }

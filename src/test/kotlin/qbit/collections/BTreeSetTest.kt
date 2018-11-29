@@ -1,7 +1,6 @@
 package qbit.collections
 
 import org.junit.Assert.*
-import org.junit.Ignore
 import org.junit.Test
 import java.util.*
 
@@ -112,7 +111,7 @@ class BTreeSetTest {
         }
     }
 
-    @Test
+    //@Test
     fun longSmokeTest() {
         var set: BTree<Int>
         var ref: TreeSet<Int>

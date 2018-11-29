@@ -33,7 +33,7 @@ sealed class DataType<T : Any> {
 
     companion object {
 
-        val values: Array<DataType<*>>
+        private val values: Array<DataType<*>>
             get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID)
 
         fun ofCode(code: Byte): DataType<*>? = values.firstOrNull { it.code == code }

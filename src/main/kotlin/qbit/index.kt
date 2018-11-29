@@ -74,7 +74,7 @@ fun compareValues(v1: Any, v2: Any): Int {
 
 class Index(
         val eavt: BTree<Fact> = BTree(eavtCmp),
-        val avet: BTree<Fact> = BTree(avetCmp)
+        private val avet: BTree<Fact> = BTree(avetCmp)
 ) {
 
     fun add(facts: List<Fact>): Index {

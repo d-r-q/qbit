@@ -19,8 +19,8 @@ val catName = Attr(cat["name"], QString, true)
 
 val categories = HashMap<String, StoredEntity>()
 
-val datePattern = "dd.MM.yyyy"
-val timePattern = "HH:mm"
+const val datePattern = "dd.MM.yyyy"
+const val timePattern = "HH:mm"
 
 val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 
@@ -54,12 +54,11 @@ fun main(args: Array<String>) {
 }
 
 fun parse(conn: LocalConn, sourceLine: String) {
-    val line = sourceLine
-    val fieldsV1 = line
+    val fieldsV1 = sourceLine
             .replace("\uFEFF", "") // Remove BOM
             .split("\",\"".toRegex())
             .map { it.trim('\"') }
-    val fieldsV2 = line
+    val fieldsV2 = sourceLine
             .replace("\uFEFF", "") // Remove BOM
             .split("\";\"".toRegex())
             .map { it.trim('\"') }

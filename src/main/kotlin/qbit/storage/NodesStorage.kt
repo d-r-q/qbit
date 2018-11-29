@@ -1,7 +1,6 @@
 package qbit.storage
 
 import qbit.*
-import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.serialization.SimpleSerialization
 import java.io.ByteArrayInputStream
