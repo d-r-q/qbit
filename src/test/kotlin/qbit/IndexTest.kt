@@ -43,9 +43,9 @@ class IndexTest {
                 .add(listOf(f(0, _uid, 0),
                         f(1, _uid, 1),
                         f(0, _uid, 1),
-                        f(0, _foo, "bar"),
+                        f(0, _foo, "baz"),
                         f(1, _foo, "bar"),
-                        f(2, _foo, "baz")
+                        f(2, _foo, "bar")
                 ))
 
         var lst = idx.eidsByPred(AttrValuePred("/uid", 1))
@@ -55,8 +55,13 @@ class IndexTest {
 
         lst = idx.eidsByPred(AttrValuePred("/foo", "bar"))
         assertEquals(2, lst.size)
-        assertEquals(0, lst.sorted().toList()[0].eid)
-        assertEquals(1, lst.sorted().toList()[1].eid)
+        assertEquals(1, lst.sorted().toList()[0].eid)
+        assertEquals(2, lst.sorted().toList()[1].eid)
+
+        val bazEntities = idx.eidsByPred(attrIs(_foo, "baz")).toList()
+
+        assertEquals(1, bazEntities.size)
+        assertEquals(0, bazEntities[0].eid)
     }
 
     @Test

@@ -52,6 +52,9 @@ val eavtCmp = Comparator<Fact> { o1, o2 ->
     if (res == 0) {
         res = o1.attr.compareTo(o2.attr)
     }
+    if (res == 0) {
+        res = compareValues(o1.value, o2.value)
+    }
     res
 }
 
@@ -59,10 +62,10 @@ val avetCmp = Comparator<Fact> { o1, o2 ->
 
     var res = o1.attr.compareTo(o2.attr)
     if (res == 0) {
-        res = o1.eid.compareTo(o2.eid)
+        res = compareValues(o1.value, o2.value)
     }
     if (res == 0) {
-        res = compareValues(o1.value, o2.value)
+        res = o1.eid.compareTo(o2.eid)
     }
     res
 }
