@@ -3,6 +3,9 @@ package qbit.serialization
 import qbit.*
 import java.io.EOFException
 import java.io.InputStream
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 object SimpleSerialization : Serialization {
 
@@ -53,16 +56,21 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is Byte -> byteArray(QByte.code, a)
             is Int -> byteArray(QInt.code, serializeInt(a))
             is Long -> byteArray(QLong.code, serializeLong(a))
-            is String -> byteArray(QString.code, serializeInt(a.toByteArray(Charsets.UTF_8).size), a.toByteArray(Charsets.UTF_8))
+            is String -> byteArray(QString.code, byteArray(a))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
             is Fact -> serialize(a.eid, a.attr, a.value, a.deleted)
             is EID -> byteArray(QEID.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
+            is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
+            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli()), byteArray(a.zone.id))
             else -> throw AssertionError("Should never happen, a is $a")
         }
     }
     return byteArray(*bytes.toTypedArray())
 }
+
+private fun byteArray(str: String): ByteArray =
+    byteArray(serializeInt(str.toByteArray(Charsets.UTF_8).size), str.toByteArray(Charsets.UTF_8))
 
 internal fun byteArray(vararg parts: Any): ByteArray = ByteArray(parts.sumBy { size(it) }) { idx ->
     var ci = idx
@@ -125,6 +133,14 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): T {
         QByte -> ins.read().toByte() as T
         QInt -> readInt(ins) as T
         QLong -> readLong(ins) as T
+        QInstant -> Instant.ofEpochMilli(readLong(ins)) as T
+
+        QZonedDateTime -> {
+            val instant = Instant.ofEpochMilli(readLong(ins))
+            val zone = String(readBytes(ins, readInt(ins)), Charsets.UTF_8)
+            ZonedDateTime.ofInstant(instant, ZoneId.of(zone)) as T
+        }
+
         QBytes -> readInt(ins).let { count ->
             readBytes(ins, count) as T
         }

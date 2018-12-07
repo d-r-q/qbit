@@ -1,5 +1,7 @@
 package qbit
 
+import java.time.Instant
+import java.time.ZonedDateTime
 import kotlin.reflect.KClass
 
 
@@ -34,7 +36,7 @@ sealed class DataType<T : Any> {
     companion object {
 
         private val values: Array<DataType<*>>
-            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID)
+            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID, QInstant, QZonedDateTime)
 
         fun ofCode(code: Byte): DataType<*>? = values.firstOrNull { it.code == code }
 
@@ -46,6 +48,8 @@ sealed class DataType<T : Any> {
             is String -> QString as DataType<T>
             is ByteArray -> QBytes as DataType<T>
             is EID -> QEID as DataType<T>
+            is Instant -> QInstant as DataType<T>
+            is ZonedDateTime -> QZonedDateTime as DataType<T>
             else -> null
         }
     }
@@ -83,6 +87,22 @@ object QLong : DataType<Long>() {
     override val code = 3.toByte()
 
     override val kotlinType = Long::class
+
+}
+
+object QInstant : DataType<Instant>() {
+
+    override val code = 4.toByte()
+
+    override val kotlinType = Instant::class
+
+}
+
+object QZonedDateTime : DataType<ZonedDateTime>() {
+
+    override val code = 10.toByte()
+
+    override val kotlinType = ZonedDateTime::class
 
 }
 

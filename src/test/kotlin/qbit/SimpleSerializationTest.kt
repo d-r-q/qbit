@@ -6,6 +6,8 @@ import qbit.serialization.*
 import java.io.ByteArrayInputStream
 import java.io.EOFException
 import java.io.InputStream
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.*
 
 class SimpleSerializationTest {
@@ -31,6 +33,18 @@ class SimpleSerializationTest {
     @Test
     fun testMaxInt() {
         assertEquals(Integer.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Integer.MAX_VALUE)), QInt))
+    }
+
+    @Test
+    fun testSerializeInt() {
+        val zeroRes = serializeInt(0)
+        assertArrayEquals(byteArrayOf(0, 0, 0, 0), zeroRes)
+
+        val maxRes = serializeInt(Integer.MAX_VALUE)
+        assertArrayEquals(byteArrayOf(127, -1, -1, -1), maxRes)
+
+        val minRes = serializeInt(Integer.MIN_VALUE)
+        assertArrayEquals(byteArrayOf(-128, 0, 0, 0), minRes)
     }
 
     @Test
@@ -121,15 +135,12 @@ class SimpleSerializationTest {
     }
 
     @Test
-    fun testSerializeInt() {
-        val zeroRes = serializeInt(0)
-        assertArrayEquals(byteArrayOf(0, 0, 0, 0), zeroRes)
+    fun testZonedDateTime() {
+        val zdt = ZonedDateTime.now()
+        assertEquals(zdt, deserialize(ByteArrayInputStream(serialize(zdt))))
 
-        val maxRes = serializeInt(Integer.MAX_VALUE)
-        assertArrayEquals(byteArrayOf(127, -1, -1, -1), maxRes)
-
-        val minRes = serializeInt(Integer.MIN_VALUE)
-        assertArrayEquals(byteArrayOf(-128, 0, 0, 0), minRes)
+        val azdt = zdt.withZoneSameInstant(ZoneId.of("Europe/Paris"))
+        assertEquals(azdt, deserialize(ByteArrayInputStream(serialize(azdt))))
     }
 
     private fun randomBytes(count: Int = Random().nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random().nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
