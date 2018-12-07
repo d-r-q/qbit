@@ -9,13 +9,13 @@ interface QueryPred {
 }
 
 fun hasAttr(attr: Attr<*>): QueryPred =
-        AttrPred(attr.str)
+        AttrPred(attr.str())
 
 fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
-        AttrValuePred(attr.str, value)
+        AttrValuePred(attr.str(), value)
 
 fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
-        AttrRangePred(attr.str, from, to)
+        AttrRangePred(attr.str(), from, to)
 
 internal data class AttrPred(override val attrName: String) : QueryPred {
 
@@ -97,9 +97,9 @@ class IndexDb(internal val index: Index) : Db {
             val attrFacts = attrEidss
                     .map {
                         val e = index.entityById(it)!!
-                        val name = e[_name.str]!! as String
-                        val type = e[_type.str]!! as Byte
-                        val unique = e[_unique.str] as? Boolean ?: false
+                        val name = e[_name.str()]!! as String
+                        val type = e[_type.str()]!! as Byte
+                        val unique = e[_unique.str()] as? Boolean ?: false
                         val attr = Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
                         (name to attr)
                     }

@@ -7,20 +7,30 @@ import qbit.ns.Namespace
 val qbitAttrs = Namespace.of("qbit", "attrs")
 val qbitInstance = Namespace.of("qbit", "instance")
 
-val _name = Attr(qbitAttrs["name"], QString, unique = true)
-val _type = Attr(qbitAttrs["type"], QByte)
-val _unique = Attr(qbitAttrs["unique"], QBoolean)
+val _name: Attr<String> = ScalarAttr(qbitAttrs["name"], QString, unique = true)
+val _type: Attr<Byte> = ScalarAttr(qbitAttrs["type"], QByte)
+val _unique: Attr<Boolean> = ScalarAttr(qbitAttrs["unique"], QBoolean)
 
-val _forks = Attr(qbitInstance["forks"], QInt, false)
-val _entities = Attr(qbitInstance["entities"], QInt, false)
-val _iid = Attr(qbitInstance["iid"], QLong, true)
+val _forks: Attr<Int> = ScalarAttr(qbitInstance["forks"], QInt, false)
+val _entities: Attr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
+val _iid: Attr<Long> = ScalarAttr(qbitInstance["iid"], QLong, true)
 
-fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false): Attr<T> = Attr(Key(name), type, unique)
+fun <T : Any> Attr(name: String, type: DataType<T>, unique: Boolean = false): Attr<T> = ScalarAttr(Key(name), type, unique)
 
-data class Attr<T : Any>(val name: Key, val type: DataType<T>,
-                         val unique: Boolean = false) : Entity {
+interface Attr<T> {
 
-    override fun <V : Any> set(key: Attr<V>, value: V): Attr<T> {
+    val name: Key
+
+    val unique: Boolean
+
+    fun str() = name.toStr()
+
+}
+
+data class ScalarAttr<T : Any>(override val name: Key, val type: DataType<T>,
+                         override val unique: Boolean = false) : Attr<T>, Entity  {
+
+    override fun <V : Any> set(key: Attr<V>, value: V): ScalarAttr<T> {
         var newName = name
         var newType = type
         var newUnique = unique
@@ -29,7 +39,7 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
             _type -> newType = DataType.ofCode(value as Byte) as DataType<T>
             _unique -> newUnique = value as Boolean
         }
-        return Attr(newName, newType, newUnique)
+        return ScalarAttr(newName, newType, newUnique)
     }
 
     override val keys: Set<Attr<*>>
@@ -44,12 +54,15 @@ data class Attr<T : Any>(val name: Key, val type: DataType<T>,
         }
     }
 
-    val str = name.toStr()
+    override fun get(key: RefAttr): Entity? =
+            null
 
     override fun toStored(eid: EID): StoredEntity =
             Entity(eid, listOf(_name to name.toStr(), _type to type.code, _unique to unique))
 
 }
+
+interface RefAttr : Attr<Entity>
 
 class Schema(private val attrs: Map<String, Attr<Any>>) {
 

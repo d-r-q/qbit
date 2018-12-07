@@ -1,6 +1,7 @@
 package qbit
 
 import qbit.schema.Attr
+import qbit.schema.RefAttr
 import kotlin.reflect.KClass
 
 fun Entity(vararg entries: Pair<Attr<*>, Any>): Entity = MapEntity(mapOf(*entries))
@@ -13,13 +14,15 @@ interface Entity {
 
     operator fun <T : Any> get(key: Attr<T>): T?
 
+    operator fun get(key: RefAttr): Entity?
+
     fun <T : Any> set(key: Attr<T>, value: T): Entity
 
     val entries: Set<Map.Entry<Attr<*>, Any>>
         get() = keys.map {
             object : Map.Entry<Attr<*>, Any> {
                 override val key = it
-                override val value: Any = this@Entity[it]!!
+                override val value: Any = this@Entity[it as Attr<Any>]!!
             }
         }.toSet()
 
@@ -70,7 +73,10 @@ private class MapEntity(
         get() = map.keys
 
     override fun <T : Any> get(key: Attr<T>): T? =
-            map[key] as T
+            map[key] as T?
+
+    override fun get(key: RefAttr): Entity? =
+            map[key] as Entity?
 
     override fun <T : Any> set(key: Attr<T>, value: T): Entity {
         val newMap = HashMap(map)

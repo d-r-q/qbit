@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import qbit.ns.Namespace
 import qbit.schema.Attr
+import qbit.schema.ScalarAttr
 import qbit.storage.MemStorage
 
 class LocalConnTest {
@@ -17,7 +18,7 @@ class LocalConnTest {
     @Test
     fun testUpdate() {
         val conn = qbit(MemStorage())
-        val _attr = Attr(Namespace("user")["attr"], QString)
+        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
         conn.persist(_attr)
         val e = Entity(_attr to "value")
         var (_, se) = conn.persist(e)
@@ -30,7 +31,7 @@ class LocalConnTest {
     @Test
     fun testUnique() {
         val conn = qbit(MemStorage())
-        val _uid = Attr(Namespace("user")["uid"], QLong, true)
+        val _uid = ScalarAttr(Namespace("user")["uid"], QLong, true)
         conn.persist(_uid)
         conn.persist(Entity(_uid to 0L))
         try {
@@ -44,7 +45,7 @@ class LocalConnTest {
     @Test
     fun testDelete() {
         val conn = qbit(MemStorage())
-        val _attr = Attr(Namespace("user")["attr"], QString)
+        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
         conn.persist(_attr)
 
         val e = Entity(_attr to "value")

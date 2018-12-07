@@ -17,28 +17,28 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str),
+    var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str()),
             Fact(EID(iid.value, eid), qbit.schema._type, QString.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._type.str),
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._type.str()),
             Fact(EID(iid.value, eid), qbit.schema._type, QByte.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._unique.str),
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._unique.str()),
             Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str),
-            Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str()),
+            Fact(EID(iid.value, eid), qbit.schema._type, (_forks as ScalarAttr).type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entities.str),
-            Fact(EID(iid.value, eid), qbit.schema._type, _entities.type.code),
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entities.str()),
+            Fact(EID(iid.value, eid), qbit.schema._type, (_entities as ScalarAttr).type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _entities.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str),
-            Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str()),
+            Fact(EID(iid.value, eid), qbit.schema._type, (_iid as ScalarAttr).type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _iid.unique))
     eid++
     trx += listOf(

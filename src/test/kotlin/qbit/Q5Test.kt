@@ -2,6 +2,7 @@ package qbit
 
 import qbit.ns.Namespace
 import qbit.schema.Attr
+import qbit.schema.ScalarAttr
 import qbit.storage.FileSystemStorage
 import java.io.File
 import java.text.ParseException
@@ -9,13 +10,13 @@ import java.text.SimpleDateFormat
 
 val cat = Namespace.of("q5", "category")
 val trx = Namespace.of("q5", "transaction")
-val trxSum = Attr(trx["sum"], QLong)
-val trxDateTime = Attr(trx["dateTime"], QLong)
-val trxCategory = Attr(trx["category"], QEID)
-val trxComment = Attr(trx["comment"], QString)
-val trxSource = Attr(trx["source"], QString)
-val trxDevice = Attr(trx["device"], QString)
-val catName = Attr(cat["name"], QString, true)
+val trxSum = ScalarAttr(trx["sum"], QLong)
+val trxDateTime = ScalarAttr(trx["dateTime"], QLong)
+val trxCategory = ScalarAttr(trx["category"], QEID)
+val trxComment = ScalarAttr(trx["comment"], QString)
+val trxSource = ScalarAttr(trx["source"], QString)
+val trxDevice = ScalarAttr(trx["device"], QString)
+val catName = ScalarAttr(cat["name"], QString, true)
 
 val categories = HashMap<String, StoredEntity>()
 

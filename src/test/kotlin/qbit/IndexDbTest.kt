@@ -3,7 +3,7 @@ package qbit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import qbit.ns.root
-import qbit.schema.Attr
+import qbit.schema.ScalarAttr
 
 class DbTest {
 
@@ -18,11 +18,11 @@ class DbTest {
 
         val eids = EID(0, 0).nextEids()
 
-        val _date = Attr(root["date"], QLong)
-        val _cat = Attr(root["cat"], QString)
+        val _date = ScalarAttr(root["date"], QLong)
+        val _cat = ScalarAttr(root["cat"], QString)
 
-        val date = Entity(qbit.schema._name to _date.str, qbit.schema._type to QLong.code)
-        val cat = Entity(qbit.schema._name to _cat.str, qbit.schema._type to QString.code)
+        val date = Entity(qbit.schema._name to _date.str(), qbit.schema._type to QLong.code)
+        val cat = Entity(qbit.schema._name to _cat.str(), qbit.schema._type to QString.code)
         val e1 = Entity(_date to 1L, _cat to "C1")
         val e2 = Entity(_date to 2L, _cat to "C1")
         val e3 = Entity(_date to 3L, _cat to "C2")
