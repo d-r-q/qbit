@@ -49,7 +49,7 @@ class UtilsTest {
             val minChunk = 1 + rnd.nextInt(1 + size / 2)
             val maxChunk = minChunk * 2
             val chunk = minChunk + rnd.nextInt(maxChunk - minChunk)
-            val lst = arrayList(size) { it -> true }
+            val lst = arrayList(size) { true }
             val sublists = split(lst, chunk, minChunk)
             sublists.forEach {
                 assertTrue(it.size >= minChunk)

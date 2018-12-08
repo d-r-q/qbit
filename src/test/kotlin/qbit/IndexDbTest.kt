@@ -11,11 +11,7 @@ class DbTest {
     fun testSearchByAttrRangeAndAttrValue() {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = System.currentTimeMillis()
-        val eid0 = EID(0, 2)
-        val eid1 = EID(0, 3)
         val eid2 = EID(0, 4)
-        val eid3 = EID(0, 5)
-
         val eids = EID(0, 0).nextEids()
 
         val _date = ScalarAttr(root["date"], QLong)

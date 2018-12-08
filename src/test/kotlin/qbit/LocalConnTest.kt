@@ -21,7 +21,7 @@ class LocalConnTest {
         val _attr = ScalarAttr(Namespace("user")["attr"], QString)
         conn.persist(_attr)
         val e = Entity(_attr to "value")
-        var (_, se) = conn.persist(e)
+        var se = conn.persist(e).storedEntity()
         se = se.set(_attr, "value2")
         conn.persist(se)
         val pulledE2 = conn.db.pull(se.eid)
@@ -49,7 +49,7 @@ class LocalConnTest {
         conn.persist(_attr)
 
         val e = Entity(_attr to "value")
-        var (_, se) = conn.persist(e)
+        var se = conn.persist(e).storedEntity()
         se = se.set(_attr, "value2")
         conn.persist(se)
 
@@ -93,7 +93,7 @@ class LocalConnTest {
         conn.persist(_val, _ref)
 
         var e1 = Entity(_val to "e1")
-        e1 = conn.persist(e1).second
+        e1 = conn.persist(e1).storedEntity()
         val e2 = Entity(_val to "e2", _ref to e1)
         val e3 = Entity(_val to "e3", _ref to e2)
         e1 = e1.set(_ref, e3)

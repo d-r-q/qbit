@@ -114,26 +114,27 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    fun persist(es: Collection<Entity>): Pair<Db, List<StoredEntity>> =
+    fun persist(es: Collection<Entity>): WriteResult =
             persist(*es.toTypedArray())
 
-    fun persist(e: Entity): Pair<Db, StoredEntity> =
-            persist(*arrayOf(e))
-                    .map { db, list -> db to list[0] }
+    fun persist(e: Entity): WriteResult {
+        @Suppress("RemoveRedundantSpreadOperator")
+        return persist(*arrayOf(e))
+    }
 
-    fun persist(vararg es: Entity): Pair<Db, List<StoredEntity>> {
+    fun persist(vararg es: Entity): WriteResult {
         try {
             // TODO: check for conflict modifications in parallel threads
             val curEntities = db.pull(instanceEid)?.get(_entities) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(dbUuid.iid.value, curEntities).nextEids()
             val allEs = unfold(es.asList(), eids)
             val storedEs = allEs.map {
-                var res: StoredEntity = it.key as? StoredEntity ?: it.key.toStored(it.value)
+                var res: StoredEntity = it.key as? StoredEntity ?: it.value
                 res.entries.forEach { e ->
                     if (e.key is RefAttr) {
                         val ra: RefAttr = e.key as RefAttr
                         val re: Entity = e.value as Entity
-                        res = res.set(ra, re.toStored(allEs[re]!!))
+                        res = res.set(ra, allEs[re]!!)
                     }
                 }
                 res
@@ -145,7 +146,9 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             }
             validate(db, facts)
             swapHead(writer.store(head, facts))
-            return db to storedEs
+            return WriteResult(db, es.map {
+                it as? StoredEntity ?: allEs[it]!!
+            }.toList(), allEs.filterKeys { it !is StoredEntity })
         } catch (qe: QBitException) {
             throw qe
         } catch (e: Exception) {
@@ -153,16 +156,16 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    private fun unfold(es: List<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, EID> {
-        val res = IdentityHashMap<Entity, EID>()
+    private fun unfold(es: List<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, StoredEntity> {
+        val res = IdentityHashMap<Entity, StoredEntity>()
 
         fun body(es: List<Entity>) {
             es.forEach {
                 if (!res.contains(it)) {
                     if (it is StoredEntity) {
-                        res[it] = it.eid
+                        res[it] = it
                     } else {
-                        res[it] = eids.next()
+                        res[it] = it.toStored(eids.next())
                     }
                 }
                 it.entries.forEach { e ->
@@ -214,3 +217,25 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             m(this.first, this.second)
 }
 
+class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val generatedEntities: Map<Entity, StoredEntity>) {
+
+    operator fun component1(): Db = db
+
+    operator fun component2(): Map<Entity, StoredEntity> = generatedEntities
+
+    operator fun component3(): StoredEntity = persistedEntities[0]
+
+    operator fun component4(): StoredEntity = persistedEntities[1]
+
+    operator fun component5(): StoredEntity = persistedEntities[2]
+
+    operator fun component6(): StoredEntity = persistedEntities[3]
+
+    operator fun component7(): StoredEntity = persistedEntities[4]
+
+    operator fun component8(): StoredEntity = persistedEntities[5]
+
+    fun storedEntity(): StoredEntity =
+            persistedEntities[0]
+
+}

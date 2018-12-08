@@ -22,7 +22,7 @@ val categories = HashMap<String, StoredEntity>()
 const val datePattern = "dd.MM.yyyy"
 const val timePattern = "HH:mm"
 
-val dateTimeFormat = SimpleDateFormat("${datePattern} ${timePattern}")
+val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 
 fun main(args: Array<String>) {
     var totalTime = 0L
@@ -83,7 +83,7 @@ fun parse(conn: LocalConn, sourceLine: String) {
         val cat = if (fields.size > 3) fields[3] else return
         var catSe = categories[cat]
         if (catSe == null) {
-            val (_, stored) = conn.persist(Entity(catName to cat))
+            val stored = conn.persist(Entity(catName to cat)).storedEntity()
             categories[cat] = stored
             catSe = stored
         }

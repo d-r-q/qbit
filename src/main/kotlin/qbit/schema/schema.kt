@@ -53,9 +53,11 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
         return AttrEntityImpl(newName, newType, newUnique)
     }
 
-    override val keys: Set<Attr<*>>
-        get() = setOf(_name, _type, _unique)
+    @Suppress("UNCHECKED_CAST")
+    override val keys: Set<Attr<Any>>
+        get() = setOf(_name, _type, _unique) as Set<Attr<Any>>
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> get(key: Attr<T>): T? {
         return when (key) {
             _name -> name.toStr() as T?

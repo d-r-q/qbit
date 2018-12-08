@@ -25,10 +25,10 @@ class SyncTest {
         conn2.fetch(conn1)
 
         val e1 = Entity(_attr1 to "value1")
-        val (_, se1) = conn1.persist(e1)
+        val se1 = conn1.persist(e1).storedEntity()
 
         val e2 = Entity(_attr2 to "value2")
-        val (_, se2) = conn2.persist(e2)
+        val se2 = conn2.persist(e2).storedEntity()
 
         conn2.sync(conn1)
         assertEquals("value1", conn1.db.pull(se1.eid)!![_attr1])
