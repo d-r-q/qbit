@@ -3,7 +3,6 @@ package qbit
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import qbit.ns.Namespace
-import qbit.schema.Attr
 import qbit.schema.ScalarAttr
 import qbit.storage.FileSystemStorage
 import java.nio.file.Files

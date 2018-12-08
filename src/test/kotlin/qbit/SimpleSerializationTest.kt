@@ -27,7 +27,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeLong() {
-        testValues(longValues, { it -> serialize(it) }, { it -> deserialize(it, QLong) })
+        testValues(longValues, { it -> serialize(it) }, { it -> deserialize(it, QLong) as Long })
     }
 
     @Test
@@ -49,7 +49,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeInt() {
-        testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, QInt) })
+        testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, QInt) as Int })
     }
 
     private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {
@@ -60,9 +60,9 @@ class SimpleSerializationTest {
 
     @Test
     fun testN() {
-        assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), QBytes)))
+        assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), QBytes) as ByteArray))
         val randomBytes = Hash(randomBytes(HASH_LEN))
-        assertEquals(randomBytes, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), QBytes)))
+        assertEquals(randomBytes, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), QBytes) as ByteArray))
 
         val fewBytes = Hash(randomBytes(HASH_LEN - 1))
         try {
@@ -76,7 +76,7 @@ class SimpleSerializationTest {
     @Test
     fun testByteArray() {
         val random = randomBytes()
-        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QBytes))
+        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QBytes) as ByteArray)
 
         val twoBytes = byteArrayOf(QBytes.code, 0, 0, 0, 3, 0, 0)
         try {

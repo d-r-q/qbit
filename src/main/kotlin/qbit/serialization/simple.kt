@@ -3,6 +3,7 @@ package qbit.serialization
 import qbit.*
 import java.io.EOFException
 import java.io.InputStream
+import java.nio.CharBuffer
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -22,17 +23,17 @@ object SimpleSerialization : Serialization {
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: InputStream): NodeVal<Hash?> {
-        val parent1 = Hash(deserialize(ins, QBytes))
-        val parent2 = Hash(deserialize(ins, QBytes))
-        val iid = deserialize(ins, QInt)
-        val instanceBits = deserialize(ins, QByte)
-        val timestamp = deserialize(ins, QLong)
-        val factsCount = deserialize(ins, QInt)
+        val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
+        val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
+        val iid = deserialize(ins, QInt) as Int
+        val instanceBits = deserialize(ins, QByte) as Byte
+        val timestamp = deserialize(ins, QLong) as Long
+        val factsCount = deserialize(ins, QInt) as Int
         val facts = (1..factsCount).asSequence().map {
-            val eid = deserialize(ins, QEID)
-            val attr = deserialize(ins, QString)
+            val eid = deserialize(ins, QEID) as EID
+            val attr = deserialize(ins, QString) as String
             val value = deserialize(ins)
-            val deleted = deserialize(ins, QBoolean)
+            val deleted = deserialize(ins, QBoolean) as Boolean
             Fact(eid, attr, value, deleted)
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
@@ -70,22 +71,33 @@ internal fun serialize(vararg anys: Any): ByteArray {
 }
 
 private fun byteArray(str: String): ByteArray =
-    byteArray(serializeInt(str.toByteArray(Charsets.UTF_8).size), str.toByteArray(Charsets.UTF_8))
+        byteArray(serializeInt(str.toByteArray(Charsets.UTF_8).size), str.toByteArray(Charsets.UTF_8))
 
-internal fun byteArray(vararg parts: Any): ByteArray = ByteArray(parts.sumBy { size(it) }) { idx ->
-    var ci = idx
-    val it = parts.iterator()
-    var part = it.next()
-    while (ci >= size(part)) {
-        ci -= size(part)
-        part = it.next()
+private fun toBytes(c: Char): ByteArray =
+        Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
+
+private val coder = HashMap<Char, ByteArray>()
+
+internal fun byteArray(vararg parts: Any): ByteArray {
+    val res = ByteArray(parts.sumBy { size(it) })
+    var idx = 0
+    for (part in parts) {
+        when (part) {
+            is ByteArray -> {
+                System.arraycopy(part, 0, res, idx, part.size)
+                idx += part.size
+            }
+            is Byte -> {
+                res[idx++] = part
+            }
+            is Char -> {
+                val bytes = coder.getOrPut(part) { toBytes(part) }
+                System.arraycopy(bytes, 0, res, idx, bytes.size)
+                idx += bytes.size
+            }
+        }
     }
-    when (part) {
-        is ByteArray -> part[ci]
-        is Byte -> part
-        is Char -> String(charArrayOf(part)).toByteArray()[ci]
-        else -> throw AssertionError("Should never happen, part is $part")
-    }
+    return res
 }
 
 internal fun size(v: Any): Int = when (v) {
@@ -107,7 +119,7 @@ internal fun byteOf(idx: Int, i: Long) = i.shr(8 * idx).and(0xFF).toByte()
 
 // Deserialization
 
-internal fun <T : Any> deserialize(ins: InputStream, mark: DataType<T>): T {
+internal fun <T : Any> deserialize(ins: InputStream, mark: DataType<T>): Any {
     val byte = ins.read()
     when {
         byte == -1 -> throw EOFException("Unexpected end of input")
@@ -127,7 +139,7 @@ internal fun deserialize(ins: InputStream): Any {
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): T {
+private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any {
     return when (expectedMark) {
         QBoolean -> (ins.read().toByte() == 1.toByte()) as T
         QByte -> ins.read().toByte() as T

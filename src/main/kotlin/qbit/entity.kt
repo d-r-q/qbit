@@ -4,9 +4,16 @@ import qbit.schema.Attr
 import qbit.schema.RefAttr
 import kotlin.reflect.KClass
 
-fun Entity(vararg entries: Pair<Attr<*>, Any>): Entity = MapEntity(mapOf(*entries))
+fun Entity(vararg entries: Pair<Attr<*>, Any>): Entity =
+        MapEntity(
+                entries.filterNot { it.first is RefAttr && it.second is Entity }.toMap(),
+                entries.filter { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(), emptyEidResolver)
 
-internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>): StoredEntity = StoredMapEntity(eid, mapOf(*entries.toTypedArray()), false)
+internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = StoredMapEntity(eid,
+        entries.filterNot { it.first is RefAttr && it.second is Entity }.toMap(),
+        entries.filter { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(),
+        EntityCache(QBitEidResolver(db)),
+        false)
 
 interface Entity {
 
@@ -17,6 +24,8 @@ interface Entity {
     operator fun get(key: RefAttr): Entity?
 
     fun <T : Any> set(key: Attr<T>, value: T): Entity
+
+    fun set(key: RefAttr, value: Entity): Entity
 
     val entries: Set<Map.Entry<Attr<*>, Any>>
         get() = keys.map {
@@ -43,11 +52,23 @@ interface Entity {
 }
 
 internal fun Entity.toFacts(eid: EID) =
-        this.entries.map { (attr, value) -> Fact(eid, attr, value, false) }
+        this.toFacts(eid, false)
 
 
 internal fun Entity.toFacts(eid: EID, deleted: Boolean) =
-        this.entries.map { (attr, value) -> Fact(eid, attr, value, deleted) }
+        this.entries.map { (attr: Attr<*>, value) ->
+            when (attr) {
+                is RefAttr -> refToFacts(eid, attr, value as StoredEntity, deleted)
+                else -> attrToFacts<Any>(eid, attr as Attr<Any>, value, deleted)
+            }
+        }
+
+
+internal fun <T : Any> attrToFacts(eid: EID, attr: Attr<T>, value: T, deleted: Boolean) =
+        Fact(eid, attr, value, deleted)
+
+internal fun refToFacts(eid: EID, attr: RefAttr, value: StoredEntity, deleted: Boolean) =
+        Fact(eid, attr, value.eid, deleted)
 
 interface StoredEntity : Entity {
 
@@ -57,6 +78,8 @@ interface StoredEntity : Entity {
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity
 
+    override fun set(key: RefAttr, value: Entity): StoredEntity
+
     fun delete(): StoredEntity
 
 }
@@ -64,51 +87,92 @@ interface StoredEntity : Entity {
 internal fun StoredEntity.toFacts() =
         this.toFacts(eid, this.deleted)
 
-private class MapEntity(
-        private val map: Map<Attr<*>, Any>
+internal class MapEntity(
+        internal val map: Map<Attr<*>, Any>,
+        internal val refs: Map<RefAttr, Entity>,
+        internal val eidResolver: EidResolver
 ) :
         Entity {
 
     override val keys: Set<Attr<*>>
-        get() = map.keys
+        get() = map.keys + refs.keys
 
     override fun <T : Any> get(key: Attr<T>): T? =
             map[key] as T?
 
-    override fun get(key: RefAttr): Entity? =
-            map[key] as Entity?
+    override fun get(key: RefAttr): Entity? {
+        val res = refs[key]
+        val eid = map[key] as EID?
+        return res ?: eid?.let { eidResolver(it) }
+    }
 
     override fun <T : Any> set(key: Attr<T>, value: T): Entity {
         val newMap = HashMap(map)
         newMap[key] = value
-        return MapEntity(newMap)
+        return MapEntity(newMap, refs, eidResolver)
+    }
+
+    override fun set(key: RefAttr, value: Entity): Entity {
+        val newRefs = HashMap(refs)
+        newRefs[key] = value
+        return MapEntity(map, newRefs, eidResolver)
     }
 
     override val entries: Set<Map.Entry<Attr<*>, Any>>
-        get() = map.entries
+        get() = map.entries + refs.entries
 
     override fun toStored(eid: EID): StoredEntity =
-            StoredMapEntity(eid, map, false)
+            StoredMapEntity(eid, map, refs, eidResolver, false)
 }
 
 private class StoredMapEntity(
         override val eid: EID,
         val map: Map<Attr<*>, Any>,
+        val refs: Map<RefAttr, Entity>,
+        val eidResolver: EidResolver,
         override val deleted: Boolean
 ) :
-        Entity by MapEntity(map),
+        Entity by MapEntity(map, refs, eidResolver),
         StoredEntity {
 
     override fun delete(): StoredEntity =
-            StoredMapEntity(eid, map, true)
+            StoredMapEntity(eid, map, refs, eidResolver, true)
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity {
         if (deleted) {
-            throw QBitException("Could not change deleted entity")
+            throw QBitException("Could not change entity marked for deletion")
         }
         val newMap = HashMap(map)
         newMap[key] = value
-        return StoredMapEntity(eid, newMap, deleted)
+        return StoredMapEntity(eid, newMap, refs, eidResolver, deleted)
     }
+
+    override fun set(key: RefAttr, value: Entity): StoredEntity {
+        if (deleted) {
+            throw QBitException("Could not change entity marked for deletion")
+        }
+        val newRefs = HashMap(refs)
+        newRefs[key] = value
+        return StoredMapEntity(eid, map, newRefs, eidResolver, deleted)
+    }
+}
+
+typealias EidResolver = (EID) -> StoredEntity?
+
+private val emptyEidResolver: EidResolver = { eid -> null }
+
+private class QBitEidResolver(private val qbit: Db) : EidResolver {
+
+    override fun invoke(eid: EID): StoredEntity? =
+            qbit.pull(eid)
+
+}
+
+private class EntityCache(private val delegate: EidResolver) : EidResolver {
+
+    private val cache = HashMap<EID, StoredEntity?>()
+
+    override fun invoke(key: EID): StoredEntity? =
+            cache.getOrPut(key) { delegate(key) }
 
 }

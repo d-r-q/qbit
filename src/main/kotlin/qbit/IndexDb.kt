@@ -67,7 +67,7 @@ class IndexDb(internal val index: Index) : Db {
             require(attr != null)
             attr to it.value
         }
-        return Entity(eid, attrValues)
+        return Entity(eid, attrValues, this)
     }
 
     override fun query(vararg preds: QueryPred): List<StoredEntity> {
@@ -100,7 +100,12 @@ class IndexDb(internal val index: Index) : Db {
                         val name = e[_name.str()]!! as String
                         val type = e[_type.str()]!! as Byte
                         val unique = e[_unique.str()] as? Boolean ?: false
-                        val attr = Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
+                        val attr: Attr<Any> =
+                                if (type == QEID.code) {
+                                    RefAttr(name, unique) as Attr<Any>
+                                } else {
+                                    Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
+                                }
                         (name to attr)
                     }
             return attrFacts.toMap()

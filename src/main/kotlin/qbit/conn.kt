@@ -4,9 +4,11 @@ import qbit.ns.Namespace
 import qbit.schema.*
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
+import java.util.*
+import java.util.Collections.singletonList
 
 fun qbit(storage: Storage): LocalConn {
-    val iid = IID(0, 4)
+    val iid = IID(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
     if (headHash != null) {
@@ -30,15 +32,15 @@ fun qbit(storage: Storage): LocalConn {
             Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
     trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, (_forks as ScalarAttr).type.code),
+            Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
     eid++
     trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entities.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, (_entities as ScalarAttr).type.code),
+            Fact(EID(iid.value, eid), qbit.schema._type, _entities.type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _entities.unique))
     eid++
     trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, (_iid as ScalarAttr).type.code),
+            Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _iid.unique))
     eid++
     trx += listOf(
@@ -112,6 +114,9 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
+    fun persist(es: Collection<Entity>): Pair<Db, List<StoredEntity>> =
+            persist(*es.toTypedArray())
+
     fun persist(e: Entity): Pair<Db, StoredEntity> =
             persist(*arrayOf(e))
                     .map { db, list -> db to list[0] }
@@ -119,10 +124,19 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     fun persist(vararg es: Entity): Pair<Db, List<StoredEntity>> {
         try {
             // TODO: check for conflict modifications in parallel threads
-            val curEntities = db.pull(instanceEid)!![_entities] ?: throw QBitException("Corrupted database metadata")
+            val curEntities = db.pull(instanceEid)?.get(_entities) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(dbUuid.iid.value, curEntities).nextEids()
-            val storedEs = es.map {
-                it as? StoredEntity ?: it.toStored(eids.next())
+            val allEs = unfold(es.asList(), eids)
+            val storedEs = allEs.map {
+                var res: StoredEntity = it.key as? StoredEntity ?: it.key.toStored(it.value)
+                res.entries.forEach { e ->
+                    if (e.key is RefAttr) {
+                        val ra: RefAttr = e.key as RefAttr
+                        val re: Entity = e.value as Entity
+                        res = res.set(ra, re.toStored(allEs[re]!!))
+                    }
+                }
+                res
             }
             var facts = storedEs.flatMap { it.toFacts() }
             val newEntities = eids.next().eid
@@ -137,6 +151,33 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
+    }
+
+    private fun unfold(es: List<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, EID> {
+        val res = IdentityHashMap<Entity, EID>()
+
+        fun body(es: List<Entity>) {
+            es.forEach {
+                if (!res.contains(it)) {
+                    if (it is StoredEntity) {
+                        res[it] = it.eid
+                    } else {
+                        res[it] = eids.next()
+                    }
+                }
+                it.entries.forEach { e ->
+                    if (e.key is RefAttr) {
+                        val value: Entity = e.value as Entity
+                        if (res[value] == null) {
+                            body(singletonList(value))
+                        }
+                    }
+                }
+            }
+        }
+        body(es)
+
+        return res
     }
 
     fun sync(another: Conn) {
