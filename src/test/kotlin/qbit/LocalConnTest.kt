@@ -131,6 +131,68 @@ class LocalConnTest {
         assertEquals("e1", se3[_ref]!![_ref]!![_val])
         se3[_ref]
     }
+
+    @Test
+    fun testRestoreEntity() {
+        val user = Namespace("user")
+        val _val = ScalarAttr(user["val"], QString)
+
+        val conn = qbit(MemStorage())
+        conn.persist(_val)
+
+        val e1 = Entity(_val to "e1")
+        val se1 = conn.persist(e1).storedEntity()
+        val h = conn.head
+        conn.persist(se1)
+        assertEquals(h, conn.head)
+    }
+
+    @Test
+    fun testRestoreEntityWithNew() {
+        val user = Namespace("user")
+        val _val = ScalarAttr(user["val"], QString)
+        val _ref = RefAttr(user["ref"])
+
+        val conn = qbit(MemStorage())
+        conn.persist(_val, _ref)
+
+        val e1 = Entity(_val to "e1")
+        val se1 = conn.persist(e1).storedEntity()
+
+        val e2 = Entity(_val to "e1", _ref to se1)
+        conn.persist(e2)
+
+        assertEquals(3, conn.head.data.trx.size)
+    }
+
+    @Test
+    fun testChangeNotUnqiueAttrWhenUniqueIsPresented() {
+        val user = Namespace("user")
+        val unique = ScalarAttr(user["unique"], QString, true)
+        val notUnique = ScalarAttr(user["not_unique"], QString)
+
+        val conn = qbit(MemStorage())
+
+        conn.persist(unique, notUnique)
+        val se1 = conn.persist(Entity(unique to "unique", notUnique to "notUnique1")).storedEntity()
+        val se2 = conn.persist(se1.set(notUnique, "notUnique2")).storedEntity()
+        assertEquals("notUnique2", se2[notUnique])
+    }
+
+    @Test
+    fun testPersistNotAcutallyChanged() {
+        val user = Namespace("user")
+        val _val = ScalarAttr(user["val"], QString)
+
+        val conn = qbit(MemStorage())
+        conn.persist(_val)
+
+        val e1 = Entity(_val to "e1")
+        val se1 = conn.persist(e1).storedEntity()
+        val h = conn.head
+        conn.persist(se1.set(_val, "e1"))
+        assertEquals(h, conn.head)
+    }
 }
 
 

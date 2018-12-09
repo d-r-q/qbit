@@ -74,8 +74,8 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
         TODO("Attribute attrs couldn't refer other entites yet")
     }
 
-    override fun toStored(eid: EID): StoredEntity =
-            Entity(_name to name.toStr(), _type to type.code, _unique to unique).toStored(eid)
+    override fun toIdentified(eid: EID): IdentifiedEntity =
+            Entity(_name to name.toStr(), _type to type.code, _unique to unique).toIdentified(eid)
 
 }
 

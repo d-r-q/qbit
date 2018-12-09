@@ -128,18 +128,24 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             val curEntities = db.pull(instanceEid)?.get(_entities) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(dbUuid.iid.value, curEntities).nextEids()
             val allEs = unfold(es, eids)
-            val storedEs = allEs.map {
-                var res: StoredEntity = it.key as? StoredEntity ?: it.value
-                res.entries.forEach { e ->
-                    if (e.key is RefAttr) {
-                        val ra: RefAttr = e.key as RefAttr
-                        val re: Entity = e.value as Entity
-                        res = res.set(ra, allEs[re]!!)
+            val storedEs = allEs
+                    .filter { it.key !is StoredEntity || (it.key as StoredEntity).dirty }
+                    .map {
+                        var res: IdentifiedEntity = it.key as? StoredEntity ?: it.value
+                        res.entries.forEach { e ->
+                            if (e.key is RefAttr) {
+                                val ra: RefAttr = e.key as RefAttr
+                                val re: Entity = e.value as Entity
+                                res = res.set(ra, allEs[re]!!)
+                            }
+                        }
+                        res
                     }
-                }
-                res
-            }
             var facts = storedEs.flatMap { it.toFacts() }
+            if (facts.isEmpty()) {
+                qbit.assert { es.all { it is StoredEntity && !it.dirty } }
+                return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
+            }
             val newEntities = eids.next().eid
             if (curEntities < newEntities) {
                 facts += Fact(instanceEid, qbit.schema._entities, newEntities)
@@ -147,8 +153,8 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             validate(db, facts)
             swapHead(writer.store(head, facts))
             return WriteResult(db, es.map {
-                it as? StoredEntity ?: allEs[it]!!
-            }.toList(), allEs.filterKeys { it !is StoredEntity })
+                it as? StoredEntity ?: Entity(allEs[it]!!.eid, db)
+            }.toList(), allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) })
         } catch (qe: QBitException) {
             throw qe
         } catch (e: Exception) {
@@ -156,16 +162,16 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    private fun unfold(es: Collection<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, StoredEntity> {
-        val res = IdentityHashMap<Entity, StoredEntity>()
+    private fun unfold(es: Collection<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, IdentifiedEntity> {
+        val res = IdentityHashMap<Entity, IdentifiedEntity>()
 
         fun body(es: Collection<Entity>) {
             es.forEach {
                 if (!res.contains(it)) {
-                    if (it is StoredEntity) {
+                    if (it is IdentifiedEntity) {
                         res[it] = it
                     } else {
-                        res[it] = it.toStored(eids.next())
+                        res[it] = it.toIdentified(eids.next())
                     }
                 }
                 it.entries.forEach { e ->
@@ -213,8 +219,6 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     private fun merge(head1: Node<Hash>, head2: Node<Hash>): Merge<Hash?> =
             Merge(null, head1, head2, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
 
-    private fun <T1, T2, T3, T4> Pair<T1, T2>.map(m: (T1, T2) -> Pair<T3, T4>) =
-            m(this.first, this.second)
 }
 
 class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val generatedEntities: Map<Entity, StoredEntity>) {

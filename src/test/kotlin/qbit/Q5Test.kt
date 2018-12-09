@@ -17,7 +17,7 @@ val trxSource = ScalarAttr(trx["source"], QString)
 val trxDevice = ScalarAttr(trx["device"], QString)
 val catName = ScalarAttr(cat["name"], QString, true)
 
-val categories = HashMap<String, StoredEntity>()
+val categories = HashMap<String, IdentifiedEntity>()
 
 const val datePattern = "dd.MM.yyyy"
 const val timePattern = "HH:mm"

@@ -54,6 +54,7 @@ interface Db {
 
     fun attr(attr: String): Attr<Any>?
 
+    fun <T : Any> get(eid: EID, attr: Attr<T>): Set<T>
 }
 
 class IndexDb(internal val index: Index) : Db {
@@ -68,6 +69,10 @@ class IndexDb(internal val index: Index) : Db {
             attr to it.value
         }
         return Entity(eid, attrValues, this)
+    }
+
+    override fun <T : Any> get(eid: EID, attr: Attr<T>): Set<T> {
+        return index.valueByEidAttr(eid, attr)
     }
 
     override fun query(vararg preds: QueryPred): List<StoredEntity> {

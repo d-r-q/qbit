@@ -1,6 +1,7 @@
 package qbit
 
 import qbit.collections.BTree
+import qbit.schema.Attr
 
 private fun loadFacts(graph: Graph, head: NodeVal<Hash>, untilDbUuid: DbUuid?): ArrayList<Fact> {
     if (untilDbUuid != null && head.source == untilDbUuid) {
@@ -34,7 +35,13 @@ fun eidPattern(eid: EID) = { other: Fact -> other.eid.compareTo(eid) }
 
 fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
 
-fun eidAttrPattern(eid: EID, attr: String) = composeComparable(eidPattern(eid), attrPattern(attr))
+fun eidAttrPattern(eid: EID, attr: String) = { fact: Fact ->
+    var res = fact.eid.compareTo(eid)
+    if (res == 0) {
+        res = fact.attr.compareTo(attr)
+    }
+    res
+}
 
 fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
 
@@ -108,18 +115,14 @@ class Index(
     }
 
     fun entityById(eid: EID): Map<String, Any>? {
-        try {
-            val facts = eavt.select(eidPattern(eid))
-            val grouped = facts
-                    .asSequence()
-                    .groupBy { it.attr }
-            val mapped = grouped
-                    .mapValues { it.value.last().value }
-            return mapped
-                    .takeIf { it.isNotEmpty() }
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
+        val facts = eavt.select(eidPattern(eid))
+        val grouped = facts
+                .asSequence()
+                .groupBy { it.attr }
+        val mapped = grouped
+                .mapValues { it.value.last().value }
+        return mapped
+                .takeIf { it.isNotEmpty() }
     }
 
     fun eidsByPred(pred: QueryPred): Set<EID> {
@@ -132,6 +135,13 @@ class Index(
         }
                 .asSequence()
                 .map { it.eid }
+                .toSet()
+    }
+
+    fun <T : Any> valueByEidAttr(eid: EID, attr: Attr<T>): Set<T> {
+        return eavt.select(eidAttrPattern(eid, attr.str()))
+                .asSequence()
+                .map { it.value as T }
                 .toSet()
     }
 
