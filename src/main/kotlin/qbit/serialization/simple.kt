@@ -161,6 +161,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
             String(readBytes(ins, count), Charsets.UTF_8) as T
         }
         QEID -> EID(readLong(ins)) as T
+        QEntity -> throw AssertionError("Should never happen")
     }
 }
 

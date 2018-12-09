@@ -106,7 +106,7 @@ class IndexDb(internal val index: Index) : Db {
                         val type = e[_type.str()]!! as Byte
                         val unique = e[_unique.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
-                                if (type == QEID.code) {
+                                if (type == QEntity.code) {
                                     RefAttr(name, unique) as Attr<Any>
                                 } else {
                                     Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>

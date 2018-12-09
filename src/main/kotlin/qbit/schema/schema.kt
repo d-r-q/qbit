@@ -3,6 +3,7 @@ package qbit.schema
 import qbit.*
 import qbit.ns.Key
 import qbit.ns.Namespace
+import java.lang.AssertionError
 
 val qbitAttrs = Namespace.of("qbit", "attrs")
 val qbitInstance = Namespace.of("qbit", "instance")
@@ -21,7 +22,7 @@ internal fun RefAttr(name: String, unique: Boolean = false): Attr<*> = RefAttr(K
 
 fun <T : Any> ScalarAttr(name: Key, type: DataType<T>, unique: Boolean = false): Attr<T> = ScalarAttrImpl(name, type, unique)
 
-fun RefAttr(name: Key, unique: Boolean = false): RefAttr = RefAttrImpl(name, QEID, unique)
+fun RefAttr(name: Key, unique: Boolean = false): RefAttr = RefAttrImpl(name, QEntity, unique)
 
 interface Attr<T : Any> : Entity {
 
@@ -32,6 +33,12 @@ interface Attr<T : Any> : Entity {
     val unique: Boolean
 
     fun str() = name.toStr()
+
+    infix fun eq(v: T): AttrValue<Attr<T>, T> = when (this) {
+        is ScalarAttrImpl -> ScalarAttrValue(this, v)
+        is RefAttr -> RefAttrValue(this, v as Entity) as AttrValue<Attr<T>, T>
+        else -> throw AssertionError("Should never happen")
+    }
 
 }
 
@@ -75,7 +82,7 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
     }
 
     override fun toIdentified(eid: EID): IdentifiedEntity =
-            Entity(_name to name.toStr(), _type to type.code, _unique to unique).toIdentified(eid)
+            Entity(_name eq name.toStr(), _type eq type.code, _unique eq unique).toIdentified(eid)
 
 }
 

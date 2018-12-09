@@ -17,9 +17,9 @@ class EntityTest {
         val _ref = RefAttr(user["ref"])
         val _eid = ScalarAttr(user["some_eid"], QEID)
 
-        val e1 = Entity(_attr to "e1")
+        val e1 = Entity(_attr eq "e1")
         assertTrue((e1 as MapEntity).refs.isEmpty())
-        val e2 = Entity(_attr to "e2", _ref to e1, _eid to EID(0, 3))
+        val e2 = Entity(_attr eq "e2", _ref eq e1, _eid eq EID(0, 3))
         assertTrue((e2 as MapEntity).map.size == 2)
         assertTrue(e2.refs.size == 1)
 

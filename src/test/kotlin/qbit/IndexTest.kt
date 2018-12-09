@@ -135,10 +135,10 @@ class IndexTest {
 
         val _date = ScalarAttr(root["date"], QLong)
 
-        val e1 = Entity(_date to 1L)
-        val e2 = Entity(_date to 2L)
-        val e3 = Entity(_date to 3L)
-        val e4 = Entity(_date to 4L)
+        val e1 = Entity(_date eq 1L)
+        val e2 = Entity(_date eq 2L)
+        val e3 = Entity(_date eq 3L)
+        val e4 = Entity(_date eq 4L)
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
         val index = Index(Graph { null }, root)
 

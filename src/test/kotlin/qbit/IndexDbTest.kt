@@ -17,12 +17,12 @@ class DbTest {
         val _date = ScalarAttr(root["date"], QLong)
         val _cat = ScalarAttr(root["cat"], QString)
 
-        val date = Entity(qbit.schema._name to _date.str(), qbit.schema._type to QLong.code)
-        val cat = Entity(qbit.schema._name to _cat.str(), qbit.schema._type to QString.code)
-        val e1 = Entity(_date to 1L, _cat to "C1")
-        val e2 = Entity(_date to 2L, _cat to "C1")
-        val e3 = Entity(_date to 3L, _cat to "C2")
-        val e4 = Entity(_date to 4L, _cat to "C2")
+        val date = Entity(qbit.schema._name eq _date.str(), qbit.schema._type eq QLong.code)
+        val cat = Entity(qbit.schema._name eq _cat.str(), qbit.schema._type eq QString.code)
+        val e1 = Entity(_date eq 1L, _cat eq "C1")
+        val e2 = Entity(_date eq 2L, _cat eq "C1")
+        val e3 = Entity(_date eq 3L, _cat eq "C2")
+        val e4 = Entity(_date eq 4L, _cat eq "C2")
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((date.toFacts(eids.next()) + cat.toFacts(eids.next()) + e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
         val index = Index(Graph { null }, root)
 

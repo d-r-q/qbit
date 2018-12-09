@@ -16,7 +16,7 @@ class ValidationTest {
     @Test
     fun testUnqiureAttrRestoring() {
         val attr = ScalarAttr(root["unique"], QString, true)
-        val db = dbOf(attr, Entity(attr to "unique"))
+        val db = dbOf(attr, Entity(attr eq "unique"))
         validate(db, listOf(Fact(EID(0, 1), attr, "unique")))
     }
 }

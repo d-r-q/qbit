@@ -24,10 +24,10 @@ class SyncTest {
         val conn2 = LocalConn(id, db2Storage, head)
         conn2.fetch(conn1)
 
-        val e1 = Entity(_attr1 to "value1")
+        val e1 = Entity(_attr1 eq "value1")
         val se1 = conn1.persist(e1).storedEntity()
 
-        val e2 = Entity(_attr2 to "value2")
+        val e2 = Entity(_attr2 eq "value2")
         val se2 = conn2.persist(e2).storedEntity()
 
         conn2.sync(conn1)

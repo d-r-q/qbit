@@ -1,6 +1,7 @@
 package qbit
 
 import qbit.ns.Namespace
+import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
 import qbit.storage.FileSystemStorage
 import java.io.File
@@ -11,7 +12,7 @@ val cat = Namespace.of("q5", "category")
 val trx = Namespace.of("q5", "transaction")
 val trxSum = ScalarAttr(trx["sum"], QLong)
 val trxDateTime = ScalarAttr(trx["dateTime"], QLong)
-val trxCategory = ScalarAttr(trx["category"], QEID)
+val trxCategory = RefAttr(trx["category"])
 val trxComment = ScalarAttr(trx["comment"], QString)
 val trxSource = ScalarAttr(trx["source"], QString)
 val trxDevice = ScalarAttr(trx["device"], QString)
@@ -83,19 +84,19 @@ fun parse(conn: LocalConn, sourceLine: String) {
         val cat = if (fields.size > 3) fields[3] else return
         var catSe = categories[cat]
         if (catSe == null) {
-            val stored = conn.persist(Entity(catName to cat)).storedEntity()
+            val stored = conn.persist(Entity(catName eq cat)).storedEntity()
             categories[cat] = stored
             catSe = stored
         }
         val comment = if (fields.size > 4) fields[4].replace("\"\"", "\"") else return
         val device = if (fields.size > 5) fields[5] else return
         val source = if (fields.size > 6) fields[6] else return
-        val e = Entity(trxDateTime to dateTime,
-                trxSum to (sum.replace(",", ".").toDouble() * 100).toLong(),
-                trxCategory to catSe.eid,
-                trxComment to comment,
-                trxDevice to device,
-                trxSource to source)
+        val e = Entity(trxDateTime eq dateTime,
+                trxSum eq (sum.replace(",", ".").toDouble() * 100).toLong(),
+                trxCategory eq catSe,
+                trxComment eq comment,
+                trxDevice eq device,
+                trxSource eq source)
         val (_, _) = conn.persist(e)
     } catch (e: ParseException) {
     }

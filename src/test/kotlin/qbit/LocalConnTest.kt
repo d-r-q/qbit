@@ -20,7 +20,7 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         val _attr = ScalarAttr(Namespace("user")["attr"], QString)
         conn.persist(_attr)
-        val e = Entity(_attr to "value")
+        val e = Entity(_attr eq "value")
         var se = conn.persist(e).storedEntity()
         se = se.set(_attr, "value2")
         conn.persist(se)
@@ -33,9 +33,9 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         val _uid = ScalarAttr(Namespace("user")["uid"], QLong, true)
         conn.persist(_uid)
-        conn.persist(Entity(_uid to 0L))
+        conn.persist(Entity(_uid eq 0L))
         try {
-            conn.persist(Entity(_uid to 0L))
+            conn.persist(Entity(_uid eq 0L))
             fail("QBitException expected")
         } catch (e: QBitException) {
             assertTrue(e.message?.contains("Duplicate") ?: false)
@@ -48,7 +48,7 @@ class LocalConnTest {
         val _attr = ScalarAttr(Namespace("user")["attr"], QString)
         conn.persist(_attr)
 
-        val e = Entity(_attr to "value")
+        val e = Entity(_attr eq "value")
         var se = conn.persist(e).storedEntity()
         se = se.set(_attr, "value2")
         conn.persist(se)
@@ -74,8 +74,8 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val, _ref)
 
-        val e1 = Entity(_val to "e1")
-        val e2 = Entity(_val to "e2", _ref to e1)
+        val e1 = Entity(_val eq "e1")
+        val e2 = Entity(_val eq "e2", _ref eq e1)
 
         conn.persist(e1, e2)
         val se2 = conn.db.query(attrIs(_val, "e2")).toList()[0]
@@ -92,10 +92,10 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val, _ref)
 
-        var e1 = Entity(_val to "e1")
+        var e1 = Entity(_val eq "e1")
         e1 = conn.persist(e1).storedEntity()
-        val e2 = Entity(_val to "e2", _ref to e1)
-        val e3 = Entity(_val to "e3", _ref to e2)
+        val e2 = Entity(_val eq "e2", _ref eq e1)
+        val e3 = Entity(_val eq "e3", _ref eq e2)
         e1 = e1.set(_ref, e3)
 
         conn.persist(e1, e2, e3)
@@ -119,9 +119,9 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val, _ref)
 
-        val e1 = Entity(_val to "e1")
-        val e2 = Entity(_val to "e2", _ref to e1)
-        val e3 = Entity(_val to "e3", _ref to e2)
+        val e1 = Entity(_val eq "e1")
+        val e2 = Entity(_val eq "e2", _ref eq e1)
+        val e3 = Entity(_val eq "e3", _ref eq e2)
 
         conn.persist(e3)
 
@@ -140,7 +140,7 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val)
 
-        val e1 = Entity(_val to "e1")
+        val e1 = Entity(_val eq "e1")
         val se1 = conn.persist(e1).storedEntity()
         val h = conn.head
         conn.persist(se1)
@@ -156,10 +156,10 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val, _ref)
 
-        val e1 = Entity(_val to "e1")
+        val e1 = Entity(_val eq "e1")
         val se1 = conn.persist(e1).storedEntity()
 
-        val e2 = Entity(_val to "e1", _ref to se1)
+        val e2 = Entity(_val eq "e1", _ref eq se1)
         conn.persist(e2)
 
         assertEquals(3, conn.head.data.trx.size)
@@ -174,7 +174,7 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
 
         conn.persist(unique, notUnique)
-        val se1 = conn.persist(Entity(unique to "unique", notUnique to "notUnique1")).storedEntity()
+        val se1 = conn.persist(Entity(unique eq "unique", notUnique eq "notUnique1")).storedEntity()
         val se2 = conn.persist(se1.set(notUnique, "notUnique2")).storedEntity()
         assertEquals("notUnique2", se2[notUnique])
     }
@@ -187,7 +187,7 @@ class LocalConnTest {
         val conn = qbit(MemStorage())
         conn.persist(_val)
 
-        val e1 = Entity(_val to "e1")
+        val e1 = Entity(_val eq "e1")
         val se1 = conn.persist(e1).storedEntity()
         val h = conn.head
         conn.persist(se1.set(_val, "e1"))

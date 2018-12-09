@@ -94,16 +94,16 @@ fun parse(sourceLine: String, categories: Map<String, Entity>): Pair<Entity, Ent
     val cat = if (fields.size > 3) fields[3] else return null
     var catSe = categories[cat]
     if (catSe == null) {
-        catSe = Entity(catName to cat)
+        catSe = Entity(catName eq cat)
     }
     val comment = if (fields.size > 4) fields[4].replace("\"\"", "\"") else return null
     val device = if (fields.size > 5) fields[5] else return null
     val source = if (fields.size > 6) fields[6] else return null
-    val e = Entity(trxDateTime to dateTime,
-            trxSum to (sum.replace(",", ".").toDouble() * 100).toLong(),
-            trxCategory to catSe,
-            trxComment to comment,
-            trxDevice to device,
-            trxSource to source)
+    val e = Entity(trxDateTime eq dateTime,
+            trxSum eq (sum.replace(",", ".").toDouble() * 100).toLong(),
+            trxCategory eq catSe,
+            trxComment eq comment,
+            trxDevice eq device,
+            trxSource eq source)
     return e to catSe
 }

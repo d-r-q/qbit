@@ -122,10 +122,18 @@ object QBytes : DataType<ByteArray>() {
 
 }
 
-object QEID : DataType<Entity>() {
+object QEntity : DataType<Entity>() {
+
+    override val code = 50.toByte()
+
+    override val kotlinType = Entity::class
+
+}
+
+object QEID : DataType<EID>() {
 
     override val code = 51.toByte()
 
-    override val kotlinType = Entity::class
+    override val kotlinType = EID::class
 
 }

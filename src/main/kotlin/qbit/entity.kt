@@ -4,10 +4,22 @@ import qbit.schema.Attr
 import qbit.schema.RefAttr
 import kotlin.reflect.KClass
 
-fun Entity(vararg entries: Pair<Attr<*>, Any>): Entity =
+interface AttrValue<out A : Attr<T>, T : Any> {
+
+    val attr: A
+    val value: T
+
+    fun toPair() = attr to value
+
+}
+
+data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
+data class RefAttrValue(override val attr: RefAttr, override val value: Entity) : AttrValue<RefAttr, Entity>
+
+fun Entity(vararg entries: AttrValue<*, *>): Entity =
         MapEntity(
-                entries.filterNot { it.first is RefAttr && it.second is Entity }.toMap(),
-                entries.filter { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(), emptyEidResolver)
+                entries.filterNot { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.toMap(),
+                entries.filter { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(), emptyEidResolver)
 
 internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = StoredMapEntity(eid,
         entries.filterNot { it.first is RefAttr && it.second is Entity }.toMap(HashMap()),
