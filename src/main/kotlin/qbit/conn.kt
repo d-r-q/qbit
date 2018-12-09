@@ -5,6 +5,7 @@ import qbit.schema.*
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 import java.util.*
+import java.util.Collections.singleton
 import java.util.Collections.singletonList
 
 fun qbit(storage: Storage): LocalConn {
@@ -114,20 +115,19 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    fun persist(es: Collection<Entity>): WriteResult =
-            persist(*es.toTypedArray())
-
     fun persist(e: Entity): WriteResult {
-        @Suppress("RemoveRedundantSpreadOperator")
-        return persist(*arrayOf(e))
+        return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entity): WriteResult {
+    fun persist(vararg es: Entity): WriteResult =
+            persist(es.asList())
+
+    fun persist(es: Collection<Entity>): WriteResult {
         try {
             // TODO: check for conflict modifications in parallel threads
             val curEntities = db.pull(instanceEid)?.get(_entities) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(dbUuid.iid.value, curEntities).nextEids()
-            val allEs = unfold(es.asList(), eids)
+            val allEs = unfold(es, eids)
             val storedEs = allEs.map {
                 var res: StoredEntity = it.key as? StoredEntity ?: it.value
                 res.entries.forEach { e ->
@@ -156,10 +156,10 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    private fun unfold(es: List<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, StoredEntity> {
+    private fun unfold(es: Collection<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, StoredEntity> {
         val res = IdentityHashMap<Entity, StoredEntity>()
 
-        fun body(es: List<Entity>) {
+        fun body(es: Collection<Entity>) {
             es.forEach {
                 if (!res.contains(it)) {
                     if (it is StoredEntity) {
