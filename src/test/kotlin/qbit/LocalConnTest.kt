@@ -193,6 +193,25 @@ class LocalConnTest {
         conn.persist(se1.set(_val, "e1"))
         assertEquals(h, conn.head)
     }
+
+    @Test
+    fun testEntityRetrievalFromUpdatedEntity() {
+        val user = Namespace("user")
+        val _val = ScalarAttr(user["val"], QString)
+        val _ref = RefAttr(user["ref"])
+
+        val conn = qbit(MemStorage())
+        conn.persist(_val, _ref)
+
+        val e1 = Entity(_val eq "e1")
+        val e2 = Entity(_val eq "e2", _ref eq e1)
+        var (se1, se2) = conn.persist(e1, e2).persistedEntities
+        se1 = se1.set(_val, "e1.1")
+        se2 = se2.set(_val, "e2.1")
+
+        se2 = conn.persist(se2, se1).storedEntity()
+        assertEquals("e1.1", se2[_ref]!![_val]!!)
+    }
 }
 
 

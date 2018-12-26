@@ -139,7 +139,9 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             validate(db, facts)
             persistFacts(facts)
 
-            val persistedEntities = es.map { it as? StoredEntity ?: Entity(allEs[it]!!.eid, db) }.toList()
+            val persistedEntities = es
+                    .filter { !((it as? StoredEntity)?.deleted ?: false) }
+                    .map { Entity(allEs[it]!!.eid, db) }.toList()
             val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) }
 
             return WriteResult(db, persistedEntities, createdEntities)
