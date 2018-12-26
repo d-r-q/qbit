@@ -32,3 +32,10 @@ compileTestKotlin {
 }
 
 apply plugin: 'maven'
+
+test {
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
