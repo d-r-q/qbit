@@ -36,9 +36,9 @@ fun qbit(storage: Storage): LocalConn {
             Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entities.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _entities.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _entities.unique))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entitiesCount.str()),
+            Fact(EID(iid.value, eid), qbit.schema._type, _entitiesCount.type.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, _entitiesCount.unique))
     eid++
     trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str()),
             Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
@@ -47,7 +47,7 @@ fun qbit(storage: Storage): LocalConn {
     trx += listOf(
             Fact(EID(iid.value, eid), qbit.schema._iid, 0),
             Fact(EID(iid.value, eid), qbit.schema._forks, 0),
-            Fact(EID(iid.value, eid), qbit.schema._entities, eid + 1)) // + 1 - is current (instance) entity
+            Fact(EID(iid.value, eid), qbit.schema._entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -83,7 +83,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
      * }
      */
     private val instanceEid =
-            db.query(hasAttr(qbit.schema._entities))
+            db.query(hasAttr(qbit.schema._entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
                     .eid
 
@@ -107,7 +107,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                     head,
                     Fact(instanceEid, qbit.schema._iid, forks + 1),
                     Fact(forkInstanceEid, qbit.schema._forks, 0),
-                    Fact(forkInstanceEid, qbit.schema._entities, 1))
+                    Fact(forkInstanceEid, qbit.schema._entitiesCount, 1))
             swapHead(newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
@@ -115,46 +115,35 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    fun persist(e: Entity): WriteResult {
+    fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entity): WriteResult =
+    fun persist(vararg es: Entitiable): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entity>): WriteResult {
+    fun persist(es: Collection<Entitiable>): WriteResult {
         try {
             // TODO: check for conflict modifications in parallel threads
-            val curEntities = db.pull(instanceEid)?.get(_entities) ?: throw QBitException("Corrupted database metadata")
-            val eids = EID(dbUuid.iid.value, curEntities).nextEids()
-            val allEs = unfold(es, eids)
-            val storedEs = allEs
-                    .filter { it.key !is StoredEntity || (it.key as StoredEntity).dirty }
-                    .map {
-                        var res: IdentifiedEntity = it.key as? StoredEntity ?: it.value
-                        res.entries.forEach { e ->
-                            if (e.key is RefAttr) {
-                                val ra: RefAttr = e.key as RefAttr
-                                val re: Entity = e.value as Entity
-                                res = res.set(ra, allEs[re]!!)
-                            }
-                        }
-                        res
-                    }
-            var facts = storedEs.flatMap { it.toFacts() }
+
+            val curEntitiesCnt = db.pull(instanceEid)?.get(_entitiesCount)
+                    ?: throw QBitException("Corrupted database metadata")
+            val eids = EID(dbUuid.iid.value, curEntitiesCnt).nextEids()
+
+            val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
+            val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, curEntitiesCnt)
             if (facts.isEmpty()) {
                 qbit.assert { es.all { it is StoredEntity && !it.dirty } }
                 return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
             }
-            val newEntities = eids.next().eid
-            if (curEntities < newEntities) {
-                facts += Fact(instanceEid, qbit.schema._entities, newEntities)
-            }
             validate(db, facts)
-            swapHead(writer.store(head, facts))
-            return WriteResult(db, es.map {
-                it as? StoredEntity ?: Entity(allEs[it]!!.eid, db)
-            }.toList(), allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) })
+            persistFacts(facts)
+
+            val persistedEntities = es.map { it as? StoredEntity ?: Entity(allEs[it]!!.eid, db) }.toList()
+            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) }
+
+            return WriteResult(db, persistedEntities, createdEntities)
+
         } catch (qe: QBitException) {
             throw qe
         } catch (e: Exception) {
@@ -162,22 +151,22 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         }
     }
 
-    private fun unfold(es: Collection<Entity>, eids: Iterator<EID>): IdentityHashMap<Entity, IdentifiedEntity> {
-        val res = IdentityHashMap<Entity, IdentifiedEntity>()
+    private fun unfoldEntitiesGraph(es: Collection<Entitiable>, eids: Iterator<EID>): IdentityHashMap<Entitiable, IdentifiedEntity> {
+        val res = IdentityHashMap<Entitiable, IdentifiedEntity>()
 
-        fun body(es: Collection<Entity>) {
+        fun body(es: Collection<Entitiable>) {
             es.forEach {
                 if (!res.contains(it)) {
-                    if (it is IdentifiedEntity) {
-                        res[it] = it
-                    } else {
-                        res[it] = it.toIdentified(eids.next())
+                    when (it) {
+                        is IdentifiedEntity -> res[it] = it
+                        is Entity -> res[it] = it.toIdentified(eids.next())
+                        else -> res[it] = Entity(*it.entries.toTypedArray()).toIdentified(eids.next())
                     }
                 }
                 it.entries.forEach { e ->
-                    if (e.key is RefAttr) {
-                        val value: Entity = e.value as Entity
-                        if (res[value] == null) {
+                    if (e.attr is RefAttr) {
+                        val value: Entity? = e.value as? Entity
+                        if (value != null && res[value] == null) {
                             body(singletonList(value))
                         }
                     }
@@ -187,6 +176,24 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         body(es)
 
         return res
+    }
+
+    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, IdentifiedEntity>, eids: Iterator<EID>, curEntitiesCnt: Int): MutableList<Fact> {
+        val entitiesToStore: List<IdentifiedEntity> = allEs.values.filter { it !is StoredEntity || it.dirty }
+        val linkedEntities = entitiesToStore.map { it.setRefs(allEs) }
+        val facts: MutableList<Fact> = linkedEntities
+                .flatMap { it.toFacts() }
+                .toMutableList()
+        val newEntitiesCnt = eids.next().eid
+        if (curEntitiesCnt < newEntitiesCnt) {
+            facts += Fact(instanceEid, _entitiesCount, newEntitiesCnt)
+        }
+        return facts
+    }
+
+    private fun persistFacts(facts: MutableList<Fact>) {
+        val newHead = writer.store(head, facts)
+        swapHead(newHead)
     }
 
     fun sync(another: Conn) {
@@ -221,11 +228,11 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
 }
 
-class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val generatedEntities: Map<Entity, StoredEntity>) {
+class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable, StoredEntity>) {
 
     operator fun component1(): Db = db
 
-    operator fun component2(): Map<Entity, StoredEntity> = generatedEntities
+    operator fun component2(): Map<Entitiable, StoredEntity> = createdEntities
 
     operator fun component3(): StoredEntity = persistedEntities[0]
 

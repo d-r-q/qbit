@@ -13,7 +13,7 @@ val _type: Attr<Byte> = ScalarAttr(qbitAttrs["type"], QByte)
 val _unique: Attr<Boolean> = ScalarAttr(qbitAttrs["unique"], QBoolean)
 
 val _forks: Attr<Int> = ScalarAttr(qbitInstance["forks"], QInt, false)
-val _entities: Attr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
+val _entitiesCount: Attr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
 val _iid: Attr<Long> = ScalarAttr(qbitInstance["iid"], QLong, true)
 
 internal fun Attr(name: String, type: DataType<*>, unique: Boolean = false): Attr<*> = ScalarAttr(Key(name), type, unique)
@@ -24,7 +24,7 @@ fun <T : Any> ScalarAttr(name: Key, type: DataType<T>, unique: Boolean = false):
 
 fun RefAttr(name: Key, unique: Boolean = false): RefAttr = RefAttrImpl(name, QEntity, unique)
 
-interface Attr<T : Any> : Entity {
+interface Attr<T : Any> : Entitiable {
 
     val name: Key
 
@@ -34,31 +34,16 @@ interface Attr<T : Any> : Entity {
 
     fun str() = name.toStr()
 
-    infix fun eq(v: T): AttrValue<Attr<T>, T> = when (this) {
-        is ScalarAttrImpl -> ScalarAttrValue(this, v)
-        is RefAttr -> RefAttrValue(this, v as Entity) as AttrValue<Attr<T>, T>
-        else -> throw AssertionError("Should never happen")
-    }
+    infix fun eq(v: T): AttrValue<Attr<T>, T>
 
 }
 
-private data class ScalarAttrImpl<T : Any>(override val name: Key, override val type: DataType<T>, override val unique: Boolean = false) : Attr<T>, Entity by AttrEntityImpl(name, type, unique)
+private data class ScalarAttrImpl<T : Any>(override val name: Key, override val type: DataType<T>, override val unique: Boolean = false) : ScalarAttr<T>, Entitiable by AttrEntityImpl(name, type, unique)
 
-private data class RefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : RefAttr, Entity by AttrEntityImpl(name, type, unique)
+private data class RefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : RefAttr, Entitiable by AttrEntityImpl(name, type, unique)
 
 private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
-                                  val unique: Boolean = false) : Entity {
-    override fun <V : Any> set(key: Attr<V>, value: V): AttrEntityImpl {
-        var newName = name
-        var newType = type
-        var newUnique = unique
-        when (key) {
-            _name -> newName = Key(value as String)
-            _type -> newType = DataType.ofCode(value as Byte) as DataType<*>
-            _unique -> newUnique = value as Boolean
-        }
-        return AttrEntityImpl(newName, newType, newUnique)
-    }
+                                  val unique: Boolean = false) : Entitiable {
 
     @Suppress("UNCHECKED_CAST")
     override val keys: Set<Attr<Any>>
@@ -74,19 +59,29 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
         }
     }
 
+    // Attr object by definition cannot have refs
     override fun get(key: RefAttr): Entity? =
             null
 
-    override fun set(key: RefAttr, value: Entity): Entity {
-        TODO("Attribute attrs couldn't refer other entites yet")
-    }
+}
 
-    override fun toIdentified(eid: EID): IdentifiedEntity =
-            Entity(_name eq name.toStr(), _type eq type.code, _unique eq unique).toIdentified(eid)
+interface RefAttr : Attr<Entity> {
+
+    override infix fun eq(v: Entity): RefAttrValue = when (this) {
+        is RefAttrImpl -> RefAttrValue(this, v)
+        else -> throw AssertionError("Should never happen")
+    }
 
 }
 
-interface RefAttr : Attr<Entity>
+interface ScalarAttr<T : Any> : Attr<T> {
+
+    override infix fun eq(v: T): ScalarAttrValue<T> = when (this) {
+        is ScalarAttrImpl -> ScalarAttrValue(this, v)
+        else -> throw AssertionError("Should never happen")
+    }
+
+}
 
 class Schema(private val attrs: Map<String, Attr<Any>>) {
 
