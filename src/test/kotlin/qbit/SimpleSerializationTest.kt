@@ -138,7 +138,6 @@ class SimpleSerializationTest {
     fun testZonedDateTime() {
         val zdt = ZonedDateTime.now()
         val outZdt = deserialize(ByteArrayInputStream(serialize(zdt)))
-        println("$zdt : $outZdt")
         assertEquals(zdt, outZdt)
 
         val azdt = zdt.withZoneSameInstant(ZoneId.of("Europe/Paris"))

@@ -63,7 +63,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is EID -> byteArray(QEID.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
-            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli()), byteArray(a.zone.id))
+            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().nano), byteArray(a.zone.id))
             else -> throw AssertionError("Should never happen, a is $a")
         }
     }
@@ -148,7 +148,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
         QInstant -> Instant.ofEpochMilli(readLong(ins)) as T
 
         QZonedDateTime -> {
-            val instant = Instant.ofEpochMilli(readLong(ins))
+            val instant = Instant.ofEpochSecond(readLong(ins), readInt(ins).toLong())
             val zone = String(readBytes(ins, readInt(ins)), Charsets.UTF_8)
             ZonedDateTime.ofInstant(instant, ZoneId.of(zone)) as T
         }
