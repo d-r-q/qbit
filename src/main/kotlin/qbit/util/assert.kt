@@ -1,4 +1,4 @@
-package qbit
+package qbit.util
 
 
 val enabled = try {

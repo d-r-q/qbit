@@ -1,14 +1,10 @@
-package qbit
+package qbit.storage_model
 
-import qbit.schema.Attr
+import qbit.model.IID
+import qbit.model.Fact
+import qbit.util.Hash
 
 data class DbUuid(val iid: IID)
-
-fun Fact(eid: EID, attr: Attr<*>, value: Any) = Fact(eid, attr.str(), value, false)
-
-fun Fact(eid: EID, attr: Attr<*>, value: Any, deleted: Boolean) = Fact(eid, attr.str(), value, deleted)
-
-data class Fact(val eid: EID, val attr: String, val value: Any, val deleted: Boolean)
 
 class NodeData(val trx: Array<out Fact>)
 
@@ -49,7 +45,7 @@ class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     fun resolveNode(n: Node<Hash>) = when (n) {
         is NodeVal<Hash> -> n
-        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
+        is NodeRef -> resolve(n) ?: throw IllegalStateException("Corrupted graph, could not resolve $n")
     }
 
     companion object {

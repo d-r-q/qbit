@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.schema.*
+import qbit.model.*
 
 interface QueryPred {
     val attrName: String
@@ -68,7 +68,7 @@ class IndexDb(internal val index: Index) : Db {
             require(attr != null)
             attr to it.value
         }
-        return Entity(eid, attrValues, this)
+        return Entity(eid, attrValues, EntityCache(QBitEidResolver(this)))
     }
 
     override fun <T : Any> get(eid: EID, attr: Attr<T>): Set<T> {
@@ -97,7 +97,7 @@ class IndexDb(internal val index: Index) : Db {
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
-            val attrEidss = index.eidsByPred(hasAttr(qbit.schema._name))
+            val attrEidss = index.eidsByPred(hasAttr(_name))
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEidss
                     .map {
@@ -106,7 +106,7 @@ class IndexDb(internal val index: Index) : Db {
                         val type = e[_type.str()]!! as Byte
                         val unique = e[_unique.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
-                                if (type == QEntity.code) {
+                                if (type == DataType.QEntity.code) {
                                     RefAttr(name, unique) as Attr<Any>
                                 } else {
                                     Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
@@ -116,5 +116,21 @@ class IndexDb(internal val index: Index) : Db {
             return attrFacts.toMap()
         }
     }
+
+}
+
+class QBitEidResolver(private val qbit: Db) : EidResolver {
+
+    override fun invoke(eid: EID): StoredEntity? =
+            qbit.pull(eid)
+
+}
+
+class EntityCache(private val delegate: EidResolver) : EidResolver {
+
+    private val cache = HashMap<EID, StoredEntity?>()
+
+    override fun invoke(key: EID): StoredEntity? =
+            cache.getOrPut(key) { delegate(key) }
 
 }

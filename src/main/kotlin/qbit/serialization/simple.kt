@@ -1,6 +1,12 @@
 package qbit.serialization
 
-import qbit.*
+import qbit.model.DataType
+import qbit.model.EID
+import qbit.model.Fact
+import qbit.model.IID
+import qbit.storage_model.*
+import qbit.util.Hash
+import qbit.util.nullHash
 import java.io.EOFException
 import java.io.InputStream
 import java.nio.CharBuffer
@@ -23,17 +29,17 @@ object SimpleSerialization : Serialization {
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: InputStream): NodeVal<Hash?> {
-        val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
-        val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
-        val iid = deserialize(ins, QInt) as Int
-        val instanceBits = deserialize(ins, QByte) as Byte
-        val timestamp = deserialize(ins, QLong) as Long
-        val factsCount = deserialize(ins, QInt) as Int
+        val parent1 = Hash(deserialize(ins, DataType.QBytes) as ByteArray)
+        val parent2 = Hash(deserialize(ins, DataType.QBytes) as ByteArray)
+        val iid = deserialize(ins, DataType.QInt) as Int
+        val instanceBits = deserialize(ins, DataType.QByte) as Byte
+        val timestamp = deserialize(ins, DataType.QLong) as Long
+        val factsCount = deserialize(ins, DataType.QInt) as Int
         val facts = (1..factsCount).asSequence().map {
-            val eid = deserialize(ins, QEID) as EID
-            val attr = deserialize(ins, QString) as String
+            val eid = deserialize(ins, DataType.QEID) as EID
+            val attr = deserialize(ins, DataType.QString) as String
             val value = deserialize(ins)
-            val deleted = deserialize(ins, QBoolean) as Boolean
+            val deleted = deserialize(ins, DataType.QBoolean) as Boolean
             Fact(eid, attr, value, deleted)
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
@@ -53,17 +59,17 @@ internal fun serialize(vararg anys: Any): ByteArray {
         when (a) {
             is Node<*> -> serialize(a.hash!!.bytes)
             is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
-            is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
-            is Byte -> byteArray(QByte.code, a)
-            is Int -> byteArray(QInt.code, serializeInt(a))
-            is Long -> byteArray(QLong.code, serializeLong(a))
-            is String -> byteArray(QString.code, byteArray(a))
+            is Boolean -> byteArray(DataType.QBoolean.code, if (a) 1.toByte() else 0.toByte())
+            is Byte -> byteArray(DataType.QByte.code, a)
+            is Int -> byteArray(DataType.QInt.code, serializeInt(a))
+            is Long -> byteArray(DataType.QLong.code, serializeLong(a))
+            is String -> byteArray(DataType.QString.code, byteArray(a))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
             is Fact -> serialize(a.eid, a.attr, a.value, a.deleted)
-            is EID -> byteArray(QEID.code, serializeLong(a.value()))
-            is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
-            is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
-            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().nano), byteArray(a.zone.id))
+            is EID -> byteArray(DataType.QEID.code, serializeLong(a.value()))
+            is ByteArray -> byteArray(DataType.QBytes.code, serializeInt(a.size), a)
+            is Instant -> byteArray(DataType.QInstant.code, serializeLong(a.toEpochMilli()))
+            is ZonedDateTime -> byteArray(DataType.QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().nano), byteArray(a.zone.id))
             else -> throw AssertionError("Should never happen, a is $a")
         }
     }
@@ -141,27 +147,27 @@ internal fun deserialize(ins: InputStream): Any {
 @Suppress("UNCHECKED_CAST")
 private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any {
     return when (expectedMark) {
-        QBoolean -> (ins.read().toByte() == 1.toByte()) as T
-        QByte -> ins.read().toByte() as T
-        QInt -> readInt(ins) as T
-        QLong -> readLong(ins) as T
-        QInstant -> Instant.ofEpochMilli(readLong(ins)) as T
+        DataType.QBoolean -> (ins.read().toByte() == 1.toByte()) as T
+        DataType.QByte -> ins.read().toByte() as T
+        DataType.QInt -> readInt(ins) as T
+        DataType.QLong -> readLong(ins) as T
+        DataType.QInstant -> Instant.ofEpochMilli(readLong(ins)) as T
 
-        QZonedDateTime -> {
+        DataType.QZonedDateTime -> {
             val instant = Instant.ofEpochSecond(readLong(ins), readInt(ins).toLong())
             val zone = String(readBytes(ins, readInt(ins)), Charsets.UTF_8)
             ZonedDateTime.ofInstant(instant, ZoneId.of(zone)) as T
         }
 
-        QBytes -> readInt(ins).let { count ->
+        DataType.QBytes -> readInt(ins).let { count ->
             readBytes(ins, count) as T
         }
 
-        QString -> readInt(ins).let { count ->
+        DataType.QString -> readInt(ins).let { count ->
             String(readBytes(ins, count), Charsets.UTF_8) as T
         }
-        QEID -> EID(readLong(ins)) as T
-        QEntity -> throw AssertionError("Should never happen")
+        DataType.QEID -> EID(readLong(ins)) as T
+        DataType.QEntity -> throw AssertionError("Should never happen")
     }
 }
 

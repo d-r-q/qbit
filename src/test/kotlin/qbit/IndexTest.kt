@@ -3,15 +3,18 @@ package qbit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.root
-import qbit.schema.Attr
-import qbit.schema.ScalarAttr
 import qbit.serialization.SimpleSerialization
+import qbit.storage_model.*
+import qbit.util.Hash
+import qbit.util.hash
+import qbit.util.nullHash
 
 class IndexTest {
 
-    private val _uid = ScalarAttr(root["uid"], QInt)
-    private val _foo = ScalarAttr(root["foo"], QString)
+    private val _uid = ScalarAttr(root["uid"], DataType.QInt)
+    private val _foo = ScalarAttr(root["foo"], DataType.QString)
 
     @Test
     fun testVaet() {
@@ -98,9 +101,9 @@ class IndexTest {
         val time1 = System.currentTimeMillis()
         val eid = EID(0, 0)
 
-        val _attr1 = ScalarAttr(root["attr1"], QInt)
-        val _attr2 = ScalarAttr(root["attr2"], QInt)
-        val _attr3 = ScalarAttr(root["attr3"], QInt)
+        val _attr1 = ScalarAttr(root["attr1"], DataType.QInt)
+        val _attr2 = ScalarAttr(root["attr2"], DataType.QInt)
+        val _attr3 = ScalarAttr(root["attr3"], DataType.QInt)
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
@@ -133,7 +136,7 @@ class IndexTest {
         val eids = generateSequence(eid0) { eid -> eid.next(1) }
                 .iterator()
 
-        val _date = ScalarAttr(root["date"], QLong)
+        val _date = ScalarAttr(root["date"], DataType.QLong)
 
         val e1 = Entity(_date eq 1L)
         val e2 = Entity(_date eq 2L)

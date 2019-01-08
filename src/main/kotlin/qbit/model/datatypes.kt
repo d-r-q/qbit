@@ -1,4 +1,4 @@
-package qbit
+package qbit.model
 
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -56,84 +56,84 @@ sealed class DataType<T : Any> {
 
     fun compare(v1: T, v2: T): Int = (v1 as Comparable<T>).compareTo(v2)
 
+    object QBoolean : DataType<Boolean>() {
+
+        override val code = 0.toByte()
+
+        override val kotlinType = Boolean::class
+
+    }
+
+    object QByte : DataType<Byte>() {
+
+        override val code = 1.toByte()
+
+        override val kotlinType = Byte::class
+
+    }
+
+    object QInt : DataType<Int>() {
+
+        override val code = 2.toByte()
+
+        override val kotlinType = Int::class
+
+    }
+
+    object QLong : DataType<Long>() {
+
+        override val code = 3.toByte()
+
+        override val kotlinType = Long::class
+
+    }
+
+    object QInstant : DataType<Instant>() {
+
+        override val code = 4.toByte()
+
+        override val kotlinType = Instant::class
+
+    }
+
+    object QZonedDateTime : DataType<ZonedDateTime>() {
+
+        override val code = 10.toByte()
+
+        override val kotlinType = ZonedDateTime::class
+
+    }
+
+    object QString : DataType<String>() {
+
+        override val code = 31.toByte()
+
+        override val kotlinType = String::class
+
+    }
+
+    object QBytes : DataType<ByteArray>() {
+
+        override val code = 32.toByte()
+
+        override val kotlinType = ByteArray::class
+
+    }
+
+    object QEntity : DataType<Any>() {
+
+        override val code = 50.toByte()
+
+        override val kotlinType = Any::class
+
+    }
+
+    object QEID : DataType<EID>() {
+
+        override val code = 51.toByte()
+
+        override val kotlinType = EID::class
+
+    }
 }
 
-object QBoolean : DataType<Boolean>() {
-
-    override val code = 0.toByte()
-
-    override val kotlinType = Boolean::class
-
-}
-
-object QByte : DataType<Byte>() {
-
-    override val code = 1.toByte()
-
-    override val kotlinType = Byte::class
-
-}
-
-object QInt : DataType<Int>() {
-
-    override val code = 2.toByte()
-
-    override val kotlinType = Int::class
-
-}
-
-object QLong : DataType<Long>() {
-
-    override val code = 3.toByte()
-
-    override val kotlinType = Long::class
-
-}
-
-object QInstant : DataType<Instant>() {
-
-    override val code = 4.toByte()
-
-    override val kotlinType = Instant::class
-
-}
-
-object QZonedDateTime : DataType<ZonedDateTime>() {
-
-    override val code = 10.toByte()
-
-    override val kotlinType = ZonedDateTime::class
-
-}
-
-object QString : DataType<String>() {
-
-    override val code = 31.toByte()
-
-    override val kotlinType = String::class
-
-}
-
-object QBytes : DataType<ByteArray>() {
-
-    override val code = 32.toByte()
-
-    override val kotlinType = ByteArray::class
-
-}
-
-object QEntity : DataType<Entity>() {
-
-    override val code = 50.toByte()
-
-    override val kotlinType = Entity::class
-
-}
-
-object QEID : DataType<EID>() {
-
-    override val code = 51.toByte()
-
-    override val kotlinType = EID::class
-
-}

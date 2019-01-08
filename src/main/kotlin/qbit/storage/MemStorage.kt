@@ -2,7 +2,7 @@ package qbit.storage
 
 import qbit.ns.Key
 import qbit.ns.Namespace
-import qbit.QBitException
+import qbit.util.QBitException
 import java.util.concurrent.ConcurrentHashMap
 
 class MemStorage : Storage {

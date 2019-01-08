@@ -2,7 +2,7 @@ package qbit.storage
 
 import qbit.ns.Namespace
 import qbit.ns.Key
-import qbit.QBitException
+import qbit.util.QBitException
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path

@@ -1,7 +1,12 @@
 package qbit
 
 import qbit.collections.BTree
-import qbit.schema.Attr
+import qbit.model.EID
+import qbit.model.Attr
+import qbit.model.DataType
+import qbit.model.Fact
+import qbit.storage_model.*
+import qbit.util.Hash
 
 private fun loadFacts(graph: Graph, head: NodeVal<Hash>, untilDbUuid: DbUuid?): ArrayList<Fact> {
     if (untilDbUuid != null && head.source == untilDbUuid) {

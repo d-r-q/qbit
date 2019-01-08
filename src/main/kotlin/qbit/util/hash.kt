@@ -1,4 +1,4 @@
-package qbit
+package qbit.util
 
 import java.security.MessageDigest
 import java.util.*

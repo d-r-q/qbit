@@ -1,9 +1,11 @@
 package qbit
 
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.*
-import qbit.storage.NodesStorage
-import qbit.storage.Storage
+import qbit.storage.*
+import qbit.storage_model.*
+import qbit.util.Hash
+import qbit.util.QBitException
 import java.util.*
 import java.util.Collections.singleton
 import java.util.Collections.singletonList
@@ -20,34 +22,34 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QString.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, true))
+    var trx = listOf(Fact(EID(iid.value, eid), _name, _name.str()),
+            Fact(EID(iid.value, eid), _type, DataType.QString.code),
+            Fact(EID(iid.value, eid), _unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._type.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QByte.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), _name, _type.str()),
+            Fact(EID(iid.value, eid), _type, DataType.QByte.code),
+            Fact(EID(iid.value, eid), _unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._unique.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), _name, _unique.str()),
+            Fact(EID(iid.value, eid), _type, DataType.QBoolean.code),
+            Fact(EID(iid.value, eid), _unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
+    trx += listOf(Fact(EID(iid.value, eid), _name, _forks.str()),
+            Fact(EID(iid.value, eid), _type, _forks.type.code),
+            Fact(EID(iid.value, eid), _unique, _forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entitiesCount.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _entitiesCount.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _entitiesCount.unique))
+    trx += listOf(Fact(EID(iid.value, eid), _name, _entitiesCount.str()),
+            Fact(EID(iid.value, eid), _type, _entitiesCount.type.code),
+            Fact(EID(iid.value, eid), _unique, _entitiesCount.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _iid.unique))
+    trx += listOf(Fact(EID(iid.value, eid), _name, _iid.str()),
+            Fact(EID(iid.value, eid), _type, _iid.type.code),
+            Fact(EID(iid.value, eid), _unique, _iid.unique))
     eid++
     trx += listOf(
-            Fact(EID(iid.value, eid), qbit.schema._iid, 0),
-            Fact(EID(iid.value, eid), qbit.schema._forks, 0),
-            Fact(EID(iid.value, eid), qbit.schema._entitiesCount, eid + 1)) // + 1 - is current (instance) entity
+            Fact(EID(iid.value, eid), _iid, 0),
+            Fact(EID(iid.value, eid), _forks, 0),
+            Fact(EID(iid.value, eid), _entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -83,7 +85,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
      * }
      */
     private val instanceEid =
-            db.query(hasAttr(qbit.schema._entitiesCount))
+            db.query(hasAttr(_entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
                     .eid
 
@@ -105,15 +107,18 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             val forkInstanceEid = EID(forkId.iid.value, 0)
             val newHead = writer.store(
                     head,
-                    Fact(instanceEid, qbit.schema._iid, forks + 1),
-                    Fact(forkInstanceEid, qbit.schema._forks, 0),
-                    Fact(forkInstanceEid, qbit.schema._entitiesCount, 1))
+                    Fact(instanceEid, _iid, forks + 1),
+                    Fact(forkInstanceEid, _forks, 0),
+                    Fact(forkInstanceEid, _entitiesCount, 1))
             swapHead(newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
+
+    fun persist(vararg attrs: Attr<*>): WriteResult =
+            persist(attrs.map { Entity(it) })
 
     fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
@@ -133,7 +138,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, curEntitiesCnt)
             if (facts.isEmpty()) {
-                qbit.assert { es.all { it is StoredEntity && !it.dirty } }
+                qbit.util.assert { es.all { it is StoredEntity && !it.dirty } }
                 return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
             }
             validate(db, facts)
@@ -141,8 +146,8 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
             val persistedEntities = es
                     .filter { !((it as? StoredEntity)?.deleted ?: false) }
-                    .map { Entity(allEs[it]!!.eid, db) }.toList()
-            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) }
+                    .map { db.pull(allEs[it]!!.eid)!! }.toList()
+            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { db.pull(it.value.eid)!! }
 
             return WriteResult(db, persistedEntities, createdEntities)
 
@@ -161,8 +166,8 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                 if (!res.contains(it)) {
                     when (it) {
                         is IdentifiedEntity -> res[it] = it
-                        is Entity -> res[it] = it.toIdentified(eids.next())
-                        else -> res[it] = Entity(*it.entries.toTypedArray()).toIdentified(eids.next())
+                        is MapEntity -> res[it] = it.toIdentified(eids.next())
+                        else -> res[it] = (Entity(*it.entries.toTypedArray()) as MapEntity).toIdentified(eids.next())
                     }
                 }
                 it.entries.forEach { e ->

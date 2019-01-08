@@ -2,7 +2,15 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.DataType
+import qbit.model.EID
+import qbit.model.Fact
+import qbit.model.IID
 import qbit.serialization.*
+import qbit.storage_model.*
+import qbit.util.HASH_LEN
+import qbit.util.Hash
+import qbit.util.nullHash
 import java.io.ByteArrayInputStream
 import java.io.EOFException
 import java.io.InputStream
@@ -27,12 +35,12 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeLong() {
-        testValues(longValues, { it -> serialize(it) }, { it -> deserialize(it, QLong) as Long })
+        testValues(longValues, { it -> serialize(it) }, { it -> deserialize(it, DataType.QLong) as Long })
     }
 
     @Test
     fun testMaxInt() {
-        assertEquals(Integer.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Integer.MAX_VALUE)), QInt))
+        assertEquals(Integer.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Integer.MAX_VALUE)), DataType.QInt))
     }
 
     @Test
@@ -49,7 +57,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeInt() {
-        testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, QInt) as Int })
+        testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, DataType.QInt) as Int })
     }
 
     private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {
@@ -60,13 +68,13 @@ class SimpleSerializationTest {
 
     @Test
     fun testN() {
-        assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), QBytes) as ByteArray))
+        assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), DataType.QBytes) as ByteArray))
         val randomBytes = Hash(randomBytes(HASH_LEN))
-        assertEquals(randomBytes, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), QBytes) as ByteArray))
+        assertEquals(randomBytes, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), DataType.QBytes) as ByteArray))
 
         val fewBytes = Hash(randomBytes(HASH_LEN - 1))
         try {
-            deserialize(ByteArrayInputStream(byteArray(QBytes.code, serializeInt(HASH_LEN), fewBytes.bytes)), QBytes)
+            deserialize(ByteArrayInputStream(byteArray(DataType.QBytes.code, serializeInt(HASH_LEN), fewBytes.bytes)), DataType.QBytes)
             fail("eof error expected")
         } catch (e: DeserializationException) {
             assertTrue(e.cause is EOFException)
@@ -76,11 +84,11 @@ class SimpleSerializationTest {
     @Test
     fun testByteArray() {
         val random = randomBytes()
-        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QBytes) as ByteArray)
+        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), DataType.QBytes) as ByteArray)
 
-        val twoBytes = byteArrayOf(QBytes.code, 0, 0, 0, 3, 0, 0)
+        val twoBytes = byteArrayOf(DataType.QBytes.code, 0, 0, 0, 3, 0, 0)
         try {
-            deserialize(ByteArrayInputStream(twoBytes), QBytes)
+            deserialize(ByteArrayInputStream(twoBytes), DataType.QBytes)
             fail("eof error expected")
         } catch (e : DeserializationException) {
             assertTrue(e.cause is EOFException)
@@ -90,7 +98,7 @@ class SimpleSerializationTest {
     @Test
     fun testString() {
         val random = randomString()
-        assertEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QString))
+        assertEquals(random, deserialize(ByteArrayInputStream(serialize(random)), DataType.QString))
     }
 
     @Test

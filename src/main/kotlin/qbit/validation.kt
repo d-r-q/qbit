@@ -1,5 +1,8 @@
 package qbit
 
+import qbit.model.Fact
+import qbit.util.QBitException
+
 fun validate(db: Db, facts: List<Fact>) {
     val factAttrs = facts.map { it.attr to db.attr(it.attr) }.toMap()
     val unknownAttrNames = factAttrs

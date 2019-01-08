@@ -1,22 +1,21 @@
 package qbit.q5bulk
 
 import qbit.*
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
 import qbit.storage.FileSystemStorage
 import java.io.File
 import java.text.SimpleDateFormat
 
 val cat = Namespace.of("q5", "category")
 val trx = Namespace.of("q5", "transaction")
-val trxSum = ScalarAttr(trx["sum"], QLong)
-val trxDateTime = ScalarAttr(trx["dateTime"], QLong)
+val trxSum = ScalarAttr(trx["sum"], DataType.QLong)
+val trxDateTime = ScalarAttr(trx["dateTime"], DataType.QLong)
 val trxCategory = RefAttr(trx["category"])
-val trxComment = ScalarAttr(trx["comment"], QString)
-val trxSource = ScalarAttr(trx["source"], QString)
-val trxDevice = ScalarAttr(trx["device"], QString)
-val catName = ScalarAttr(cat["name"], QString, true)
+val trxComment = ScalarAttr(trx["comment"], DataType.QString)
+val trxSource = ScalarAttr(trx["source"], DataType.QString)
+val trxDevice = ScalarAttr(trx["device"], DataType.QString)
+val catName = ScalarAttr(cat["name"], DataType.QString, true)
 
 const val datePattern = "dd.MM.yyyy"
 const val timePattern = "HH:mm"

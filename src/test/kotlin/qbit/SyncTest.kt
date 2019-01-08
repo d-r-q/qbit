@@ -2,8 +2,11 @@ package qbit
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import qbit.model.Entity
+import qbit.model.eq
 import qbit.ns.Namespace
-import qbit.schema.ScalarAttr
+import qbit.model.DataType
+import qbit.model.ScalarAttr
 import qbit.storage.FileSystemStorage
 import java.nio.file.Files
 
@@ -13,9 +16,9 @@ class SyncTest {
     fun testSync() {
         val db1Storage = FileSystemStorage(Files.createTempDirectory("qbit-db1-"))
         val conn1 = qbit(db1Storage)
-        val _attr1 = ScalarAttr(Namespace("user")["attr1"], QString)
+        val _attr1 = ScalarAttr(Namespace("user")["attr1"], DataType.QString)
         conn1.persist(_attr1)
-        val _attr2 = ScalarAttr(Namespace("user")["attr2"], QString)
+        val _attr2 = ScalarAttr(Namespace("user")["attr2"], DataType.QString)
         conn1.persist(_attr2)
 
         val (id, head) = conn1.fork()

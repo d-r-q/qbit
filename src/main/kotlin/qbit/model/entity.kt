@@ -1,12 +1,11 @@
 @file:Suppress("UNCHECKED_CAST")
 
-package qbit
+package qbit.model
 
-import qbit.schema.Attr
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
+import qbit.util.QBitException
 import java.lang.AssertionError
 import java.util.*
+
 
 interface AttrValue<out A : Attr<T>, T : Any> {
 
@@ -21,22 +20,30 @@ interface AttrValue<out A : Attr<T>, T : Any> {
 
 }
 
+infix fun <T : Any> Attr<T>.eq(v: T): AttrValue<Attr<T>, T> = when (this) {
+    is RefAttr -> this eq v
+    is ScalarAttr -> this eq v
+    else -> throw AssertionError("Should never happen")
+}
+
+infix fun RefAttr.eq(v: Entity) = RefAttrValue(this, v)
+infix fun <T : Any> ScalarAttr<T>.eq(v :T) = ScalarAttrValue(this, v)
+
 data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
-data class RefAttrValue(override val attr: RefAttr, override val value: Entity) : AttrValue<RefAttr, Entity>
+data class RefAttrValue(override val attr: RefAttr, override val value: Entity) : AttrValue<RefAttr, Any>
 
 fun Entity(vararg entries: AttrValue<Attr<*>, *>): Entity =
         MapEntity(
                 entries.filterNot { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(),
                 entries.filter { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(), emptyEidResolver)
 
-internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = StoredMapEntity(eid,
+fun <T : Any> Entity(attr: Attr<T>) = Entity(_name eq attr.str(), _type eq attr.type.code, _unique eq attr.unique)
+
+internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, entityCache: EidResolver): StoredEntity = StoredMapEntity(eid,
         entries.filterNot { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(HashMap()),
         entries.filter { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(HashMap()),
-        EntityCache(QBitEidResolver(db)),
+        entityCache,
         false, false)
-
-// TODO: make it lazy
-internal fun Entity(eid: EID, db: Db): StoredEntity = db.pull(eid)!!
 
 interface Entitiable {
 
@@ -44,12 +51,10 @@ interface Entitiable {
 
     operator fun <T : Any> get(key: Attr<T>): T?
 
-    operator fun get(key: RefAttr): Entity?
-
     val entries: Set<AttrValue<Attr<out Any>, out Any>>
         get() = keys.map {
             val value: AttrValue<Attr<out Any>, out Any> = when (it) {
-                is RefAttr -> RefAttrValue(it, this[it]!!)
+                is RefAttr -> RefAttrValue(it, this[it]!! as Entity)
                 is ScalarAttr -> ScalarAttrValue(it as ScalarAttr<Any>, this[it]!!)
                 else -> throw AssertionError("Should never happen")
             }
@@ -60,12 +65,15 @@ interface Entitiable {
 
 interface Entity : Entitiable {
 
+    operator fun get(key: RefAttr): Entity?
+
     fun <T : Any> set(key: Attr<T>, value: T): Entity
 
     fun set(key: RefAttr, value: Entity): Entity
 
-    fun toIdentified(eid: EID): IdentifiedEntity
 }
+
+internal fun MapEntity.toIdentified(eid: EID): IdentifiedEntity = IdentifiedMapEntity(eid, this.map, this.refs)
 
 internal fun <T : Entity> T.setRefs(ref2eid: IdentityHashMap<Entitiable, IdentifiedEntity>): T =
         this.entries
@@ -161,8 +169,6 @@ internal class MapEntity(
                 refs.entries.map { (attr: Attr<*>, value) -> RefAttrValue(attr, value) }
                 ).toSet() as Set<AttrValue<Attr<Any>, Any>>
 
-    override fun toIdentified(eid: EID): IdentifiedEntity =
-            IdentifiedMapEntity(eid, map, refs)
 }
 
 private class IdentifiedMapEntity(
@@ -230,18 +236,3 @@ typealias EidResolver = (EID) -> StoredEntity?
 
 private val emptyEidResolver: EidResolver = { null }
 
-private class QBitEidResolver(private val qbit: Db) : EidResolver {
-
-    override fun invoke(eid: EID): StoredEntity? =
-            qbit.pull(eid)
-
-}
-
-private class EntityCache(private val delegate: EidResolver) : EidResolver {
-
-    private val cache = HashMap<EID, StoredEntity?>()
-
-    override fun invoke(key: EID): StoredEntity? =
-            cache.getOrPut(key) { delegate(key) }
-
-}

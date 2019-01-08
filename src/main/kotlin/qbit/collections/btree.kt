@@ -277,13 +277,13 @@ class Node<E : Any>(
         require(items.size == children.size - 1)
 
         // check heavy invariants, used in tests
-        qbit.assert { sorted(items, cmp) }
-        qbit.assert { heights(this).toSet().size == 1 }
-        qbit.assert { children.asSequence().windowed(2).all { cmp.compare(it[0].last(), it[1].first()) < 0 } }
-        qbit.assert { items.withIndex().all { idx -> cmp.compare(children[idx.index].last(), idx.value) < 0 } }
-        qbit.assert { cmp.compare(items.last(), children.last().first()) <= 0 }
-        qbit.assert { abs(height - log(size.toDouble(), ((degree + minItems) / 2).toDouble()).roundToInt()) <= 2 }
-        qbit.assert { children.all { it.height < height && !it.root } }
+        qbit.util.assert { sorted(items, cmp) }
+        qbit.util.assert { heights(this).toSet().size == 1 }
+        qbit.util.assert { children.asSequence().windowed(2).all { cmp.compare(it[0].last(), it[1].first()) < 0 } }
+        qbit.util.assert { items.withIndex().all { idx -> cmp.compare(children[idx.index].last(), idx.value) < 0 } }
+        qbit.util.assert { cmp.compare(items.last(), children.last().first()) <= 0 }
+        qbit.util.assert { abs(height - log(size.toDouble(), ((degree + minItems) / 2).toDouble()).roundToInt()) <= 2 }
+        qbit.util.assert { children.all { it.height < height && !it.root } }
 
         children.forEach { it.assertInvariants() }
     }

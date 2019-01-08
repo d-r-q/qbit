@@ -3,19 +3,18 @@ package qbit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
 
 class EntityTest {
 
     @Test
     fun testCreate() {
         val user = Namespace("user")
-        val _attr = ScalarAttr(user["attr"], QString)
+        val _attr = ScalarAttr(user["attr"], DataType.QString)
         val _ref = RefAttr(user["ref"])
-        val _eid = ScalarAttr(user["some_eid"], QEID)
+        val _eid = ScalarAttr(user["some_eid"], DataType.QEID)
 
         val e1 = Entity(_attr eq "e1")
         assertTrue((e1 as MapEntity).refs.isEmpty())

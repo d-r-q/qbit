@@ -2,10 +2,10 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
 import qbit.storage.MemStorage
+import qbit.util.QBitException
 
 class LocalConnTest {
 
@@ -18,7 +18,7 @@ class LocalConnTest {
     @Test
     fun testUpdate() {
         val conn = qbit(MemStorage())
-        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
+        val _attr = ScalarAttr(Namespace("user")["attr"], DataType.QString)
         conn.persist(_attr)
         val e = Entity(_attr eq "value")
         var se = conn.persist(e).storedEntity()
@@ -31,7 +31,7 @@ class LocalConnTest {
     @Test
     fun testUnique() {
         val conn = qbit(MemStorage())
-        val _uid = ScalarAttr(Namespace("user")["uid"], QLong, true)
+        val _uid = ScalarAttr(Namespace("user")["uid"], DataType.QLong, true)
         conn.persist(_uid)
         conn.persist(Entity(_uid eq 0L))
         try {
@@ -45,7 +45,7 @@ class LocalConnTest {
     @Test
     fun testDelete() {
         val conn = qbit(MemStorage())
-        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
+        val _attr = ScalarAttr(Namespace("user")["attr"], DataType.QString)
         conn.persist(_attr)
 
         val e = Entity(_attr eq "value")
@@ -68,7 +68,7 @@ class LocalConnTest {
     @Test
     fun testPersistRef() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
         val _ref = RefAttr(user["ref"])
 
         val conn = qbit(MemStorage())
@@ -86,7 +86,7 @@ class LocalConnTest {
     @Test
     fun testPersistRefCycle() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
         val _ref = RefAttr(user["ref"])
 
         val conn = qbit(MemStorage())
@@ -113,7 +113,7 @@ class LocalConnTest {
     @Test
     fun testRootOnlyPersist() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
         val _ref = RefAttr(user["ref"])
 
         val conn = qbit(MemStorage())
@@ -135,7 +135,7 @@ class LocalConnTest {
     @Test
     fun testRestoreEntity() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
 
         val conn = qbit(MemStorage())
         conn.persist(_val)
@@ -150,7 +150,7 @@ class LocalConnTest {
     @Test
     fun testRestoreEntityWithNew() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
         val _ref = RefAttr(user["ref"])
 
         val conn = qbit(MemStorage())
@@ -168,8 +168,8 @@ class LocalConnTest {
     @Test
     fun testChangeNotUnqiueAttrWhenUniqueIsPresented() {
         val user = Namespace("user")
-        val unique = ScalarAttr(user["unique"], QString, true)
-        val notUnique = ScalarAttr(user["not_unique"], QString)
+        val unique = ScalarAttr(user["unique"], DataType.QString, true)
+        val notUnique = ScalarAttr(user["not_unique"], DataType.QString)
 
         val conn = qbit(MemStorage())
 
@@ -182,7 +182,7 @@ class LocalConnTest {
     @Test
     fun testPersistNotAcutallyChanged() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
 
         val conn = qbit(MemStorage())
         conn.persist(_val)
@@ -197,7 +197,7 @@ class LocalConnTest {
     @Test
     fun testEntityRetrievalFromUpdatedEntity() {
         val user = Namespace("user")
-        val _val = ScalarAttr(user["val"], QString)
+        val _val = ScalarAttr(user["val"], DataType.QString)
         val _ref = RefAttr(user["ref"])
 
         val conn = qbit(MemStorage())

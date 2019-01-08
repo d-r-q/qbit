@@ -1,8 +1,7 @@
 package qbit
 
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
 import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -14,12 +13,12 @@ fun main(args: Array<String>) {
     val tweetNs = Namespace.of("demo", "tweet")
     val userNs = Namespace.of("demo", "user")
 
-    val name = ScalarAttr(userNs["name"], QString, unique = true)
-    val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
+    val name = ScalarAttr(userNs["name"], DataType.QString, unique = true)
+    val lastLogin = ScalarAttr(userNs["last_login"], DataType.QInstant)
 
-    val content = ScalarAttr(tweetNs["content"], QString)
+    val content = ScalarAttr(tweetNs["content"], DataType.QString)
     val author = RefAttr(tweetNs["author"])
-    val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
+    val date = ScalarAttr(tweetNs["date"], DataType.QZonedDateTime)
 
     val conn = qbit(MemStorage())
     conn.persist(name, lastLogin, content, author, date)
