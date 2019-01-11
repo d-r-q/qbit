@@ -32,6 +32,10 @@ fun qbit(storage: Storage): LocalConn {
             Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, false))
     eid++
+    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._list.str()),
+            Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
+            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    eid++
     trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str()),
             Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
             Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))

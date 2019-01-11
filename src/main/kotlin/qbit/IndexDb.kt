@@ -1,6 +1,7 @@
 package qbit
 
 import qbit.schema.*
+import kotlin.experimental.and
 
 interface QueryPred {
     val attrName: String
@@ -100,11 +101,14 @@ class IndexDb(internal val index: Index) : Db {
                         val name = e[_name.str()]!! as String
                         val type = e[_type.str()]!! as Byte
                         val unique = e[_unique.str()] as? Boolean ?: false
+                        val list = e[_list.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
-                                if (type == QEntity.code) {
-                                    RefAttr(name, unique) as Attr<Any>
-                                } else {
-                                    Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
+                                when {
+                                    type == QEntity.code -> RefAttr(name, unique) as Attr<Any>
+                                    list -> {
+                                        ListAttr(name, DataType.ofCode((type.toInt().and(0xFF) - 100).toByte())!!, unique) as Attr<Any>
+                                    }
+                                    else -> Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
                                 }
                         (name to attr)
                     }

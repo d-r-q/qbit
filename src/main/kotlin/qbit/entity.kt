@@ -3,10 +3,12 @@
 package qbit
 
 import qbit.schema.Attr
+import qbit.schema.ListAttr
 import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
 import java.lang.AssertionError
 import java.util.*
+import java.util.Collections.singleton
 
 interface AttrValue<out A : Attr<T>, T : Any> {
 
@@ -23,6 +25,7 @@ interface AttrValue<out A : Attr<T>, T : Any> {
 
 data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
 data class RefAttrValue(override val attr: RefAttr, override val value: Entity) : AttrValue<RefAttr, Entity>
+data class ListAttrValue<T : Any>(override val attr: ListAttr<T>, override val value: List<T>) : AttrValue<ListAttr<T>, List<T>>
 
 fun Entity(vararg entries: AttrValue<Attr<*>, *>): Entity =
         MapEntity(
@@ -79,10 +82,11 @@ internal fun Entitiable.toFacts(eid: EID): Collection<Fact> =
 
 
 internal fun Entitiable.toFacts(eid: EID, deleted: Boolean): Collection<Fact> =
-        this.entries.map { (attr: Attr<out Any>, value) ->
+        this.entries.flatMap { (attr: Attr<out Any>, value) ->
             when (attr) {
-                is RefAttr -> refToFacts(eid, attr, value, deleted)
-                else -> attrToFacts(eid, attr, value, deleted)
+                is RefAttr -> singleton(refToFacts(eid, attr, value, deleted))
+                is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>, deleted)
+                else -> singleton(attrToFacts(eid, attr, value, deleted))
             }
         }
 
@@ -96,6 +100,9 @@ internal fun refToFacts(eid: EID, attr: RefAttr, value: Any, deleted: Boolean) =
             is EID -> Fact(eid, attr, value, deleted)
             else -> throw AssertionError("Should never happen")
         }
+
+internal fun listToFacts(eid: EID, attr: ListAttr<*>, value: List<Any>, deleted: Boolean) =
+        value.map { Fact(eid, attr, it, deleted) }
 
 interface IdentifiedEntity : Entity {
 

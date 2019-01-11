@@ -56,6 +56,31 @@ sealed class DataType<T : Any> {
 
     fun compare(v1: T, v2: T): Int = (v1 as Comparable<T>).compareTo(v2)
 
+    fun list() = QList(this)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as DataType<*>
+
+        if (code != other.code) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return code.toInt()
+    }
+
+}
+
+class QList<I : Any, T : List<I>>(private val itemsType: DataType<I>) : DataType<T>() {
+
+    override val code = (100 + itemsType.code).toByte()
+
+    override val kotlinType: KClass<T> = List::class as KClass<T>
+
 }
 
 object QBoolean : DataType<Boolean>() {

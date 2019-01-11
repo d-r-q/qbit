@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import qbit.ns.Namespace
 import qbit.ns.root
+import qbit.schema.ListAttr
 import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
 
@@ -38,4 +39,11 @@ class EntityTest {
         assertTrue(second === first[attr])
     }
 
+    @Test
+    fun testListAttr() {
+        var e = Entity()
+        val attr = ListAttr(root["test"], QString)
+        e = e.set(attr, listOf("first"))
+        assertEquals(listOf("first"), e[attr])
+    }
 }

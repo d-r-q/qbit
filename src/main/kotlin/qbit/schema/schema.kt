@@ -11,6 +11,7 @@ val qbitInstance = Namespace.of("qbit", "instance")
 val _name: Attr<String> = ScalarAttr(qbitAttrs["name"], QString, unique = true)
 val _type: Attr<Byte> = ScalarAttr(qbitAttrs["type"], QByte)
 val _unique: Attr<Boolean> = ScalarAttr(qbitAttrs["unique"], QBoolean)
+val _list: Attr<Boolean> = ScalarAttr(qbitAttrs["list"], QBoolean)
 
 val _forks: Attr<Int> = ScalarAttr(qbitInstance["forks"], QInt, false)
 val _entitiesCount: Attr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
@@ -20,9 +21,13 @@ internal fun Attr(name: String, type: DataType<*>, unique: Boolean = false): Att
 
 internal fun RefAttr(name: String, unique: Boolean = false): Attr<*> = RefAttr(Key(name), unique)
 
+internal fun ListAttr(name: String, type: DataType<*>, unique: Boolean = false): Attr<*> = ListAttr(Key(name), type, unique)
+
 fun <T : Any> ScalarAttr(name: Key, type: DataType<T>, unique: Boolean = false): Attr<T> = ScalarAttrImpl(name, type, unique)
 
 fun RefAttr(name: Key, unique: Boolean = false): RefAttr = RefAttrImpl(name, QEntity, unique)
+
+fun <T : Any> ListAttr(name: Key, type: DataType<T>, unique: Boolean = false): ListAttr<T> = ListAttrImpl(name, type.list(), unique)
 
 interface Attr<T : Any> : Entitiable {
 
@@ -42,12 +47,13 @@ private data class ScalarAttrImpl<T : Any>(override val name: Key, override val 
 
 private data class RefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : RefAttr, Entitiable by AttrEntityImpl(name, type, unique)
 
-private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
-                                  val unique: Boolean = false) : Entitiable {
+private data class ListAttrImpl<T : Any>(override val name: Key, override val type: DataType<List<T>>, override val unique: Boolean = false) : ListAttr<T>, Entitiable by AttrEntityImpl(name, type, unique, true)
+
+private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val unique: Boolean = false, val list: Boolean = false) : Entitiable {
 
     @Suppress("UNCHECKED_CAST")
     override val keys: Set<Attr<Any>>
-        get() = setOf(_name, _type, _unique) as Set<Attr<Any>>
+        get() = setOf(_name, _type, _unique, _list) as Set<Attr<Any>>
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> get(key: Attr<T>): T? {
@@ -55,6 +61,7 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>,
             _name -> name.toStr() as T?
             _type -> type.code as T?
             _unique -> unique as T?
+            _list -> list as T?
             else -> null
         }
     }
@@ -81,6 +88,14 @@ interface ScalarAttr<T : Any> : Attr<T> {
         else -> throw AssertionError("Should never happen")
     }
 
+}
+
+interface ListAttr<T : Any> : Attr<List<T>> {
+
+    override fun eq(v: List<T>): AttrValue<Attr<List<T>>, List<T>> = when (this) {
+        is ListAttrImpl -> ListAttrValue(this, v)
+        else -> throw AssertionError("Should never happen")
+    }
 }
 
 class Schema(private val attrs: Map<String, Attr<Any>>) {

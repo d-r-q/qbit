@@ -102,8 +102,8 @@ class Index(
 
     fun entityById(eid: EID): Map<String, Any>? =
             entities[eid]?.second
-                    ?.map { it.attr to it.value }
-                    ?.toMap()
+                    ?.groupBy { it.attr }
+                    ?.mapValues { if (it.value.size == 1) it.value[0].value else it.value.map { it.value } }
 
     fun eidsByPred(pred: QueryPred): Set<EID> {
         val fromIdx = index.firstMatchIdx {

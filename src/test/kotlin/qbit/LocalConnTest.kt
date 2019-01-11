@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert.*
 import org.junit.Test
 import qbit.ns.Namespace
+import qbit.schema.ListAttr
 import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
 import qbit.storage.MemStorage
@@ -211,6 +212,23 @@ class LocalConnTest {
 
         se2 = conn.persist(se2, se1).storedEntity()
         assertEquals("e1.1", se2[_ref]!![_val]!!)
+    }
+
+    @Test
+    fun testPersistEntityWithList() {
+        val user = Namespace("user")
+        val _id = ScalarAttr(user["val"], QString)
+        val _list = ListAttr(user["list"], QString)
+
+        val conn = qbit(MemStorage())
+        conn.persist(_id, _list)
+
+        val e = Entity(_id eq "1", _list eq listOf("1", "2"))
+        var se = conn.persist(e).storedEntity()
+
+        assertTrue(se.entries.toList()[1].attr.type == _list.type)
+
+        assertEquals(listOf("1", "2"), se[_list]!!)
     }
 }
 
