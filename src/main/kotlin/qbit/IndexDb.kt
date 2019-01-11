@@ -1,7 +1,10 @@
 package qbit
 
+import qbit.EAttr.list
+import qbit.EAttr.name
+import qbit.EAttr.type
+import qbit.EAttr.unique
 import qbit.schema.*
-import kotlin.experimental.and
 
 interface QueryPred {
     val attrName: String
@@ -59,12 +62,12 @@ interface Db {
 
 class IndexDb(internal val index: Index) : Db {
 
-    private val schema = Schema(loadAttrs(index))
+    private val schema = loadAttrs(index)
 
     override fun pull(eid: EID): StoredEntity? {
         val entity = index.entityById(eid) ?: return null
         val attrValues = entity.entries.map {
-            val attr = schema.find(it.key)
+            val attr = schema[it.key]
             require(attr != null)
             attr to it.value
         }
@@ -88,26 +91,24 @@ class IndexDb(internal val index: Index) : Db {
         return res.map { pull(it)!! }
     }
 
-    override fun attr(attr: String): Attr<Any>? = schema.find(attr)
+    override fun attr(attr: String): Attr<Any>? = schema[attr]
 
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
-            val attrEidss = index.eidsByPred(hasAttr(qbit.schema._name))
+            val attrEidss = index.eidsByPred(hasAttr(name))
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEidss
                     .map {
                         val e = index.entityById(it)!!
-                        val name = e[_name.str()]!! as String
-                        val type = e[_type.str()]!! as Byte
-                        val unique = e[_unique.str()] as? Boolean ?: false
-                        val list = e[_list.str()] as? Boolean ?: false
+                        val name = e[name.str()]!! as String
+                        val type = e[type.str()]!! as Byte
+                        val unique = e[unique.str()] as? Boolean ?: false
+                        val list = e[list.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
                                 when {
                                     type == QEntity.code -> RefAttr(name, unique) as Attr<Any>
-                                    list -> {
-                                        ListAttr(name, DataType.ofCode((type.toInt().and(0xFF) - 100).toByte())!!, unique) as Attr<Any>
-                                    }
+                                    list -> ListAttr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
                                     else -> Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
                                 }
                         (name to attr)

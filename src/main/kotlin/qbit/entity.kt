@@ -47,8 +47,6 @@ interface Entitiable {
 
     operator fun <T : Any> get(key: Attr<T>): T?
 
-    operator fun get(key: RefAttr): Entity?
-
     val entries: Set<AttrValue<Attr<out Any>, out Any>>
         get() = keys.map {
             val value: AttrValue<Attr<out Any>, out Any> = when (it) {
@@ -142,13 +140,13 @@ internal class MapEntity(
         get() = (map.keys + refs.keys)
 
     override fun <T : Any> get(key: Attr<T>): T? {
-        return (map as Map<Attr<T>, T>)[key]
-    }
-
-    override fun get(key: RefAttr): Entity? {
-        val res = refs[key]
-        val eid: EID? = (map as Map<RefAttr, EID>)[key]
-        return res ?: eid?.let { eidResolver(it) }
+        return if (key is RefAttr) {
+            val res = refs[key]
+            val eid: EID? = (map as Map<RefAttr, EID>)[key]
+            (res ?: eid?.let { eidResolver(it) }) as T?
+        } else {
+            (map as Map<Attr<T>, T>)[key]
+        }
     }
 
     override fun <T : Any> set(key: Attr<T>, value: T): Entity {

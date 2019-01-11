@@ -1,5 +1,8 @@
 package qbit
 
+import qbit.EInstance.entitiesCount
+import qbit.EInstance.forks
+import qbit.EInstance.iid
 import qbit.ns.Namespace
 import qbit.schema.*
 import qbit.storage.NodesStorage
@@ -20,38 +23,38 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    var trx = listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._name.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QString.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, true))
+    var trx = listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.name.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, QString.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._type.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QByte.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.type.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, QByte.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._unique.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.unique.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, QBoolean.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, qbit.schema._list.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, QBoolean.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.list.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, QBoolean.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _forks.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _forks.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _forks.unique))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, forks.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, forks.type.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _entitiesCount.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _entitiesCount.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _entitiesCount.unique))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, entitiesCount.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, entitiesCount.type.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, entitiesCount.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.schema._name, _iid.str()),
-            Fact(EID(iid.value, eid), qbit.schema._type, _iid.type.code),
-            Fact(EID(iid.value, eid), qbit.schema._unique, _iid.unique))
+    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EInstance.iid.str()),
+            Fact(EID(iid.value, eid), qbit.EAttr.type, qbit.EInstance.iid.type.code),
+            Fact(EID(iid.value, eid), qbit.EAttr.unique, qbit.EInstance.iid.unique))
     eid++
     trx += listOf(
-            Fact(EID(iid.value, eid), qbit.schema._iid, 0),
-            Fact(EID(iid.value, eid), qbit.schema._forks, 0),
-            Fact(EID(iid.value, eid), qbit.schema._entitiesCount, eid + 1)) // + 1 - is current (instance) entity
+            Fact(EID(iid.value, eid), qbit.EInstance.iid, 0),
+            Fact(EID(iid.value, eid), qbit.EInstance.forks, 0),
+            Fact(EID(iid.value, eid), qbit.EInstance.entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -87,7 +90,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
      * }
      */
     private val instanceEid =
-            db.query(hasAttr(qbit.schema._entitiesCount))
+            db.query(hasAttr(qbit.EInstance.entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
                     .eid
 
@@ -115,13 +118,13 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         try {
 
             var instance = db.pull(instanceEid)!!
-            val forks = instance[_forks] ?: throw QBitException("Corrupted database metadata")
+            val forks = instance[forks] ?: throw QBitException("Corrupted database metadata")
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
 
-            instance = instance.set(_forks, forks + 1)
+            instance = instance.set(qbit.EInstance.forks, forks + 1)
 
-            val newInstance = Entity(_forks eq 0, _entitiesCount eq 1, _iid eq forkId.iid.value)
+            val newInstance = Entity(qbit.EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
             val newHead = writer.store( head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
             swapHead(newHead)
             return Pair(forkId, newHead)
@@ -142,7 +145,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             // TODO: check for conflict modifications in parallel threads
 
             val instance = db.pull(instanceEid) ?: throw QBitException("Corrupted database metadata")
-            val eids = EID(dbUuid.iid.value, instance[_entitiesCount]!!).nextEids()
+            val eids = EID(dbUuid.iid.value, instance[entitiesCount]!!).nextEids()
 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
@@ -201,8 +204,8 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                 .flatMap { it.toFacts() }
                 .toMutableList()
         val newEntitiesCnt = eids.next().eid
-        if (instance[_entitiesCount]!! < newEntitiesCnt) {
-            facts += instance.set(_entitiesCount, newEntitiesCnt).toFacts()
+        if (instance[entitiesCount]!! < newEntitiesCnt) {
+            facts += instance.set(entitiesCount, newEntitiesCnt).toFacts()
         }
         return facts
     }
@@ -210,25 +213,6 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     private fun persistFacts(facts: MutableList<Fact>) {
         val newHead = writer.store(head, facts)
         swapHead(newHead)
-    }
-
-    fun sync(another: Conn) {
-        try {
-            val novelty = graph.findSubgraph(head, another.dbUuid)
-                    ?: throw QBitException("Could not find node with source = ${another.dbUuid}")
-            val newRoot = another.push(novelty)
-            swapHead(writer.appendGraph(newRoot))
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun fetch(source: Conn) {
-        try {
-            swapHead(writer.appendGraph(source.head))
-        } catch (e: Exception) {
-            throw QBitException("Fetch failed", e)
-        }
     }
 
     override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {

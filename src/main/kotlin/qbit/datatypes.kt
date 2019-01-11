@@ -58,28 +58,13 @@ sealed class DataType<T : Any> {
 
     fun list() = QList(this)
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as DataType<*>
-
-        if (code != other.code) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return code.toInt()
-    }
-
 }
 
-class QList<I : Any, T : List<I>>(private val itemsType: DataType<I>) : DataType<T>() {
+data class QList<I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
-    override val code = (100 + itemsType.code).toByte()
+    override val code = (32 + itemsType.code).toByte()
 
-    override val kotlinType: KClass<T> = List::class as KClass<T>
+    override val kotlinType: KClass<List<I>> = List::class as KClass<List<I>>
 
 }
 
@@ -125,7 +110,7 @@ object QInstant : DataType<Instant>() {
 
 object QZonedDateTime : DataType<ZonedDateTime>() {
 
-    override val code = 10.toByte()
+    override val code = 8.toByte()
 
     override val kotlinType = ZonedDateTime::class
 
@@ -133,7 +118,7 @@ object QZonedDateTime : DataType<ZonedDateTime>() {
 
 object QString : DataType<String>() {
 
-    override val code = 31.toByte()
+    override val code = 16.toByte()
 
     override val kotlinType = String::class
 
@@ -141,7 +126,7 @@ object QString : DataType<String>() {
 
 object QBytes : DataType<ByteArray>() {
 
-    override val code = 32.toByte()
+    override val code = 17.toByte()
 
     override val kotlinType = ByteArray::class
 
@@ -149,7 +134,7 @@ object QBytes : DataType<ByteArray>() {
 
 object QEntity : DataType<Entity>() {
 
-    override val code = 50.toByte()
+    override val code = 18.toByte()
 
     override val kotlinType = Entity::class
 
@@ -157,7 +142,7 @@ object QEntity : DataType<Entity>() {
 
 object QEID : DataType<EID>() {
 
-    override val code = 51.toByte()
+    override val code = 19.toByte()
 
     override val kotlinType = EID::class
 

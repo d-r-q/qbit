@@ -162,7 +162,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
         }
         QEID -> EID(readLong(ins)) as T
         QEntity -> throw AssertionError("Should never happen")
-        is QList<*, *> -> throw AssertionError("Should never happen")
+        is QList<*> -> throw AssertionError("Should never happen")
     }
 }
 

@@ -3,6 +3,7 @@ package qbit
 import qbit.ns.Namespace
 import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
+import qbit.schema.eq
 import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime

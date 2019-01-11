@@ -3,6 +3,7 @@ package qbit
 import org.junit.Test
 import qbit.ns.root
 import qbit.schema.ScalarAttr
+import qbit.schema.eq
 
 class ValidationTest {
 
