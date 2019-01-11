@@ -54,7 +54,6 @@ interface Db {
 
     fun attr(attr: String): Attr<Any>?
 
-    fun <T : Any> get(eid: EID, attr: Attr<T>): Set<T>
 }
 
 class IndexDb(internal val index: Index) : Db {
@@ -63,16 +62,12 @@ class IndexDb(internal val index: Index) : Db {
 
     override fun pull(eid: EID): StoredEntity? {
         val entity = index.entityById(eid) ?: return null
-        val attrValues = entity.map {
+        val attrValues = entity.entries.map {
             val attr = schema.find(it.key)
             require(attr != null)
             attr to it.value
         }
         return Entity(eid, attrValues, this)
-    }
-
-    override fun <T : Any> get(eid: EID, attr: Attr<T>): Set<T> {
-        return index.valueByEidAttr(eid, attr)
     }
 
     override fun query(vararg preds: QueryPred): List<StoredEntity> {

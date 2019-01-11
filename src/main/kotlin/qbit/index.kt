@@ -1,47 +1,41 @@
 package qbit
 
-import qbit.collections.BTree
-import qbit.schema.Attr
+import qbit.collections.firstMatchIdx
+import qbit.collections.subList
 
-private fun loadFacts(graph: Graph, head: NodeVal<Hash>, untilDbUuid: DbUuid?): ArrayList<Fact> {
-    if (untilDbUuid != null && head.source == untilDbUuid) {
-        return arrayListOf()
-    }
-    return when (head) {
-        is Root -> head.data.trx.toCollection(ArrayList())
-        is Leaf -> with(loadFacts(graph, graph.resolveNode(head.parent), untilDbUuid)) {
-            addAll(head.data.trx.toCollection(ArrayList()))
-            this
+typealias RawEntity = Pair<EID, List<Fact>>
+
+private fun loadFacts(graph: Graph, head: NodeVal<Hash>): List<RawEntity> {
+    val entities = HashMap<EID, List<Fact>>()
+    var n: NodeVal<Hash>? = head
+    while (n != null) {
+        val toAdd = n.data.trx
+                .filterNot { it.deleted || entities.containsKey(it.eid) }
+        toAdd
+                .groupBy { it.eid }
+                .forEach {
+                    entities[it.key] = it.value
+                }
+        n = when (n) {
+            is Root -> null
+            is Leaf -> graph.resolveNode(n.parent)
+            is Merge -> graph.resolveNode(n.parent1)
         }
-        is Merge -> {
-            val p1 = graph.resolveNode(head.parent1)
-            val first = loadFacts(graph, p1, untilDbUuid)
-            val second = loadFacts(graph, graph.resolveNode(head.parent2), p1.source)
-            first.addAll(second)
-            first
-        }
     }
+    return entities.entries
+            .map { it.key to it.value }
 }
 
 fun Index(graph: Graph, head: NodeVal<Hash>): Index {
-    return Index().add(loadFacts(graph, head, null))
+    return Index().add(loadFacts(graph, head))
 }
 
-fun Index(facts: List<Fact>): Index =
-        Index(BTree(eavtCmp), BTree(avetCmp))
-                .add(facts)
+fun Index(entities: List<RawEntity>): Index =
+        Index().add(entities)
 
 fun eidPattern(eid: EID) = { other: Fact -> other.eid.compareTo(eid) }
 
 fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
-
-fun eidAttrPattern(eid: EID, attr: String) = { fact: Fact ->
-    var res = fact.eid.compareTo(eid)
-    if (res == 0) {
-        res = fact.attr.compareTo(attr)
-    }
-    res
-}
 
 fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
 
@@ -52,17 +46,6 @@ fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
             .map { it(fact) }
             .dropWhile { it == 0 }
             .firstOrNull() ?: 0
-}
-
-val eavtCmp = Comparator<Fact> { o1, o2 ->
-    var res = o1.eid.compareTo(o2.eid)
-    if (res == 0) {
-        res = o1.attr.compareTo(o2.attr)
-    }
-    if (res == 0) {
-        res = compareValues(o1.value, o2.value)
-    }
-    res
 }
 
 val avetCmp = Comparator<Fact> { o1, o2 ->
@@ -83,65 +66,59 @@ fun compareValues(v1: Any, v2: Any): Int {
 }
 
 class Index(
-        val eavt: BTree<Fact> = BTree(eavtCmp),
-        private val avet: BTree<Fact> = BTree(avetCmp)
+        val entities: Map<EID, RawEntity> = HashMap(),
+        private val index: List<Fact> = ArrayList()
 ) {
 
-    fun add(facts: List<Fact>): Index {
-        var newEavt = eavt
-        var newAvet = avet
+    fun addFacts(facts: List<Fact>): Index {
+        val entities = facts
+                .groupBy { it.eid }
+                .map { it.key to it.value }
+        return add(entities)
+    }
 
-        // add only last values
-        val distinctFacts = facts
-                .reversed()
-                .distinctBy { it.eid to it.attr }
+    fun add(entites: List<RawEntity>): Index {
+        val newEntitiyes = HashMap(entities)
+        val newIndex = ArrayList(index)
 
-        for (f in distinctFacts) {
-            val toRemove = newEavt.select(eidAttrPattern(f.eid, f.attr)).asSequence().firstOrNull()
-            if (toRemove != null) {
-                newEavt = newEavt.remove(toRemove)
-                newAvet = newAvet.remove(toRemove)
+        for (e in entites) {
+            val prev = if (e.second.isNotEmpty()) {
+                newEntitiyes.put(e.first, e)
+            } else {
+                newEntitiyes.remove(e.first)
             }
+            if (prev != null) {
+                newIndex.removeAll(prev.second)
+            }
+            newIndex.addAll(e.second)
         }
-        val actualFacts = distinctFacts.filter { !it.deleted }
-        newEavt = newEavt.addAll(actualFacts.sortedWith(eavtCmp))
-        newAvet = newAvet.addAll(actualFacts.sortedWith(avetCmp))
 
-        return Index(newEavt, newAvet)
+        return Index(newEntitiyes, newIndex.sortedWith(avetCmp))
     }
 
-    fun add(fact: Fact): Index {
-        return add(listOf(fact))
+    fun add(e: RawEntity): Index {
+        return add(e)
     }
 
-    fun entityById(eid: EID): Map<String, Any>? {
-        val facts = eavt.select(eidPattern(eid))
-        val grouped = facts
-                .asSequence()
-                .groupBy { it.attr }
-        val mapped = grouped
-                .mapValues { it.value.last().value }
-        return mapped
-                .takeIf { it.isNotEmpty() }
-    }
+    fun entityById(eid: EID): Map<String, Any>? =
+            entities[eid]?.second
+                    ?.map { it.attr to it.value }
+                    ?.toMap()
 
     fun eidsByPred(pred: QueryPred): Set<EID> {
-        return avet.select {
+        val fromIdx = index.firstMatchIdx {
             if (it.attr == pred.attrName) {
                 pred.compareTo(it.value)
             } else {
                 it.attr.compareTo(pred.attrName)
             }
         }
-                .asSequence()
+        if (fromIdx < 0 || fromIdx == index.size) {
+            return emptySet()
+        }
+        return index.subList(fromIdx)
+                .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
                 .map { it.eid }
-                .toSet()
-    }
-
-    fun <T : Any> valueByEidAttr(eid: EID, attr: Attr<T>): Set<T> {
-        return eavt.select(eidAttrPattern(eid, attr.str()))
-                .asSequence()
-                .map { it.value as T }
                 .toSet()
     }
 

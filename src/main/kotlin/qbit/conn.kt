@@ -92,7 +92,16 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         db = if (newHead is Merge) {
             IndexDb(Index(graph, newHead))
         } else {
-            IndexDb(db.index.add(newHead.data.trx.toList()))
+            val entities = newHead.data.trx.toList()
+                    .groupBy { it.eid }
+                    .map {
+                        if (!it.value[0].deleted) {
+                            it.key to it.value
+                        } else {
+                            it.key to emptyList()
+                        }
+                    }
+            IndexDb(db.index.add(entities))
         }
 
         storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
@@ -100,14 +109,16 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
         try {
-            val forks = db.pull(instanceEid)!![_forks] ?: throw QBitException("Corrupted database metadata")
+
+            var instance = db.pull(instanceEid)!!
+            val forks = instance[_forks] ?: throw QBitException("Corrupted database metadata")
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
-            val newHead = writer.store(
-                    head,
-                    Fact(instanceEid, qbit.schema._iid, forks + 1),
-                    Fact(forkInstanceEid, qbit.schema._forks, 0),
-                    Fact(forkInstanceEid, qbit.schema._entitiesCount, 1))
+
+            instance = instance.set(_forks, forks + 1)
+
+            val newInstance = Entity(_forks eq 0, _entitiesCount eq 1, _iid eq forkId.iid.value)
+            val newHead = writer.store( head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
             swapHead(newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
@@ -126,12 +137,11 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         try {
             // TODO: check for conflict modifications in parallel threads
 
-            val curEntitiesCnt = db.pull(instanceEid)?.get(_entitiesCount)
-                    ?: throw QBitException("Corrupted database metadata")
-            val eids = EID(dbUuid.iid.value, curEntitiesCnt).nextEids()
+            val instance = db.pull(instanceEid) ?: throw QBitException("Corrupted database metadata")
+            val eids = EID(dbUuid.iid.value, instance[_entitiesCount]!!).nextEids()
 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
-            val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, curEntitiesCnt)
+            val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
                 qbit.assert { es.all { it is StoredEntity && !it.dirty } }
                 return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
@@ -180,15 +190,15 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         return res
     }
 
-    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, IdentifiedEntity>, eids: Iterator<EID>, curEntitiesCnt: Int): MutableList<Fact> {
+    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, IdentifiedEntity>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
         val entitiesToStore: List<IdentifiedEntity> = allEs.values.filter { it !is StoredEntity || it.dirty }
         val linkedEntities = entitiesToStore.map { it.setRefs(allEs) }
         val facts: MutableList<Fact> = linkedEntities
                 .flatMap { it.toFacts() }
                 .toMutableList()
         val newEntitiesCnt = eids.next().eid
-        if (curEntitiesCnt < newEntitiesCnt) {
-            facts += Fact(instanceEid, _entitiesCount, newEntitiesCnt)
+        if (instance[_entitiesCount]!! < newEntitiesCnt) {
+            facts += instance.set(_entitiesCount, newEntitiesCnt).toFacts()
         }
         return facts
     }

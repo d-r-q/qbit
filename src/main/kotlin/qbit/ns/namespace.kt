@@ -29,6 +29,16 @@ data class Namespace(val parent: Namespace?, val name: String) {
 
     fun subNs(name: String) = Namespace(this, name)
 
+    override fun toString(): String {
+        return "${parent ?: ":"}.$name"
+    }
+
+
 }
 
-data class Key(val ns: Namespace, val name: String)
+data class Key(val ns: Namespace, val name: String) {
+
+    override fun toString(): String {
+        return "$ns/$name"
+    }
+}

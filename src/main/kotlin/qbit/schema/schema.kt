@@ -14,7 +14,7 @@ val _unique: Attr<Boolean> = ScalarAttr(qbitAttrs["unique"], QBoolean)
 
 val _forks: Attr<Int> = ScalarAttr(qbitInstance["forks"], QInt, false)
 val _entitiesCount: Attr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
-val _iid: Attr<Long> = ScalarAttr(qbitInstance["iid"], QLong, true)
+val _iid: Attr<Int> = ScalarAttr(qbitInstance["iid"], QInt, true)
 
 internal fun Attr(name: String, type: DataType<*>, unique: Boolean = false): Attr<*> = ScalarAttr(Key(name), type, unique)
 

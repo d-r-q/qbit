@@ -40,7 +40,7 @@ class IndexTest {
     @Test
     fun testEntitiesByAttrVal() {
         val idx = Index()
-                .add(listOf(f(0, _uid, 0),
+                .addFacts(listOf(f(0, _uid, 0),
                         f(1, _uid, 1),
                         f(0, _uid, 1),
                         f(0, _foo, "baz"),
@@ -65,23 +65,9 @@ class IndexTest {
     }
 
     @Test
-    fun testEntityByOldAttrValue() {
-        val idx = Index()
-                .add(listOf(f(0, _uid, 0),
-                        f(0, _uid, 1)))
-        assertEquals(0, idx.eidsByPred(AttrValuePred("/uid", 0)).size)
-        assertEquals(1, idx.eidsByPred(AttrValuePred("/uid", 1)).size)
-
-        val idx2 = idx.add(f(0, _uid, 2))
-        assertEquals(0, idx2.eidsByPred(AttrValuePred("/uid", 0)).size)
-        assertEquals(0, idx2.eidsByPred(AttrValuePred("/uid", 1)).size)
-        assertEquals(1, idx2.eidsByPred(AttrValuePred("/uid", 2)).size)
-    }
-
-    @Test
     fun testEntitiesByAttr() {
         val idx = Index()
-                .add(listOf(f(0, _uid, 0),
+                .addFacts(listOf(f(0, _uid, 0),
                         f(1, _uid, 1),
                         f(0, _foo, "bar"),
                         f(1, _foo, "bar"),
@@ -115,7 +101,7 @@ class IndexTest {
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).size)
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).size)
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).size)
-        assertEquals(3, index.eavt.size)
+        assertEquals(1, index.entities.size)
         assertEquals(2, index.entityById(eid)!!["/attr1"]!!)
         assertEquals(1, index.entityById(eid)!!["/attr2"]!!)
         assertEquals(0, index.entityById(eid)!!["/attr3"]!!)

@@ -162,7 +162,7 @@ class LocalConnTest {
         val e2 = Entity(_val eq "e1", _ref eq se1)
         conn.persist(e2)
 
-        assertEquals(3, conn.head.data.trx.size)
+        assertEquals(5, conn.head.data.trx.size)
     }
 
     @Test
