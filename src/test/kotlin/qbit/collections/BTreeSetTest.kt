@@ -111,7 +111,7 @@ class BTreeSetTest {
         }
     }
 
-    //@Test
+    @Test
     fun longSmokeTest() {
         var set: BTree<Int>
         var ref: TreeSet<Int>

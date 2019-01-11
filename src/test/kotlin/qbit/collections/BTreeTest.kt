@@ -80,36 +80,51 @@ class BTreeTest {
     }
 
     @Test
-    fun testReplace() {
+    fun testLeafRemoveBySelector() {
         val leaf = Leaf(arrayListOf(1, 2, 3), 4, naturalOrder(), true)
-        val (added, removed) = leaf.replace(listOf(Pair(IntSelector(4, 4), listOf(4))))
+        val (added, removed) = leaf.removeAll(listOf(IntSelector(4)))
         added.assertInvariants()
-        assertEquals(4, added.size)
-        assertEquals(0, removed.toList()[0].toList().size)
-        assertArrayEquals(arrayOf(1, 2, 3, 4), added.toTypedArray())
+        assertEquals(3, added.size)
+        assertEquals(0, removed.toList().size)
+        assertArrayEquals(arrayOf(1, 2, 3), added.toTypedArray())
     }
-
+/*
     @Test
     fun testReplaceLeafOverflow() {
         val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), true)
-        val (added, removed) = leaf.replace(listOf(Pair(IntSelector(5, 5), listOf(5))))
+        val (added, removed) = leaf.replace(listOf(Pair(IntSelector(5), listOf(5))))
         assertEquals(5, added.size)
-        assertEquals(0, removed.toList()[0].toList().size)
+        assertEquals(0, removed.toList().size)
         assertArrayEquals(arrayOf(1, 2, 3, 4, 5), added.toTypedArray())
     }
 
     @Test(expected = AssertionError::class)
     fun testReplaceUnsortedSelectors() {
         val leaf = Leaf(arrayListOf(1, 2, 3, 4), 4, naturalOrder(), true)
-        leaf.replace(listOf(Pair(IntSelector(5, 5), listOf(5)), Pair(IntSelector(4, 4), listOf(4))))
+        leaf.replace(listOf(Pair(IntSelector(5), listOf(5)), Pair(IntSelector(4), listOf(4))))
     }
 
-    class IntSelector(private val from: Int, private val to: Int) : Selector<Int, IntSelector> {
+    @Test
+    fun testReplaceNode() {
+        val leaf1 = Leaf(arrayListOf(1, 2), 4, naturalOrder(), false)
+        val leaf2 = Leaf(arrayListOf(3, 4), 4, naturalOrder(), false)
+        val root = Node(arrayListOf(3), arrayListOf<BTree<Int>>(leaf1, leaf2), 4, naturalOrder(), 2, true)
+
+        val (root1, removed1) = root.replace(mapOf(IntSelector(1, 2) to listOf(-1, 0)))
+        assertEquals(4, root1.size)
+        assertArrayEquals(arrayOf(1, 2), removed1.toCollection(ArrayList()).toArray())
+
+        val (root2, removed2) = root.replace(mapOf(IntSelector(2, 4) to listOf(3)))
+        assertEquals(4, root1.size)
+        assertArrayEquals(arrayOf(1, 2), removed2.toCollection(ArrayList()).toArray())
+    }*/
+
+    class IntSelector(private val from: Int, private val to: Int = from) : Selector<Int, IntSelector> {
 
         override fun invoke(p1: Int): Int {
             return when {
-                p1 < from -> -1
-                p1 > to -> 1
+                p1 < from -> 1
+                p1 > to -> -1
                 else -> 0
             }
         }
@@ -117,7 +132,7 @@ class BTreeTest {
         override fun compareTo(other: IntSelector): Int {
             return when {
                 from < other.from -> -1
-                from > other.from -> -1
+                from > other.from -> 1
                 else -> 0
             }
         }

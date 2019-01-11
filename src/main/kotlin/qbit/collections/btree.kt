@@ -1,5 +1,6 @@
 package qbit.collections
 
+import java.util.Collections.singleton
 import kotlin.math.abs
 import kotlin.math.log
 import kotlin.math.roundToInt
@@ -32,12 +33,25 @@ sealed class BTree<E : Any>(
         return finishTree(trees)
     }
 
-    fun remove(value: E): BTree<E> {
-        val root = removeImpl(value)
-        root.assertInvariants()
-        check(root.root)
-        return root
+    fun remove(value: E): BTree<E> =
+            removeAll(singleton(O(value))).first
+
+    inner class O(val e: E) : Selector<E, O> {
+        override fun invoke(p1: E): Int {
+            return cmp.compare(p1, e)
+        }
+
+        override fun compareTo(other: O): Int {
+            return cmp.compare(e, other.e)
+        }
     }
+
+    fun <S : Selector<E, S>> removeAll(selectors: Iterable<S>): Pair<BTree<E>, Iterable<E>> {
+        val (root, removed) = removeAllImpl(selectors)
+        return finishTree(arrayListOf(root)) to removed
+    }
+
+    internal abstract fun <S : Selector<E, S>> removeAllImpl(selectors: Iterable<S>): Pair<BTree<E>, Iterable<E>>
 
     internal abstract fun removeImpl(value: E): BTree<E>
 
@@ -58,34 +72,42 @@ sealed class BTree<E : Any>(
                     .takeWhile { cmp(it) == 0 }
                     .iterator()
 
-    fun <S : Selector<E, S>> replace(es: Iterable<Pair<S, Iterable<E>>>): Pair<BTree<E>, Iterable<Iterable<E>>> {
-        val (trees, removed) = replaceImpl(es)
-        val root = finishTree(trees)
-        return Pair(root, removed)
-    }
-
     /**
      * Builds treetop for given list of trees and checks invariants.
      */
     private fun finishTree(trees: ArrayList<BTree<E>>): BTree<E> {
         assert(trees.isNotEmpty())
-        val root = spreadTillValid(trees, trees[0].height + 1)
+        val root = if (trees.size == 1) {
+            pullTillValid(trees[0])
+        } else {
+            spreadTillValid(trees, trees[0].height + 1)
+        }
         root.assertInvariants()
         check(root.root)
         return root
     }
-
-    internal abstract fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>>
 
     internal abstract fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>>
 
     internal abstract fun withRoot(root: Boolean): BTree<E>
 
     /**
+     * Cuts skinny (nodes with single child) treetop of given tree
+     */
+    private fun pullTillValid(tree: BTree<E>): BTree<E> {
+        var res = tree
+        while (res is Node && res.children.size == 1) {
+            res = res.children[0]
+        }
+        return res.withRoot(true)
+    }
+
+    /**
      * Builds tree top for given list of trees
      */
     private fun spreadTillValid(trees: ArrayList<BTree<E>>, height: Int): BTree<E> {
-        if (trees.size == 1 && trees[0].items.size <= degree) {
+        if (trees.size == 1) {
+            check(trees[0].items.size <= degree)
             // trees list already contains single valid node
             return trees[0]
         }
@@ -129,6 +151,39 @@ sealed class BTree<E : Any>(
                 .toCollection(ArrayList())
     }
 
+    protected fun merge(children: ArrayList<BTree<E>>): ArrayList<BTree<E>> {
+        val loadedChildren = ArrayList<BTree<E>>()
+        loadedChildren.add(children[0])
+        children.asSequence().drop(1).forEach {
+            if (loadedChildren.last().items.size >= minItems) {
+                loadedChildren.add(it)
+            } else {
+                val left = loadedChildren.removeAt(loadedChildren.size - 1)
+                val merge = left.items.size + it.items.size + 1 <= degree
+                if (merge) {
+                    val m = qbit.collections.merge(left, it)
+                    loadedChildren.add(m)
+                } else {
+                    val (nLeft, nRight) = rotate(left, it)
+                    loadedChildren.addAll(listOf(nLeft, nRight))
+                }
+            }
+        }
+        if (loadedChildren.size > 1 && loadedChildren.last().items.size < minItems) {
+            val right = loadedChildren.removeAt(loadedChildren.size - 1)
+            val left = loadedChildren.removeAt(loadedChildren.size - 1)
+            val merge = left.items.size + right.items.size + 1 <= degree
+            if (merge) {
+                val m = qbit.collections.merge(left, right)
+                loadedChildren.add(m)
+            } else {
+                val (nLeft, nRight) = rotate(left, right)
+                loadedChildren.addAll(listOf(nLeft, nRight))
+            }
+        }
+        return loadedChildren
+    }
+
     internal abstract fun assertInvariants()
 
 }
@@ -148,13 +203,51 @@ class Node<E : Any>(
             addAll(value)
 
     override fun addAllImpl(values: Iterable<E>): ArrayList<BTree<E>> {
-        return applyToChildren(values, { e1, e2 -> cmp.compare(e1, e2) }, { c, v -> c.addAllImpl(v) })
+        val valuesForChild = splitByArray(values, items) { e1, e2 -> cmp.compare(e1, e2) }
+        val nChildren = children
+                .zip(valuesForChild)
+                .flatMap { (c, v) -> c.addAllImpl(v) }
+        return spread(nChildren as ArrayList<BTree<E>>, height)
     }
 
-    private fun <T : Any> applyToChildren(values: Iterable<T>, splitComparator: (T, E) -> Int, map: (BTree<E>, ArrayList<T>) -> ArrayList<BTree<E>>): ArrayList<BTree<E>> {
-        val valuesForChild = splitByArray(values, items, splitComparator)
-        val nChildren = children.zip(valuesForChild).flatMap { (c, v) -> map(c, v) }
-        return spread(nChildren as ArrayList<BTree<E>>, height)
+    override fun <S : Selector<E, S>> removeAllImpl(selectors: Iterable<S>): Pair<BTree<E>, Iterable<E>> {
+        val removed = ArrayList<E>()
+        val nChildren = ArrayList(children)
+        val ss = selectors.toList()
+        var cIdx = 0
+        var sIdx = 0
+        while (cIdx < children.size && sIdx < ss.size) {
+            val r = if (cIdx < items.size) {
+                ss[sIdx].invoke(items[cIdx])
+            } else {
+                ss[sIdx].invoke(children.last().last())
+            }
+            when {
+                r > 0 -> {
+                    val (nChild, cRemoved) = nChildren[cIdx].removeAllImpl(singleton(ss[sIdx]))
+                    nChildren[cIdx] = nChild
+                    removed.addAll(cRemoved)
+                    sIdx++
+                }
+                r == 0 -> {
+                    val (nChild, cRemoved) = nChildren[cIdx].removeAllImpl(singleton(ss[sIdx]))
+                    nChildren[cIdx] = nChild
+                    removed.addAll(cRemoved)
+                    cIdx++
+                    if (cIdx < nChildren.size) {
+                        val (nChild2, cRemoved2) = nChildren[cIdx].removeAllImpl(singleton(ss[sIdx]))
+                        nChildren[cIdx] = nChild2
+                        removed.addAll(cRemoved2)
+                    }
+                }
+                r < 0 -> {
+                    cIdx++
+                }
+            }
+        }
+        val mergedChildren = merge(nChildren)
+        val nItems = mergedChildren.drop(1).map { it.first() } as ArrayList<E>
+        return Pair(Node(nItems, mergedChildren, degree, cmp, height, root), removed)
     }
 
     override fun contains(element: E): Boolean {
@@ -198,7 +291,7 @@ class Node<E : Any>(
             val nChildren = replace(children, m, lIdx, rIdx)
             Pair(nItms, nChildren)
         } else {
-            val (nLeft, nRight) = rotate(left, right, items[lIdx])
+            val (nLeft, nRight) = rotate(left, right)
             val nItms = replace(items, nRight.first(), lIdx)
             val nChildren = replaceAll(children, listOf(nLeft, nRight), lIdx, rIdx)
             Pair(nItms, nChildren)
@@ -211,10 +304,6 @@ class Node<E : Any>(
         }
     }
 
-    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     internal fun findChildFor(k: E): Int {
         val itemIdx = items.binarySearch(k, cmp)
         return when {
@@ -223,48 +312,6 @@ class Node<E : Any>(
         }
     }
 
-    private fun merge(left: BTree<E>, right: BTree<E>): BTree<E> =
-            when {
-                left is Node<E> && right is Node<E> -> {
-                    val nItms = ArrayList(left.items)
-                    nItms.add(right.first())
-                    nItms.addAll(right.items)
-                    Node(nItms, ArrayList(left.children + right.children), degree, cmp, height - 1, left.root)
-                }
-                left is Leaf<E> && right is Leaf<E> ->
-                    Leaf(ArrayList(left.items + right.items), degree, cmp, left.root)
-                else ->
-                    throw AssertionError("Should never happen")
-            }
-
-    private fun rotate(left: BTree<E>, right: BTree<E>, splitter: E): Pair<BTree<E>, BTree<E>> =
-            when {
-                left is Node<E> && right is Node<E> -> {
-                    if (left.items.size < right.items.size) {
-                        val lItms = insert(left.items, splitter, left.items.size)
-                        val lChildren = insert(left.children, right.children[0], left.children.size)
-                        val rItms = remove(right.items, 0)
-                        val rChildren = remove(right.children, 0)
-                        val nLeft = Node(lItms, lChildren, left.degree, left.cmp, left.height, false)
-                        val nRight = Node(rItms, rChildren, right.degree, right.cmp, right.height, false)
-                        Pair(nLeft, nRight)
-                    } else {
-                        val lItms = remove(left.items, left.items.size - 1)
-                        val lChildren = remove(left.children, left.children.size - 1)
-                        val rItms = insert(right.items, splitter, 0)
-                        val rChildren = insert(right.children, left.children.last(), 0)
-                        val nLeft = Node(lItms, lChildren, left.degree, left.cmp, left.height, false)
-                        val nRight = Node(rItms, rChildren, right.degree, right.cmp, right.height, false)
-                        Pair(nLeft, nRight)
-                    }
-                }
-                left is Leaf<E> && right is Leaf<E> -> {
-                    val (lItms, rItms) = splitToPair((left.items + right.items) as ArrayList)
-                    Pair(Leaf(lItms, degree, cmp, left.root), Leaf(rItms, degree, cmp, right.root))
-                }
-                else ->
-                    throw AssertionError("Should never happen")
-            }
 
     override fun withRoot(root: Boolean) =
             Node(this.items, this.children, this.degree, this.cmp, this.height, root)
@@ -304,6 +351,45 @@ class Node<E : Any>(
         children.forEach { it.assertInvariants() }
     }
 }
+
+private fun <E : Any> rotate(left: BTree<E>, right: BTree<E>): Pair<BTree<E>, BTree<E>> =
+        when {
+            left is Node<E> && right is Node<E> -> {
+                val (nlChildren, nrChildren) = splitToPair((left.children + right.children) as ArrayList<BTree<E>>)
+
+                val nlItems = nlChildren.asSequence().drop(1).map { it.first() }.toCollection(ArrayList(nlChildren.size - 1))
+                val nLeft = Node(nlItems, nlChildren, left.degree, left.cmp, left.height, false)
+
+                val nrItems = nrChildren.asSequence().drop(1).map { it.first() }.toCollection(ArrayList(nrChildren.size - 1))
+                val nRight = Node(nrItems, nrChildren, right.degree, right.cmp, right.height, false)
+
+                Pair(nLeft, nRight)
+            }
+            left is Leaf<E> && right is Leaf<E> -> {
+                val (lItms, rItms) = splitToPair((left.items + right.items) as ArrayList)
+                Pair(Leaf(lItms, left.degree, left.cmp, left.root), Leaf(rItms, left.degree, left.cmp, right.root))
+            }
+            else ->
+                throw AssertionError("Should never happen")
+        }
+
+private fun <E : Any> merge(left: BTree<E>, right: BTree<E>): BTree<E> =
+        when {
+            left is Node<E> && right is Node<E> -> {
+                val nChildren = left.children
+                val rIter = right.children.iterator()
+                if (nChildren.last().items.size < left.minItems) {
+                    nChildren[nChildren.size - 1] = merge(nChildren.last(), rIter.next())
+                }
+                nChildren.addAll(rIter.asSequence())
+                val nItms = nChildren.drop(1).map { it.first() }
+                Node(nItms as ArrayList<E>, nChildren, left.degree, left.cmp, left.height, left.root)
+            }
+            left is Leaf<E> && right is Leaf<E> ->
+                Leaf(ArrayList(left.items + right.items), left.degree, left.cmp, left.root)
+            else ->
+                throw AssertionError("Should never happen")
+        }
 
 class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root: Boolean) : BTree<E>(values, degree, cmp, 1, root) {
 
@@ -345,22 +431,20 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
         }
     }
 
-    override fun <S : Selector<E, S>> replaceImpl(es: Iterable<Pair<S, Iterable<E>>>): Pair<ArrayList<BTree<E>>, Iterable<Iterable<E>>> {
+    override fun <S : Selector<E, S>> removeAllImpl(selectors: Iterable<S>): Pair<BTree<E>, Iterable<E>> {
         val cleanedItms = ArrayList(items)
-        val itemsToAdd = ArrayList<E>()
-        val removed = ArrayList<ArrayList<E>>()
+        val removed = ArrayList<E>()
         var prevSelector: S? = null
-        for ((selector, newData) in es) {
+        for (selector in selectors) {
             check(prevSelector == null || prevSelector < selector)
             prevSelector = selector
             val fromIdx = cleanedItms.firstMatchIdx(selector)
-            removed.add(ArrayList())
             if (fromIdx >= 0 && fromIdx < cleanedItms.size) {
                 val subItmsIter = cleanedItms.subList(fromIdx, cleanedItms.size).iterator()
                 while (subItmsIter.hasNext()) {
                     val item = subItmsIter.next()
-                    if (item == 0) {
-                        removed.last().add(item)
+                    if (selector.invoke(item) == 0) {
+                        removed.add(item)
                         subItmsIter.remove()
                     } else {
                         break
@@ -368,18 +452,9 @@ class Leaf<E : Any>(values: ArrayList<E>, degree: Int, cmp: Comparator<E>, root:
                 }
             }
 
-            itemsToAdd.addAll(newData)
         }
 
-        val nItms = merge(cleanedItms, itemsToAdd, cmp)
-
-        return if (nItms.size <= degree) {
-            Pair(arrayListOf<BTree<E>>(Leaf(nItms, degree, cmp, root)), removed)
-        } else {
-            val itms = split(nItms, minItems, minItems)
-            val children = itms.map { Leaf(it, degree, cmp, false) as BTree<E> } as ArrayList<BTree<E>>
-            Pair(spread(children, height + 1), removed)
-        }
+        return Pair(Leaf(cleanedItms, degree, cmp, root), removed)
     }
 
     override fun contains(element: E): Boolean =
