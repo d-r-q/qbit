@@ -47,7 +47,7 @@ fun main(args: Array<String>) {
         dataFiles.forEach {
             it.forEachLine { line ->
                 parse(line, categories)?.let { (trx, cat) ->
-                    val catName = trx[trxCategory]!![catName]!!
+                    val catName = trx[trxCategory][catName]
                     if (catName !in categories) {
                         categories[catName] = cat
                     }

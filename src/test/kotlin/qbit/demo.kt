@@ -33,5 +33,5 @@ fun main(args: Array<String>) {
     conn.persist(storedUser.set(lastLogin, Instant.now()))
 
     val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
-    println("${sTweet[date]!!.format(HHmm)} | ${sTweet[author]!![name]}: ${sTweet[content]}")
+    println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
 }

@@ -118,7 +118,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         try {
 
             var instance = db.pull(instanceEid)!!
-            val forks = instance[forks] ?: throw QBitException("Corrupted database metadata")
+            val forks = instance[forks]
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
 
@@ -145,7 +145,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             // TODO: check for conflict modifications in parallel threads
 
             val instance = db.pull(instanceEid) ?: throw QBitException("Corrupted database metadata")
-            val eids = EID(dbUuid.iid.value, instance[entitiesCount]!!).nextEids()
+            val eids = EID(dbUuid.iid.value, instance[entitiesCount]).nextEids()
 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
@@ -204,7 +204,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                 .flatMap { it.toFacts() }
                 .toMutableList()
         val newEntitiesCnt = eids.next().eid
-        if (instance[entitiesCount]!! < newEntitiesCnt) {
+        if (instance[entitiesCount] < newEntitiesCnt) {
             facts += instance.set(entitiesCount, newEntitiesCnt).toFacts()
         }
         return facts

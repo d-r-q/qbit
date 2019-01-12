@@ -69,7 +69,7 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val uniq
     override val keys: Set<ScalarAttr<out Any>> = map.keys
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any> get(key: Attr<T>): T? = (map as Map<Attr<T>, T>)[key]
+    override fun <T : Any> getO(key: Attr<T>): T? = (map as Map<Attr<T>, T>)[key]
 
 }
 

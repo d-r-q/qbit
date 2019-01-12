@@ -45,13 +45,15 @@ interface Entitiable {
 
     val keys: Set<Attr<out Any>>
 
-    operator fun <T : Any> get(key: Attr<T>): T?
+    operator fun <T : Any> get(key: Attr<T>): T = getO(key)!!
+
+    fun <T : Any> getO(key: Attr<T>): T?
 
     val entries: Set<AttrValue<Attr<out Any>, out Any>>
         get() = keys.map {
             val value: AttrValue<Attr<out Any>, out Any> = when (it) {
-                is RefAttr -> RefAttrValue(it, this[it]!!)
-                is ScalarAttr -> ScalarAttrValue(it as ScalarAttr<Any>, this[it]!!)
+                is RefAttr -> RefAttrValue(it, this[it])
+                is ScalarAttr -> ScalarAttrValue(it as ScalarAttr<Any>, this[it])
                 else -> throw AssertionError("Should never happen")
             }
             value
@@ -72,7 +74,7 @@ internal fun <T : Entity> T.setRefs(ref2eid: IdentityHashMap<Entitiable, Identif
         this.entries
                 .filterIsInstance<RefAttrValue>()
                 .fold(this) { prev, av ->
-                    prev.set(av.attr, ref2eid[prev[av.attr]!!]!!) as T
+                    prev.set(av.attr, ref2eid[prev[av.attr]]!!) as T
                 }
 
 internal fun Entitiable.toFacts(eid: EID): Collection<Fact> =
@@ -139,7 +141,7 @@ internal class MapEntity(
     override val keys: Set<Attr<out Any>>
         get() = (map.keys + refs.keys)
 
-    override fun <T : Any> get(key: Attr<T>): T? {
+    override fun <T : Any> getO(key: Attr<T>): T? {
         return if (key is RefAttr) {
             val res = refs[key]
             val eid: EID? = (map as Map<RefAttr, EID>)[key]
