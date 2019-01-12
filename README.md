@@ -32,6 +32,7 @@ Protect user's privacy. And make development fun again.
    * :white_check_mark: ~Schema~
    * :white_check_mark: ~Unique constraints~
    * :white_check_mark: ~Programmatic range queries~
+   * :white_check_mark: ~Pull entites via reference attributes~
    * Programmatic joins
    * Query language (Datalog and/or something SQL-like)
    
