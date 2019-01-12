@@ -64,6 +64,7 @@ data class QList<I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
     override val code = (32 + itemsType.code).toByte()
 
+    @Suppress("UNCHECKED_CAST")
     override val kotlinType: KClass<List<I>> = List::class as KClass<List<I>>
 
 }
