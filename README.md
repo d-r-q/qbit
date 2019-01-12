@@ -5,7 +5,7 @@ qbit is embeddable distributed DB with lazy replication and flexible write confl
 
 ## Vision
 
-qbit - it's next gen cloud development platform. qbit implements:
+qbit - it's storage and replication technology. qbit implements:
  1) Automatic synchronization of user data with cloud, if cloud is presented in the system;
  2) Automatic synchronization of user data between devices, when direct connection between devices is available;
  3) Automatic write conflicts resolution with sane defaults and rich custom policies;
@@ -18,14 +18,13 @@ qbit stores data locally and uses entity-relation information model, so for deve
  
 ## Mission
 
-Protect users privacy. And make development fun again.
+Protect user's privacy. And make development fun again.
 
-## Evolution progress: [======---------] (40%)
-
+## Status
  * Datastore
    * :white_check_mark: ~Fetch data by id~
    * :white_check_mark: ~FileSystem storage~
-   * Multivalue attributes
+   * :white_check_mark: ~Multivalue attributes~
    * Component attributes
    
  * DataBase
@@ -44,3 +43,30 @@ Protect users privacy. And make development fun again.
    
  * Cloud platform
    * qbit DBMS
+   
+## Sample code
+
+```kotlin
+    val tweetNs = Namespace.of("demo", "tweet")
+    val userNs = Namespace.of("demo", "user")
+
+    val name = ScalarAttr(userNs["name"], QString, unique = true)
+    val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
+
+    val content = ScalarAttr(tweetNs["content"], QString)
+    val author = RefAttr(tweetNs["author"])
+    val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
+
+    val conn = qbit(MemStorage())
+    conn.persist(name, lastLogin, content, author, date)
+
+    val user = Entity(name eq "@azhidkov", lastLogin eq Instant.now())
+    val tweet = Entity(content eq "Hello @HackDay",
+            author eq user,
+            date eq ZonedDateTime.now())
+    val storedUser = conn.persist(tweet).createdEntities[user]
+    conn.persist(storedUser.set(lastLogin, Instant.now()))
+
+    val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
+    println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
+```
