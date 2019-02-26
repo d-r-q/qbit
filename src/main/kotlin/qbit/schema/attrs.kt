@@ -15,6 +15,8 @@ interface Attr<T : Any> : Entitiable {
 
     val unique: Boolean
 
+    fun isList() = type.isList()
+
     fun str() = name.toStr()
 
 }

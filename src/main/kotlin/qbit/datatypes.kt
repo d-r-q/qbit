@@ -56,7 +56,13 @@ sealed class DataType<T : Any> {
 
     fun compare(v1: T, v2: T): Int = (v1 as Comparable<T>).compareTo(v2)
 
-    fun list() = QList(this)
+    fun list(): QList<T> {
+        // TODO: make types hierarchy: Type -> List | (Scalar -> (Ref | Value))
+        require(!isList()) { "Nested lists is not allowed" }
+        return QList(this)
+    }
+
+    fun isList(): Boolean = (code.toInt().and(32)) > 0
 
 }
 
