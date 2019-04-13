@@ -47,4 +47,5 @@ class EntityTest {
         e = e.set(attr, listOf("first"))
         assertEquals(listOf("first"), e[attr])
     }
+
 }

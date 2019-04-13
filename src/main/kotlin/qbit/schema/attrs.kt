@@ -21,27 +21,38 @@ interface Attr<T : Any> : Entitiable {
 
 }
 
-interface RefAttr : Attr<Entity>
+interface RefAttr<T : Any> : Attr<T>
+
+interface ScalarRefAttr : RefAttr<Entity>
 
 interface ScalarAttr<T : Any> : Attr<T>
 
-interface ListAttr<T : Any> : Attr<List<T>>
+interface ListAttr<T : Any> : Attr<List<T>> {
+
+    val itemsType: DataType<T>
+
+}
+
+interface RefListAttr : RefAttr<List<Entity>>
 
 fun <T : Any> ScalarAttr(name: Key, type: DataType<T>, unique: Boolean = false): ScalarAttr<T> = ScalarAttrImpl(name, type, unique)
 
-fun RefAttr(name: Key, unique: Boolean = false): RefAttr = RefAttrImpl(name, QEntity, unique)
+fun RefAttr(name: Key, unique: Boolean = false): ScalarRefAttr = ScalarRefAttrImpl(name, QEntity, unique)
 
 fun <T : Any> ListAttr(name: Key, type: DataType<T>, unique: Boolean = false): ListAttr<T> = ListAttrImpl(name, type, unique)
 
+fun RefListAttr(name: Key, unique: Boolean = false): RefListAttr = RefListAttrImpl(name, unique)
 
 // Utilities
 
 
-infix fun <T: Any> ScalarAttr<T>.eq(v: T): ScalarAttrValue<T> = ScalarAttrValue(this, v)
+infix fun <T : Any> ScalarAttr<T>.eq(v: T): ScalarAttrValue<T> = ScalarAttrValue(this, v)
 
 infix fun <T : Any> ListAttr<T>.eq(v: List<T>): AttrValue<Attr<List<T>>, List<T>> = ListAttrValue(this, v)
 
-infix fun RefAttr.eq(v: Entity): RefAttrValue = RefAttrValue(this, v)
+infix fun ScalarRefAttr.eq(v: Entity): ScalarRefAttrValue = ScalarRefAttrValue(this, v)
+
+infix fun RefListAttr.eq(v: List<Entity>): RefListAttrValue = RefListAttrValue(this, v)
 
 
 // Implementation
@@ -53,13 +64,27 @@ internal fun Attr(name: String, type: DataType<*>, unique: Boolean = false): Att
 
 internal fun RefAttr(name: String, unique: Boolean = false): Attr<*> = RefAttr(Key(name), unique)
 
+internal fun RefListAttr(name: String, unique: Boolean = false): Attr<*> = RefListAttr(Key(name), unique)
+
 private data class ScalarAttrImpl<T : Any>(override val name: Key, override val type: DataType<T>, override val unique: Boolean = false) : ScalarAttr<T>, Entitiable by AttrEntityImpl(name, type, unique)
 
-private data class RefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : RefAttr, Entitiable by AttrEntityImpl(name, type, unique)
+private data class ScalarRefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : ScalarRefAttr, Entitiable by AttrEntityImpl(name, type, unique)
 
-private data class ListAttrImpl<T : Any>(override val name: Key, val itemsType: DataType<T>, override val unique: Boolean = false) : ListAttr<T>, Entitiable by AttrEntityImpl(name, itemsType, unique, true) {
+// TODO: what is unique means for lists?
+private data class ListAttrImpl<T : Any>(override val name: Key, override val itemsType: DataType<T>,
+                                         override val unique: Boolean = false)
+    :
+        ListAttr<T>, Entitiable by AttrEntityImpl(name, itemsType, unique, true) {
 
-    override val type: DataType<List<T>> = itemsType.list()
+    override val type: DataType<List<T>> = this.itemsType.list()
+
+}
+
+private data class RefListAttrImpl(override val name: Key, override val unique: Boolean = false)
+    :
+        RefListAttr, Entitiable by AttrEntityImpl(name, QEntity, unique, true) {
+
+    override val type: DataType<List<Entity>> = QEntity.list()
 
 }
 

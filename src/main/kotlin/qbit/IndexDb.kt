@@ -107,6 +107,7 @@ class IndexDb(internal val index: Index) : Db {
                         val list = e[list.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
                                 when {
+                                    list && type == QEntity.code -> RefListAttr(name, unique) as Attr<Any>
                                     type == QEntity.code -> RefAttr(name, unique) as Attr<Any>
                                     list -> ListAttr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
                                     else -> Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>

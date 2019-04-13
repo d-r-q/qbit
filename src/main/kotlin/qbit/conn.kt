@@ -183,11 +183,13 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                     }
                 }
                 it.entries.forEach { e ->
-                    if (e.attr is RefAttr) {
+                    if (e.attr is ScalarRefAttr) {
                         val value: Entity? = e.value as? Entity
                         if (value != null && res[value] == null) {
                             body(singletonList(value))
                         }
+                    } else if (e.attr is RefListAttr) {
+                        body(e.value as Collection<Entitiable>)
                     }
                 }
             }
@@ -199,7 +201,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, IdentifiedEntity>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
         val entitiesToStore: List<IdentifiedEntity> = allEs.values.filter { it !is StoredEntity || it.dirty }
-        val linkedEntities = entitiesToStore.map { it.setRefs(allEs) }
+        val linkedEntities: List<IdentifiedEntity> = entitiesToStore.map { it.setRefs(allEs) }
         val facts: MutableList<Fact> = linkedEntities
                 .flatMap { it.toFacts() }
                 .toMutableList()

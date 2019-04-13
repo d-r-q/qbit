@@ -2,13 +2,11 @@
 
 package qbit
 
-import qbit.schema.Attr
-import qbit.schema.ListAttr
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
+import qbit.schema.*
 import java.lang.AssertionError
 import java.util.*
 import java.util.Collections.singleton
+import java.util.Collections.singletonList
 
 interface AttrValue<out A : Attr<T>, T : Any> {
 
@@ -24,19 +22,27 @@ interface AttrValue<out A : Attr<T>, T : Any> {
 }
 
 data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
-data class RefAttrValue(override val attr: RefAttr, override val value: Entity) : AttrValue<RefAttr, Entity>
+data class ScalarRefAttrValue(override val attr: ScalarRefAttr, override val value: Entity) : AttrValue<ScalarRefAttr, Entity>
 data class ListAttrValue<T : Any>(override val attr: ListAttr<T>, override val value: List<T>) : AttrValue<ListAttr<T>, List<T>>
+data class RefListAttrValue(override val attr: RefListAttr, override val value: List<Entity>) : AttrValue<RefListAttr, List<Entity>>
 
 fun Entity(vararg entries: AttrValue<Attr<*>, *>): Entity =
         MapEntity(
-                entries.filterNot { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(),
-                entries.filter { it.attr is RefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(), emptyEidResolver)
+                entries.filterNot { it.attr is ScalarRefAttr && it.value is Entity }.map { it.toPair() }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(),
+                entries.filter { it.attr is RefAttr && it.value is Entity }.map { it.attr to listOf(it.value) }.filterIsInstance<Pair<RefAttr<Any>, List<Entity>>>().toMap(), emptyEidResolver)
 
 internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = StoredMapEntity(eid,
-        entries.filterNot { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(HashMap()),
-        entries.filter { it.first is RefAttr && it.second is Entity }.filterIsInstance<Pair<RefAttr, Entity>>().toMap(HashMap()),
+        entries.filterNot {
+            it.first is ScalarRefAttr && it.second is Entity &&
+                    it.first is RefListAttr && (it.second as List<*>).all { e -> e is Entity }
+        }.filterIsInstance<Pair<Attr<Any>, Any>>().toMap(HashMap()),
+
+        (entries.filter { it.first is ScalarRefAttr && it.second is Entity }.filterIsInstance<Pair<ScalarRefAttr, Entity>>() +
+                entries.filter { it.first is RefListAttr && (it.second as List<*>).all { e -> e is Entity } }.filterIsInstance<Pair<RefListAttr, List<Entity>>>())
+                .toMap(HashMap()) as MutableMap<RefAttr<Any>, List<Entity>>,
+
         EntityCache(QBitEidResolver(db)),
-        false, false)
+        deleted = false, dirty = false)
 
 // TODO: make it lazy
 internal fun Entity(eid: EID, db: Db): StoredEntity = db.pull(eid)!!
@@ -52,7 +58,7 @@ interface Entitiable {
     val entries: Set<AttrValue<Attr<out Any>, out Any>>
         get() = keys.map {
             val value: AttrValue<Attr<out Any>, out Any> = when (it) {
-                is RefAttr -> RefAttrValue(it, this[it])
+                is ScalarRefAttr -> ScalarRefAttrValue(it, this[it])
                 is ScalarAttr -> ScalarAttrValue(it as ScalarAttr<Any>, this[it])
                 else -> throw AssertionError("Should never happen")
             }
@@ -65,16 +71,24 @@ interface Entity : Entitiable {
 
     fun <T : Any> set(key: Attr<T>, value: T): Entity
 
-    fun set(key: RefAttr, value: Entity): Entity
+    fun set(key: ScalarRefAttr, value: Entity): Entity
+
+    fun set(key: RefListAttr, value: List<Entity>): Entity
 
     fun toIdentified(eid: EID): IdentifiedEntity
 }
 
 internal fun <T : Entity> T.setRefs(ref2eid: IdentityHashMap<Entitiable, IdentifiedEntity>): T =
         this.entries
-                .filterIsInstance<RefAttrValue>()
+                .filter { it is ScalarRefAttrValue || (it is RefListAttrValue) }
                 .fold(this) { prev, av ->
-                    prev.set(av.attr, ref2eid[prev[av.attr]]!!) as T
+                    when (av) {
+                        is ScalarRefAttrValue -> prev.set(av.attr, ref2eid[prev[av.attr]]!!) as T
+                        else -> {
+                            val entities: List<IdentifiedEntity> = (av.value as List<Entity>).map { ref2eid[it]!! }
+                            prev.set(av.attr as RefListAttr, entities) as T
+                        }
+                    }
                 }
 
 internal fun Entitiable.toFacts(eid: EID): Collection<Fact> =
@@ -84,8 +98,9 @@ internal fun Entitiable.toFacts(eid: EID): Collection<Fact> =
 internal fun Entitiable.toFacts(eid: EID, deleted: Boolean): Collection<Fact> =
         this.entries.flatMap { (attr: Attr<out Any>, value) ->
             when (attr) {
-                is RefAttr -> singleton(refToFacts(eid, attr, value, deleted))
+                is ScalarRefAttr -> singleton(refToFacts(eid, attr, value, deleted))
                 is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>, deleted)
+                is RefListAttr -> refListToFacts(eid, attr, value as List<Entity>, deleted)
                 else -> singleton(attrToFacts(eid, attr, value, deleted))
             }
         }
@@ -94,15 +109,21 @@ internal fun Entitiable.toFacts(eid: EID, deleted: Boolean): Collection<Fact> =
 internal fun <T : Any> attrToFacts(eid: EID, attr: Attr<out T>, value: T, deleted: Boolean) =
         Fact(eid, attr, value, deleted)
 
-internal fun refToFacts(eid: EID, attr: RefAttr, value: Any, deleted: Boolean) =
-        when (value) {
-            is IdentifiedEntity -> Fact(eid, attr, value.eid, deleted)
-            is EID -> Fact(eid, attr, value, deleted)
-            else -> throw AssertionError("Should never happen")
-        }
+internal fun refToFacts(eid: EID, attr: ScalarRefAttr, value: Any, deleted: Boolean) =
+        Fact(eid, attr, eidOf(value)!!, deleted)
 
 internal fun listToFacts(eid: EID, attr: ListAttr<*>, value: List<Any>, deleted: Boolean) =
         value.map { Fact(eid, attr, it, deleted) }
+
+internal fun refListToFacts(eid: EID, attr: RefListAttr, value: List<Entity>, deleted: Boolean) =
+        value.map { Fact(eid, attr, eidOf(it)!!, deleted) }
+
+internal fun eidOf(a: Any): EID? =
+        when (a) {
+            is IdentifiedEntity -> a.eid
+            is EID -> a
+            else -> null
+        }
 
 interface IdentifiedEntity : Entity {
 
@@ -110,7 +131,7 @@ interface IdentifiedEntity : Entity {
 
     override fun <T : Any> set(key: Attr<T>, value: T): IdentifiedEntity
 
-    override fun set(key: RefAttr, value: Entity): IdentifiedEntity
+    override fun set(key: ScalarRefAttr, value: Entity): IdentifiedEntity
 
 }
 
@@ -122,7 +143,9 @@ interface StoredEntity : IdentifiedEntity {
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity
 
-    override fun set(key: RefAttr, value: Entity): StoredEntity
+    override fun set(key: ScalarRefAttr, value: Entity): StoredEntity
+
+    override fun set(key: RefListAttr, value: List<Entity>): StoredEntity
 
     fun delete(): StoredEntity
 
@@ -133,40 +156,54 @@ internal fun IdentifiedEntity.toFacts() =
 
 internal class MapEntity(
         internal val map: Map<Attr<Any>, Any>,
-        internal val refs: Map<RefAttr, Entity>,
+        internal val refs: Map<RefAttr<Any>, List<Entity>>,
         internal val eidResolver: EidResolver
 ) :
         Entity {
-
     override val keys: Set<Attr<out Any>>
         get() = (map.keys + refs.keys)
 
     override fun <T : Any> getO(key: Attr<T>): T? {
-        return if (key is RefAttr) {
-            val res = refs[key]
-            val eid: EID? = (map as Map<RefAttr, EID>)[key]
-            (res ?: eid?.let { eidResolver(it) }) as T?
-        } else {
-            (map as Map<Attr<T>, T>)[key]
+        return when (key) {
+            is ScalarRefAttr -> {
+                val res = refs[key as Attr<Any>]?.firstOrNull() as T?
+                val eid: EID? = (map as Map<ScalarRefAttr, EID>)[key]
+                (res ?: eid?.let { eidResolver(it) }) as T?
+            }
+            is RefListAttr -> {
+                val res = refs[key as RefAttr<Any>] as T?
+                val eids: List<EID>? = (map as Map<RefListAttr, List<EID>>)[key]
+                (res ?: eids?.let { it.map { item -> eidResolver(item) } }) as T?
+            }
+            else -> (map as Map<Attr<T>, T>)[key]
         }
     }
 
-    override fun <T : Any> set(key: Attr<T>, value: T): Entity {
+    override fun <T : Any> set(key: Attr<T>, value: T): MapEntity {
         val newMap = HashMap(map)
         (newMap as MutableMap<Attr<T>, T>)[key] = value
         return MapEntity(newMap, refs, eidResolver)
     }
 
-    override fun set(key: RefAttr, value: Entity): Entity {
+    override fun set(key: ScalarRefAttr, value: Entity): MapEntity {
         val newRefs = HashMap(refs)
-        newRefs[key] = value
+        newRefs[key as RefAttr<Any>] = singletonList(value)
+        return MapEntity(map, newRefs, eidResolver)
+    }
+
+    override fun set(key: RefListAttr, value: List<Entity>): MapEntity {
+        val newRefs = HashMap(refs)
+        newRefs[key as RefAttr<Any>] = value
         return MapEntity(map, newRefs, eidResolver)
     }
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
-        get() = (map.entries.map { (attr: Attr<Any>, value) -> ScalarAttrValue(attr, value) } +
-                refs.entries.map { (attr: Attr<*>, value) -> RefAttrValue(attr, value) }
-                ).toSet() as Set<AttrValue<Attr<Any>, Any>>
+        get() {
+            val scalars = map.entries.map { (attr: Attr<Any>, value) -> ScalarAttrValue(attr, value) }
+            val rs = refs.entries.filter { it.key is ScalarRefAttr }.map { (attr: Attr<*>, value) -> ScalarRefAttrValue(attr as ScalarRefAttr, value.first()) }
+            val refLists = refs.entries.filter { it.key is RefListAttr }.map { (attr: Attr<*>, value) -> RefListAttrValue(attr as RefListAttr, value) }
+            return (scalars + rs + refLists).toSet() as Set<AttrValue<Attr<Any>, Any>>
+        }
 
     override fun toIdentified(eid: EID): IdentifiedEntity =
             IdentifiedMapEntity(eid, map, refs)
@@ -174,38 +211,46 @@ internal class MapEntity(
 
 private class IdentifiedMapEntity(
         override val eid: EID,
-        val map: Map<Attr<Any>, Any>,
-        val refs: Map<RefAttr, Entity>
+        map: Map<Attr<Any>, Any>,
+        refs: Map<RefAttr<Any>, List<Entity>>,
+        private val delegate: MapEntity = MapEntity(map, refs, emptyEidResolver)
 ) :
-        Entity by MapEntity(map, refs, emptyEidResolver),
+        Entity by delegate,
         IdentifiedEntity {
 
+    constructor (eid: EID, me: MapEntity) : this(eid, me.map, me.refs)
+
     override fun <T : Any> set(key: Attr<T>, value: T): IdentifiedEntity {
-        val newMap = HashMap(map)
-        (newMap as MutableMap<Attr<T>, T>)[key] = value
-        return IdentifiedMapEntity(eid, newMap, refs)
+        return IdentifiedMapEntity(eid, delegate.set(key, value))
     }
 
-    override fun set(key: RefAttr, value: Entity): IdentifiedEntity {
-        val newRefs = HashMap(refs)
-        newRefs[key] = value
-        return IdentifiedMapEntity(eid, map, newRefs)
+    override fun set(key: ScalarRefAttr, value: Entity): IdentifiedEntity {
+        return IdentifiedMapEntity(eid, delegate.set(key, value))
     }
+
+    override fun set(key: RefListAttr, value: List<Entity>): IdentifiedEntity {
+        return IdentifiedMapEntity(eid, delegate.set(key, value))
+    }
+
 }
 
 private class StoredMapEntity(
         override val eid: EID,
         val map: MutableMap<Attr<Any>, Any>,
-        val refs: MutableMap<RefAttr, Entity>,
+        val refs: MutableMap<RefAttr<Any>, List<Entity>>,
         val eidResolver: EidResolver,
         override val deleted: Boolean,
-        override val dirty: Boolean
+        override val dirty: Boolean,
+        private val delegate: MapEntity = MapEntity(map, refs, eidResolver)
 ) :
-        Entity by MapEntity(map, refs, eidResolver),
+        Entity by delegate,
         StoredEntity {
 
+    constructor(eid: EID, me: MapEntity, deleted: Boolean, dirty: Boolean) : this(eid, HashMap(me.map),
+            HashMap(me.refs), me.eidResolver, deleted, dirty)
+
     override fun delete(): StoredEntity =
-            StoredMapEntity(eid, map, refs, eidResolver, true, true)
+            StoredMapEntity(eid, map, refs, eidResolver, deleted = true, dirty = true)
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity {
         if (deleted) {
@@ -214,23 +259,32 @@ private class StoredMapEntity(
         if ((map as Map<Attr<T>, T>)[key] == value) {
             return this
         }
-        val newMap = HashMap<Attr<Any>, Any>(map)
-        (newMap as MutableMap<Attr<T>, T>)[key] = value
-        return StoredMapEntity(eid, newMap, refs, eidResolver, deleted, true)
+        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
     }
 
-    override fun set(key: RefAttr, value: Entity): StoredEntity {
+    override fun set(key: ScalarRefAttr, value: Entity): StoredEntity {
         if (deleted) {
             throw QBitException("Could not change entity marked for deletion")
         }
-        if (refs[key] == value) {
+        if (refs[key as RefAttr<Any>]?.firstOrNull() == value) {
             return this
         }
 
-        val newRefs = HashMap(refs)
-        newRefs[key] = value
-        return StoredMapEntity(eid, map, newRefs, eidResolver, deleted, true)
+        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
     }
+
+
+    override fun set(key: RefListAttr, value: List<Entity>): StoredEntity {
+        if (deleted) {
+            throw QBitException("Could not change entity marked for deletion")
+        }
+        if (refs[key as RefAttr<Any>] == value) {
+            return this
+        }
+
+        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
+    }
+
 }
 
 typealias EidResolver = (EID) -> StoredEntity?

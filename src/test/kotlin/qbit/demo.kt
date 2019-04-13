@@ -1,9 +1,7 @@
 package qbit
 
 import qbit.ns.Namespace
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
-import qbit.schema.eq
+import qbit.schema.*
 import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -11,7 +9,7 @@ import java.time.format.DateTimeFormatter
 
 val HHmm = DateTimeFormatter.ofPattern("HH:mm")
 
-fun main(args: Array<String>) {
+fun main() {
     val tweetNs = Namespace.of("demo", "tweet")
     val userNs = Namespace.of("demo", "user")
 
@@ -21,9 +19,10 @@ fun main(args: Array<String>) {
     val content = ScalarAttr(tweetNs["content"], QString)
     val author = RefAttr(tweetNs["author"])
     val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
+    val likes = RefListAttr(tweetNs["likes"])
 
     val conn = qbit(MemStorage())
-    conn.persist(name, lastLogin, content, author, date)
+    conn.persist(name, lastLogin, content, author, date, likes)
 
     val user = Entity(name eq "@azhidkov", lastLogin eq Instant.now())
     val tweet = Entity(content eq "Hello @HackDay",
@@ -34,4 +33,11 @@ fun main(args: Array<String>) {
 
     val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
     println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
+
+    val cris = Entity(name eq "@cris", lastLogin eq Instant.now())
+    var nTweet: StoredEntity = sTweet.set(likes, listOf(storedUser, cris))
+    nTweet = conn.persist(cris, nTweet).persistedEntities[1]
+
+    println(nTweet[content])
+    println(nTweet[likes].map { it[name] })
 }
