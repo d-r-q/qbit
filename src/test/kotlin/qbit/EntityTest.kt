@@ -48,4 +48,19 @@ class EntityTest {
         assertEquals(listOf("first"), e[attr])
     }
 
+    @Test
+    fun testSetAttrs() {
+        var e = Entity()
+        val _first = ScalarAttr(root["first"], QLong)
+        val _second = RefAttr(root["second"])
+        val _third = ListAttr(root["third"], QString)
+        val referee = Entity()
+        e = e.set(_first eq 1,
+                _second eq referee,
+                _third eq listOf("3"))
+        assertEquals(1, e[_first])
+        assertEquals(referee, e[_second])
+        assertEquals(listOf("3"), e[_third])
+
+    }
 }

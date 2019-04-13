@@ -35,7 +35,7 @@ fun main() {
     println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
 
     val cris = Entity(name eq "@cris", lastLogin eq Instant.now())
-    var nTweet: StoredEntity = sTweet.set(likes, listOf(storedUser, cris))
+    var nTweet: StoredEntity = sTweet.set(content eq "Array set works", likes eq listOf(storedUser, cris))
     nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
     println(nTweet[content])

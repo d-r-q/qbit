@@ -75,6 +75,8 @@ interface Entity : Entitiable {
 
     fun set(key: RefListAttr, value: List<Entity>): Entity
 
+    fun set(vararg values: AttrValue<Attr<*>, *>): Entity
+
     fun toIdentified(eid: EID): IdentifiedEntity
 }
 
@@ -147,6 +149,8 @@ interface StoredEntity : IdentifiedEntity {
 
     override fun set(key: RefListAttr, value: List<Entity>): StoredEntity
 
+    override fun set(vararg values: AttrValue<Attr<*>, *>): StoredEntity
+
     fun delete(): StoredEntity
 
 }
@@ -195,6 +199,21 @@ internal class MapEntity(
         val newRefs = HashMap(refs)
         newRefs[key as RefAttr<Any>] = value
         return MapEntity(map, newRefs, eidResolver)
+    }
+
+    override fun set(vararg values: AttrValue<Attr<*>, *>): MapEntity {
+        val newMap = HashMap(map)
+        val newRefs = HashMap(refs)
+        for (av in values) {
+            when (av) {
+                is ScalarAttrValue -> newMap[av.attr as Attr<Any>] = av.value
+                is ListAttrValue<*> -> newMap[av.attr as Attr<Any>] = av.value
+                is ScalarRefAttrValue -> newRefs[av.attr as RefAttr<Any>] = listOf(av.value)
+                is RefListAttrValue -> newRefs[av.attr as RefAttr<Any>] = av.value
+            }
+        }
+
+        return MapEntity(newMap, newRefs, eidResolver)
     }
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
@@ -285,6 +304,17 @@ private class StoredMapEntity(
         return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
     }
 
+    override fun set(vararg values: AttrValue<Attr<*>, *>): StoredEntity {
+
+        if (deleted) {
+            throw QBitException("Could not change entity marked for deletion")
+        }
+
+        if (values.any { this.getO(it.attr) == it.value }) {
+            return this
+        }
+        return StoredMapEntity(eid, delegate.set(*values), deleted, true)
+    }
 }
 
 typealias EidResolver = (EID) -> StoredEntity?
