@@ -7,7 +7,7 @@ import qbit.ns.Namespace
 // Interface
 
 
-interface Attr<T : Any> : Entitiable {
+interface Attr<out T : Any> : Entitiable {
 
     val name: Key
 
@@ -21,13 +21,13 @@ interface Attr<T : Any> : Entitiable {
 
 }
 
-interface RefAttr<T : Any> : Attr<T>
+interface RefAttr<out T : Any> : Attr<T>
 
 interface ScalarRefAttr : RefAttr<Entity>
 
-interface ScalarAttr<T : Any> : Attr<T>
+interface ScalarAttr<out T : Any> : Attr<T>
 
-interface ListAttr<T : Any> : Attr<List<T>> {
+interface ListAttr<out T : Any> : Attr<List<T>> {
 
     val itemsType: DataType<T>
 
@@ -92,8 +92,7 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val uniq
 
     private val map = mapOf(EAttr.name to name.toStr(), EAttr.type to type.code, EAttr.unique to unique, EAttr.list to list)
 
-    @Suppress("UNCHECKED_CAST")
-    override val keys: Set<ScalarAttr<out Any>> = map.keys
+    override val keys: Set<ScalarAttr<Any>> = map.keys
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> getO(key: Attr<T>): T? = (map as Map<Attr<T>, T>)[key]

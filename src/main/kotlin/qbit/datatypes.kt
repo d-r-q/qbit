@@ -28,9 +28,8 @@ import kotlin.reflect.KClass
  */
 
 @Suppress("UNCHECKED_CAST")
-sealed class DataType<T : Any> {
+sealed class DataType<out T : Any> {
 
-    abstract val kotlinType: KClass<T>
     abstract val code: Byte
 
     companion object {
@@ -54,8 +53,6 @@ sealed class DataType<T : Any> {
         }
     }
 
-    fun compare(v1: T, v2: T): Int = (v1 as Comparable<T>).compareTo(v2)
-
     fun list(): QList<T> {
         // TODO: make types hierarchy: Type -> List | (Scalar -> (Ref | Value))
         require(!isList()) { "Nested lists is not allowed" }
@@ -66,12 +63,9 @@ sealed class DataType<T : Any> {
 
 }
 
-data class QList<I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
+data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
     override val code = (32 + itemsType.code).toByte()
-
-    @Suppress("UNCHECKED_CAST")
-    override val kotlinType: KClass<List<I>> = List::class as KClass<List<I>>
 
 }
 
@@ -79,15 +73,11 @@ object QBoolean : DataType<Boolean>() {
 
     override val code = 0.toByte()
 
-    override val kotlinType = Boolean::class
-
 }
 
 object QByte : DataType<Byte>() {
 
     override val code = 1.toByte()
-
-    override val kotlinType = Byte::class
 
 }
 
@@ -95,15 +85,11 @@ object QInt : DataType<Int>() {
 
     override val code = 2.toByte()
 
-    override val kotlinType = Int::class
-
 }
 
 object QLong : DataType<Long>() {
 
     override val code = 3.toByte()
-
-    override val kotlinType = Long::class
 
 }
 
@@ -111,15 +97,11 @@ object QInstant : DataType<Instant>() {
 
     override val code = 4.toByte()
 
-    override val kotlinType = Instant::class
-
 }
 
 object QZonedDateTime : DataType<ZonedDateTime>() {
 
     override val code = 8.toByte()
-
-    override val kotlinType = ZonedDateTime::class
 
 }
 
@@ -127,15 +109,11 @@ object QString : DataType<String>() {
 
     override val code = 16.toByte()
 
-    override val kotlinType = String::class
-
 }
 
 object QBytes : DataType<ByteArray>() {
 
     override val code = 17.toByte()
-
-    override val kotlinType = ByteArray::class
 
 }
 
@@ -143,14 +121,10 @@ object QEntity : DataType<Entity>() {
 
     override val code = 18.toByte()
 
-    override val kotlinType = Entity::class
-
 }
 
 object QEID : DataType<EID>() {
 
     override val code = 19.toByte()
-
-    override val kotlinType = EID::class
 
 }

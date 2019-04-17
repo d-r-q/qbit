@@ -61,8 +61,7 @@ val avetCmp = Comparator<Fact> { o1, o2 ->
 }
 
 fun compareValues(v1: Any, v2: Any): Int {
-    val type = DataType.of(v1) ?: throw IllegalArgumentException("Unsupported type: $v1")
-    return type.compare(v1, v2)
+    return (v1 as Comparable<Any>).compareTo(v2)
 }
 
 class Index(
