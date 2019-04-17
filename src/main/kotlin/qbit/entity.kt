@@ -135,6 +135,10 @@ interface IdentifiedEntity : Entity {
 
     override fun set(key: ScalarRefAttr, value: Entity): IdentifiedEntity
 
+    override fun set(key: RefListAttr, value: List<Entity>): IdentifiedEntity
+
+    override fun set(vararg values: AttrValue<Attr<*>, *>): IdentifiedEntity
+
 }
 
 interface StoredEntity : IdentifiedEntity {
@@ -249,6 +253,10 @@ private class IdentifiedMapEntity(
 
     override fun set(key: RefListAttr, value: List<Entity>): IdentifiedEntity {
         return IdentifiedMapEntity(eid, delegate.set(key, value))
+    }
+
+    override fun set(vararg values: AttrValue<Attr<*>, *>): IdentifiedEntity {
+        return IdentifiedMapEntity(eid, delegate.set(*values))
     }
 
 }
