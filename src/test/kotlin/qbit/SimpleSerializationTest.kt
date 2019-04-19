@@ -27,7 +27,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeLong() {
-        testValues(longValues, { it -> serialize(it) }, { it -> deserialize(it, QLong) as Long })
+        testValues(longValues, { serialize(it) }, { deserialize(it, QLong) as Long })
     }
 
     @Test
@@ -49,7 +49,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testDeserializeInt() {
-        testValues(intValues, { it -> serialize(it) }, { it -> deserialize(it, QInt) as Int })
+        testValues(intValues, { serialize(it) }, { deserialize(it, QInt) as Int })
     }
 
     private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {

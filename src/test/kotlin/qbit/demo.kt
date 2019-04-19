@@ -10,7 +10,7 @@ import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-val HHmm = DateTimeFormatter.ofPattern("HH:mm")
+val HHmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 interface User : Entity, EntityHolder {
 

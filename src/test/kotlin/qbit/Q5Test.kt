@@ -65,12 +65,11 @@ fun main() {
 }
 
 fun parse(conn: LocalConn, sourceLine: String) {
-    val line = sourceLine
-    val fieldsV1 = line
+    val fieldsV1 = sourceLine
             .replace("\uFEFF", "") // Remove BOM
             .split("\",\"".toRegex())
             .map { it.trim('\"') }
-    val fieldsV2 = line
+    val fieldsV2 = sourceLine
             .replace("\uFEFF", "") // Remove BOM
             .split("\";\"".toRegex())
             .map { it.trim('\"') }

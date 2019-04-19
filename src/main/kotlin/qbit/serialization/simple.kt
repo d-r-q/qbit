@@ -130,8 +130,7 @@ internal fun <T : Any> deserialize(ins: InputStream, mark: DataType<T>): Any {
 }
 
 internal fun deserialize(ins: InputStream): Any {
-    val byte = ins.read()
-    val mark: DataType<out Any> = when (byte) {
+    val mark: DataType<Any> = when (val byte = ins.read()) {
         -1 -> throw DeserializationException(cause = EOFException())
         else -> (DataType.ofCode(byte.toByte())) ?: throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }

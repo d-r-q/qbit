@@ -23,38 +23,38 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    var trx = listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.name.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, QString.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, true))
+    val trx = mutableListOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.name.str()),
+            Fact(EID(iid.value, eid), EAttr.type, QString.code),
+            Fact(EID(iid.value, eid), EAttr.unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.type.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, QByte.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.type.str()),
+            Fact(EID(iid.value, eid), EAttr.type, QByte.code),
+            Fact(EID(iid.value, eid), EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.unique.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, QBoolean.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.unique.str()),
+            Fact(EID(iid.value, eid), EAttr.type, QBoolean.code),
+            Fact(EID(iid.value, eid), EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EAttr.list.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, QBoolean.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, qbit.EAttr.list.str()),
+            Fact(EID(iid.value, eid), EAttr.type, QBoolean.code),
+            Fact(EID(iid.value, eid), EAttr.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, forks.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, forks.type.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, forks.unique))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, forks.str()),
+            Fact(EID(iid.value, eid), EAttr.type, forks.type.code),
+            Fact(EID(iid.value, eid), EAttr.unique, forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, entitiesCount.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, entitiesCount.type.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, entitiesCount.unique))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, entitiesCount.str()),
+            Fact(EID(iid.value, eid), EAttr.type, entitiesCount.type.code),
+            Fact(EID(iid.value, eid), EAttr.unique, entitiesCount.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), qbit.EAttr.name, qbit.EInstance.iid.str()),
-            Fact(EID(iid.value, eid), qbit.EAttr.type, qbit.EInstance.iid.type.code),
-            Fact(EID(iid.value, eid), qbit.EAttr.unique, qbit.EInstance.iid.unique))
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EInstance.iid.str()),
+            Fact(EID(iid.value, eid), EAttr.type, EInstance.iid.type.code),
+            Fact(EID(iid.value, eid), EAttr.unique, EInstance.iid.unique))
     eid++
     trx += listOf(
-            Fact(EID(iid.value, eid), qbit.EInstance.iid, 0),
-            Fact(EID(iid.value, eid), qbit.EInstance.forks, 0),
-            Fact(EID(iid.value, eid), qbit.EInstance.entitiesCount, eid + 1)) // + 1 - is current (instance) entity
+            Fact(EID(iid.value, eid), EInstance.iid, 0),
+            Fact(EID(iid.value, eid), forks, 0),
+            Fact(EID(iid.value, eid), entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
     val root = Root(null, dbUuid, System.currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
@@ -90,7 +90,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
      * }
      */
     private val instanceEid =
-            db.query(hasAttr(qbit.EInstance.entitiesCount))
+            db.query(hasAttr(entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
                     .eid
 
@@ -122,9 +122,9 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
             val forkInstanceEid = EID(forkId.iid.value, 0)
 
-            instance = instance.set(qbit.EInstance.forks, forks + 1)
+            instance = instance.set(EInstance.forks, forks + 1)
 
-            val newInstance = Entity(qbit.EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
+            val newInstance = Entity(EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
             val newHead = writer.store( head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
             swapHead(newHead)
             return Pair(forkId, newHead)
@@ -150,7 +150,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
-                qbit.assert { es.all { it is StoredEntity && !it.dirty } }
+                assert { es.all { it is StoredEntity && !it.dirty } }
                 return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
             }
             validate(db, facts)
@@ -183,13 +183,13 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
                     }
                 }
                 it.entries.forEach { e ->
-                    if (e.attr is ScalarRefAttr) {
-                        val value: Entity? = e.value as? Entity
+                    if (e is ScalarRefAttrValue) {
+                        val value: Entity? = e.value
                         if (value != null && res[value] == null) {
                             body(singletonList(value))
                         }
-                    } else if (e.attr is RefListAttr) {
-                        body(e.value as Collection<Entitiable>)
+                    } else if (e is RefListAttrValue) {
+                        body(e.value)
                     }
                 }
             }

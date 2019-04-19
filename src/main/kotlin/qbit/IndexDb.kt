@@ -101,16 +101,16 @@ class IndexDb(internal val index: Index) : Db {
             val attrFacts = attrEidss
                     .map {
                         val e = index.entityById(it)!!
-                        val name = e[name.str()]!! as String
-                        val type = e[type.str()]!! as Byte
+                        val name = e.getValue(name.str()) as String
+                        val type = e.getValue(type.str()) as Byte
                         val unique = e[unique.str()] as? Boolean ?: false
                         val list = e[list.str()] as? Boolean ?: false
                         val attr: Attr<Any> =
                                 when {
-                                    list && type == QEntity.code -> RefListAttr(name, unique) as Attr<Any>
-                                    type == QEntity.code -> RefAttr(name, unique) as Attr<Any>
-                                    list -> ListAttr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
-                                    else -> Attr(name, DataType.ofCode(type)!!, unique) as Attr<Any>
+                                    list && type == QEntity.code -> RefListAttr(name, unique)
+                                    type == QEntity.code -> RefAttr(name, unique)
+                                    list -> ListAttr(name, DataType.ofCode(type)!!, unique)
+                                    else -> Attr(name, DataType.ofCode(type)!!, unique)
                                 }
                         (name to attr)
                     }

@@ -24,7 +24,7 @@ const val timePattern = "HH:mm"
 
 val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 
-fun main(args: Array<String>) {
+fun main() {
     var totalTime = 0L
     val iterations = 100
     for (i in 0..iterations) {
