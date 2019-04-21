@@ -63,8 +63,8 @@ class LocalConnTest {
 
         val deletedPulledE2 = conn.db.pull(se.eid)
         assertNull(deletedPulledE2)
-        assertEquals(0, conn.db.query(attrIs(_attr, "value")).size)
-        assertEquals(0, conn.db.query(attrIs(_attr, "value2")).size)
+        assertEquals(0, conn.db.query(attrIs(_attr, "value")).count())
+        assertEquals(0, conn.db.query(attrIs(_attr, "value2")).count())
     }
 
     @Test

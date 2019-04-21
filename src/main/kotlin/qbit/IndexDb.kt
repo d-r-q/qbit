@@ -54,7 +54,7 @@ interface Db {
 
     fun pull(eid: EID): StoredEntity?
 
-    fun query(vararg preds: QueryPred): List<StoredEntity>
+    fun query(vararg preds: QueryPred): Sequence<StoredEntity>
 
     fun attr(attr: String): Attr<Any>?
 
@@ -74,21 +74,47 @@ class IndexDb(internal val index: Index) : Db {
         return Entity(eid, attrValues, this)
     }
 
-    override fun query(vararg preds: QueryPred): List<StoredEntity> {
-        val eidSets = ArrayList<Set<EID>>(preds.size)
-        var minSet: Set<EID>? = null
-        for (pred in preds) {
-            eidSets.add(index.eidsByPred(pred))
-            if (minSet == null || eidSets.last().size < minSet.size) {
-                minSet = eidSets.last()
-            }
-        }
-        eidSets.remove(minSet)
-        val res = minSet!!.toMutableSet()
-        if (eidSets.size > 0) {
-            res.removeIf { e -> eidSets.any { !it.contains(e) } }
-        }
-        return res.map { pull(it)!! }
+    override fun query(vararg preds: QueryPred): Sequence<StoredEntity> {
+        // filters data + base sequence data
+        val arrayOfFalse = { Array(preds.size) { false } }
+
+        val base = index.eidsByPred(preds[0])
+        val filters: List<Iterator<EID>> = preds.drop(1).map { index.eidsByPred(it).iterator() }
+
+        // eids, that were fetched from filtering sequences while candidates checking
+        val seenEids = hashMapOf<EID, Array<Boolean>>()
+
+        return base // iterate candidates and check that candidate matches filters
+                .filter { cEid ->
+                    val filtersSeenEid = seenEids.getOrPut(cEid, arrayOfFalse)
+
+                    if (filtersSeenEid.all { it }) {
+                        // the eid already has been returned, so skip duplicate
+                        return@filter false
+                    }
+
+                    // seek all filters for the eid
+                    filtersSeenEid
+                            .take(filters.size)
+                            .withIndex()
+                            .filterNot { f -> f.value } // for filters for which the eid was not seen yet...
+                            .forEach { f -> // seek it for the eid
+                                val matches = filters[f.index].asSequence() // "enrich" iterator with takeWhile
+                                        .onEach { fEid ->
+                                            // remember what we saw in process of...
+                                            seenEids.getOrPut(fEid, arrayOfFalse)[f.index] = true
+                                        }
+                                        .any { fEid -> fEid == cEid } // searching of the eid
+
+                                // if the eid has been found, then it has been seen in the filter
+                                seenEids.getValue(cEid)[f.index] = matches
+                            }
+
+                    // candidate is matches if it has been seen in all filters
+                    filtersSeenEid[filtersSeenEid.size - 1] = true // mark, that eid was seen for base sequence
+                    filtersSeenEid.all { it }
+                }
+                .map { pull(it)!! }
     }
 
     override fun attr(attr: String): Attr<Any>? = schema[attr]

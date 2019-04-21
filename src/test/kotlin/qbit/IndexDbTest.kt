@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import qbit.ns.root
+import qbit.schema.ListAttr
 import qbit.schema.ScalarAttr
 import qbit.schema.eq
 
@@ -28,7 +29,24 @@ class DbTest {
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(eid2), db.query(attrIn(_date, 1L, 3L), attrIs(_cat, "C2")).map { it.eid }.toTypedArray())
+        assertArrayEquals(arrayOf(eid2), db.query(attrIn(_date, 1L, 3L), attrIs(_cat, "C2")).map { it.eid }.toList().toTypedArray())
     }
 
+    @Test
+    fun testFetchEidsDeduplication() {
+        val dbUuid = DbUuid(IID(0, 1))
+        val time1 = System.currentTimeMillis()
+        val eids = EID(0, 0).nextEids()
+
+        val _cat = ListAttr(root["cat"], QString)
+
+        val cat = Entity(EAttr.name eq _cat.str(), EAttr.type eq QString.code)
+        val e1 = Entity(_cat eq listOf("C1", "C2"))
+        val theEid = eids.next()
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((cat.toFacts(eids.next()) + e1.toFacts(theEid)).toTypedArray()))
+        val index = Index(Graph { null }, root)
+
+        val db = IndexDb(index)
+        assertArrayEquals(arrayOf(theEid), db.query(attrIn(_cat, "C1", "C3")).map { it.eid }.toList().toTypedArray())
+    }
 }

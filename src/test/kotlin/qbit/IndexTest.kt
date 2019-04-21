@@ -50,12 +50,12 @@ class IndexTest {
                 ))
 
         var lst = idx.eidsByPred(AttrValuePred("/uid", 1))
-        assertEquals(2, lst.size)
+        assertEquals(2, lst.count())
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
 
         lst = idx.eidsByPred(AttrValuePred("/foo", "bar"))
-        assertEquals(2, lst.size)
+        assertEquals(2, lst.count())
         assertEquals(1, lst.sorted().toList()[0].eid)
         assertEquals(2, lst.sorted().toList()[1].eid)
 
@@ -75,8 +75,8 @@ class IndexTest {
                         f(2, _foo, "baz")
                 ))
 
-        assertEquals(2, idx.eidsByPred(AttrPred("/uid")).size)
-        assertEquals(3, idx.eidsByPred(AttrPred("/foo")).size)
+        assertEquals(2, idx.eidsByPred(AttrPred("/uid")).count())
+        assertEquals(3, idx.eidsByPred(AttrPred("/foo")).count())
     }
 
     @Test
@@ -99,9 +99,9 @@ class IndexTest {
                 Fact(eid, _attr3, 0))))
 
         val index = Index(Graph { null }, n3)
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).size)
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).size)
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).size)
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
+        assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
         assertEquals(1, index.entities.size)
         assertEquals(2, index.entityById(eid)!!.getValue("/attr1"))
         assertEquals(1, index.entityById(eid)!!.getValue("/attr2"))
@@ -130,19 +130,19 @@ class IndexTest {
         val index = Index(Graph { null }, root)
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
-        assertEquals(1, vRes.size)
+        assertEquals(1, vRes.count())
         assertEquals(eid1, vRes.first())
 
         assertArrayEquals(arrayOf(eid0, eid1, eid2),
-                index.eidsByPred(attrIn(_date, 1L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 1L, 3L)).toList().toTypedArray())
         assertArrayEquals(arrayOf(eid0, eid1, eid2, eid3),
-                index.eidsByPred(attrIn(_date, 0L, 5L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 0L, 5L)).toList().toTypedArray())
         assertArrayEquals(arrayOf(eid1, eid2),
-                index.eidsByPred(attrIn(_date, 2L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
         assertArrayEquals(arrayOf(eid0, eid1),
-                index.eidsByPred(attrIn(_date, 1L, 2L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray())
         assertArrayEquals(arrayOf(eid1, eid2),
-                index.eidsByPred(attrIn(_date, 2L, 3L)).toTypedArray())
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {

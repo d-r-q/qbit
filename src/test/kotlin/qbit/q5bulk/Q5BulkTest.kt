@@ -71,7 +71,7 @@ fun main() {
         start = System.currentTimeMillis()
         val res = conn.db.query(attrIn(trxDateTime, dateTimeFormat.parse("01.06.2018 00:00").time, dateTimeFormat.parse("30.06.2018 23:59").time))
         stop = System.currentTimeMillis()
-        println("${stop - start}: ${res.size}")
+        println("${stop - start}: ${res.count()}")
     }
     println("Avg time: ${totalTime / (iterations - 2)}")
 }

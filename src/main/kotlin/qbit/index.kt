@@ -48,7 +48,7 @@ fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
             .firstOrNull() ?: 0
 }
 
-val avetCmp = Comparator<Fact> { o1, o2 ->
+val aveCmp = Comparator<Fact> { o1, o2 ->
 
     var res = o1.attr.compareTo(o2.attr)
     if (res == 0) {
@@ -61,6 +61,7 @@ val avetCmp = Comparator<Fact> { o1, o2 ->
 }
 
 fun compareValues(v1: Any, v2: Any): Int {
+    @Suppress("UNCHECKED_CAST")
     return (v1 as Comparable<Any>).compareTo(v2)
 }
 
@@ -76,15 +77,15 @@ class Index(
         return add(entities)
     }
 
-    fun add(entites: List<RawEntity>): Index {
-        val newEntitiyes = HashMap(entities)
+    fun add(entities: List<RawEntity>): Index {
+        val newEntities = HashMap(this.entities)
         val newIndex = ArrayList(index)
 
-        for (e in entites) {
+        for (e in entities) {
             val prev = if (e.second.isNotEmpty()) {
-                newEntitiyes.put(e.first, e)
+                newEntities.put(e.first, e)
             } else {
-                newEntitiyes.remove(e.first)
+                newEntities.remove(e.first)
             }
             if (prev != null) {
                 newIndex.removeAll(prev.second)
@@ -92,7 +93,7 @@ class Index(
             newIndex.addAll(e.second)
         }
 
-        return Index(newEntitiyes, newIndex.sortedWith(avetCmp))
+        return Index(newEntities, newIndex.sortedWith(aveCmp))
     }
 
     fun add(e: RawEntity): Index {
@@ -110,7 +111,7 @@ class Index(
                         }
                     }
 
-    fun eidsByPred(pred: QueryPred): Set<EID> {
+    fun eidsByPred(pred: QueryPred): Sequence<EID> {
         val fromIdx = index.firstMatchIdx {
             if (it.attr == pred.attrName) {
                 pred.compareTo(it.value)
@@ -119,12 +120,12 @@ class Index(
             }
         }
         if (fromIdx < 0 || fromIdx == index.size) {
-            return emptySet()
+            return emptySequence()
         }
         return index.subList(fromIdx)
+                .asSequence()
                 .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
                 .map { it.eid }
-                .toSet()
     }
 
 }
