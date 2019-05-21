@@ -1,9 +1,6 @@
 package qbit.mapping
 
-import qbit.Db
-import qbit.EID
-import qbit.Entity
-import qbit.IdentifiedEntity
+import qbit.*
 import java.lang.IllegalStateException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -61,3 +58,5 @@ fun <T> proxy(entity: Entity, clazz: Class<T>): T {
 }
 
 inline fun <reified T> Db.pullAs(eid: EID): T? = this.pull(eid)?.let { proxy(it, T::class.java) }
+
+inline fun <reified T> Db.queryAs(vararg preds: QueryPred): Sequence<T> = this.query(*preds).map { proxy(it, T::class.java) }
