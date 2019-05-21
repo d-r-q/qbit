@@ -35,7 +35,7 @@ fun main() {
         }
 
         var start = System.currentTimeMillis()
-        val conn = qbit(FileSystemStorage(dbDir.toPath()))
+        val conn = qbit(FileSystemStorage(dbDir))
         var stop = System.currentTimeMillis()
         println("${stop - start}")
 

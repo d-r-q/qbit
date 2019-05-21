@@ -5,12 +5,10 @@ import qbit.ns.Key
 import qbit.QBitException
 import java.io.File
 import java.io.IOException
-import java.nio.file.Path
-import java.nio.file.Paths
 
-class FileSystemStorage(private val root: Path) : Storage {
+class FileSystemStorage(private val root: File) : Storage {
 
-    constructor(root: Path, origin: Storage) : this(root) {
+    constructor(root: File, origin: Storage) : this(root) {
         fun copyNs(ns: Namespace) {
             origin.keys(ns).forEach {
                 add(it, origin.load(it)!!)
@@ -24,7 +22,7 @@ class FileSystemStorage(private val root: Path) : Storage {
 
     @Throws(IOException::class)
     override fun add(key: Key, value: ByteArray) {
-        val dir = root.resolve(key.ns.toPath()).toFile()
+        val dir = root.resolve(key.ns.toFile())
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
                 throw IOException("Could not create directory for namespace: ${dir.absolutePath}")
@@ -38,7 +36,7 @@ class FileSystemStorage(private val root: Path) : Storage {
     }
 
     override fun overwrite(key: Key, value: ByteArray) {
-        val file = File(root.resolve(key.ns.toPath()).toFile(), key.name)
+        val file = File(root.resolve(key.ns.toFile()), key.name)
         if (!file.exists()) {
             throw QBitException("Value with key $key does not exists")
         }
@@ -47,7 +45,7 @@ class FileSystemStorage(private val root: Path) : Storage {
 
     @Throws(IOException::class)
     override fun load(key: Key): ByteArray? {
-        val file = root.resolve(key.ns.toPath().resolve(key.name)).toFile()
+        val file = root.resolve(key.ns.toFile().resolve(key.name))
         if (!file.exists()) {
             return null
         }
@@ -56,22 +54,22 @@ class FileSystemStorage(private val root: Path) : Storage {
 
     @Throws(IOException::class)
     override fun keys(namespace: Namespace): Collection<Key> {
-        val dir = root.resolve(namespace.toPath()).toFile()
+        val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isFile }
                 .map { namespace[it.name] }
     }
 
     @Throws(IOException::class)
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> {
-        val dir = root.resolve(namespace.toPath()).toFile()
+        val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isDirectory }
                 .map { namespace.subNs(it.name) }
     }
 
     override fun hasKey(key: Key): Boolean {
-        return File(root.resolve(key.ns.toPath()).toFile(), key.name).exists()
+        return File(root.resolve(key.ns.toFile()), key.name).exists()
     }
 
-    private fun Namespace.toPath(): Path = (this.parent?.toPath() ?: Paths.get("")).resolve(this.name)
+    private fun Namespace.toFile(): File = (this.parent?.toFile() ?: File("")).resolve(this.name)
 
 }
