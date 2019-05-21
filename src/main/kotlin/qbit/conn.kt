@@ -4,7 +4,7 @@ import qbit.EInstance.entitiesCount
 import qbit.EInstance.forks
 import qbit.EInstance.iid
 import qbit.ns.Namespace
-import qbit.schema.*
+import qbit.schema.eq
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 import java.util.*
@@ -77,8 +77,8 @@ interface Conn {
 class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var head: NodeVal<Hash>) : Conn {
 
     private val nodesStorage = NodesStorage(storage)
-    private val graph = Graph(nodesStorage)
-    private val writer = Writer(nodesStorage, dbUuid)
+    internal val graph = Graph(nodesStorage)
+    internal val writer = Writer(nodesStorage, dbUuid)
 
     var db = IndexDb(Index(graph, head))
 
@@ -89,27 +89,18 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
      *   entities - count of entities created by this instance
      * }
      */
-    private val instanceEid =
+    internal val instanceEid =
             db.query(hasAttr(entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
                     .eid
 
-    private fun swapHead(newHead: NodeVal<Hash>) {
-        head = newHead
-        db = if (newHead is Merge) {
-            IndexDb(Index(graph, newHead))
-        } else {
-            val entities = newHead.data.trx.toList()
-                    .groupBy { it.eid }
-                    .map {
-                        if (!it.value[0].deleted) {
-                            it.key to it.value
-                        } else {
-                            it.key to emptyList()
-                        }
-                    }
-            IndexDb(db.index.add(entities))
+    internal fun swapHead(oldHead: NodeVal<Hash>, newHead: NodeVal<Hash>) {
+        if (head != oldHead) {
+            // todo: implement merges
+            throw QBitException("Concurrent modification")
         }
+        head = newHead
+        db = db(graph, db, newHead)
 
         storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
     }
@@ -126,12 +117,70 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
             val newInstance = Entity(EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
             val newHead = writer.store( head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
-            swapHead(newHead)
+            swapHead(head, newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
+    fun persist(e: Entitiable): WriteResult {
+        return persist(singleton(e))
+    }
+
+    fun persist(vararg es: Entitiable): WriteResult =
+            persist(es.asList())
+
+    fun persist(es: Collection<Entitiable>): WriteResult {
+        val trx = trx()
+        val res = trx.persist(es)
+        trx.commit()
+        return res
+    }
+
+    fun trx() =
+            QbitTrx(this, DbState(head, db))
+
+
+    override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
+        val newDb = writer.appendGraph(noveltyRoot)
+        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).asSequence().map { it.hash }.toSet())
+        val head = writer.appendNode(merge(head, newDb))
+        swapHead(this.head, head)
+        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, head.timestamp, head.data)
+    }
+
+    private fun merge(head1: Node<Hash>, head2: Node<Hash>): Merge<Hash?> =
+            Merge(null, head1, head2, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
+
+}
+
+class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable, StoredEntity>) {
+
+    operator fun component1(): Db = db
+
+    operator fun component2(): Map<Entitiable, StoredEntity> = createdEntities
+
+    operator fun component3(): StoredEntity = persistedEntities[0]
+
+    operator fun component4(): StoredEntity = persistedEntities[1]
+
+    operator fun component5(): StoredEntity = persistedEntities[2]
+
+    operator fun component6(): StoredEntity = persistedEntities[3]
+
+    operator fun component7(): StoredEntity = persistedEntities[4]
+
+    operator fun component8(): StoredEntity = persistedEntities[5]
+
+    fun storedEntity(): StoredEntity =
+            persistedEntities[0]
+
+}
+
+class QbitTrx internal constructor(val conn: LocalConn, private val base: DbState, private var state: DbState? = null) {
+
+    private val baseState
+        get() = this.state ?: this.base
 
     fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
@@ -141,27 +190,49 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             persist(es.asList())
 
     fun persist(es: Collection<Entitiable>): WriteResult {
+        val (res, newState) = persistImpl(es)
+        this.state = newState
+        return res
+    }
+
+    fun commit() {
+        val lstate = state
+        if (lstate != null) {
+            conn.swapHead(base.head, lstate.head)
+            state = DbState(conn.head, conn.db)
+        }
+    }
+
+    fun rollback() {
+        state = null
+        // todo: delete nodes up to conn.head
+    }
+
+    private fun persistImpl(es: Collection<Entitiable>): Pair<WriteResult, DbState> {
         try {
             // TODO: check for conflict modifications in parallel threads
 
-            val instance = db.pull(instanceEid) ?: throw QBitException("Corrupted database metadata")
-            val eids = EID(dbUuid.iid.value, instance[entitiesCount]).nextEids()
+            val db = baseState.db
+
+            val instance = db.pull(conn.instanceEid) ?: throw QBitException("Corrupted database metadata")
+            val eids = EID(conn.dbUuid.iid.value, instance[entitiesCount]).nextEids()
 
             val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
                 assert { es.all { it is StoredEntity && !it.dirty } }
-                return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap())
+                return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap()) to DbState(baseState.head, db)
             }
-            validate(db, facts)
-            persistFacts(facts)
+            validate(baseState.db, facts)
+            val newHead = persistFacts(facts)
+            val newDb = db(conn.graph, baseState.db, newHead)
 
             val persistedEntities = es
                     .filter { !((it as? StoredEntity)?.deleted ?: false) }
-                    .map { Entity(allEs[it]!!.eid, db) }.toList()
-            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, db) }
+                    .map { Entity(allEs[it]!!.eid, newDb) }.toList()
+            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, newDb) }
 
-            return WriteResult(db, persistedEntities, createdEntities)
+            return WriteResult(db, persistedEntities, createdEntities) to DbState(newHead, newDb)
 
         } catch (qe: QBitException) {
             throw qe
@@ -212,43 +283,26 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         return facts
     }
 
-    private fun persistFacts(facts: MutableList<Fact>) {
-        val newHead = writer.store(head, facts)
-        swapHead(newHead)
+    private fun persistFacts(facts: MutableList<Fact>): NodeVal<Hash> {
+        return conn.writer.store(baseState.head, facts)
     }
-
-    override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
-        val newDb = writer.appendGraph(noveltyRoot)
-        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).asSequence().map { it.hash }.toSet())
-        val head = writer.appendNode(merge(head, newDb))
-        swapHead(head)
-        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, head.timestamp, head.data)
-    }
-
-    private fun merge(head1: Node<Hash>, head2: Node<Hash>): Merge<Hash?> =
-            Merge(null, head1, head2, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
-
 }
 
-class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable, StoredEntity>) {
+internal class DbState(val head: NodeVal<Hash>, val db: IndexDb)
 
-    operator fun component1(): Db = db
-
-    operator fun component2(): Map<Entitiable, StoredEntity> = createdEntities
-
-    operator fun component3(): StoredEntity = persistedEntities[0]
-
-    operator fun component4(): StoredEntity = persistedEntities[1]
-
-    operator fun component5(): StoredEntity = persistedEntities[2]
-
-    operator fun component6(): StoredEntity = persistedEntities[3]
-
-    operator fun component7(): StoredEntity = persistedEntities[4]
-
-    operator fun component8(): StoredEntity = persistedEntities[5]
-
-    fun storedEntity(): StoredEntity =
-            persistedEntities[0]
-
+internal fun db(graph: Graph, oldDb: IndexDb, newHead: NodeVal<Hash>): IndexDb {
+    return if (newHead is Merge) {
+        IndexDb(Index(graph, newHead))
+    } else {
+        val entities = newHead.data.trx.toList()
+                .groupBy { it.eid }
+                .map {
+                    if (!it.value[0].deleted) {
+                        it.key to it.value
+                    } else {
+                        it.key to emptyList()
+                    }
+                }
+        IndexDb(oldDb.index.add(entities))
+    }
 }
