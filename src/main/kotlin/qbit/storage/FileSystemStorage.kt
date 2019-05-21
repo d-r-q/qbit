@@ -4,6 +4,7 @@ import qbit.ns.Namespace
 import qbit.ns.Key
 import qbit.QBitException
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class FileSystemStorage(private val root: File) : Storage {
@@ -32,7 +33,8 @@ class FileSystemStorage(private val root: File) : Storage {
         if (!file.createNewFile()) {
             throw QBitException("Value with key $key already exists")
         }
-        file.writeBytes(value)
+
+        writeAndSync(file, value)
     }
 
     override fun overwrite(key: Key, value: ByteArray) {
@@ -40,7 +42,8 @@ class FileSystemStorage(private val root: File) : Storage {
         if (!file.exists()) {
             throw QBitException("Value with key $key does not exists")
         }
-        file.writeBytes(value)
+
+        writeAndSync(file, value)
     }
 
     @Throws(IOException::class)
@@ -71,5 +74,14 @@ class FileSystemStorage(private val root: File) : Storage {
     }
 
     private fun Namespace.toFile(): File = (this.parent?.toFile() ?: File("")).resolve(this.name)
+
+    private fun writeAndSync(file: File, data: ByteArray) {
+        val fos = FileOutputStream(file)
+        fos.use {
+            fos.write(data)
+            fos.flush()
+            fos.fd.sync()
+        }
+    }
 
 }
