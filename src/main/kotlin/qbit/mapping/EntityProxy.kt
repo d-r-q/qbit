@@ -39,9 +39,11 @@ private class EntityProxy<T>(private var entity: Entity, private val clazz: Clas
                     it
                 }
             }
-            if (args == null && name in method2attr) {
-                entity[method2attr.getValue(name)]
-            } else if (args?.size == 1 && name in method2attr) {
+            if (args == null) {
+                method2attr[name]?.let {
+                    entity.getO(it)
+                }
+            } else if (args.size == 1 && name in method2attr) {
                 val newEntity = entity.set(method2attr.getValue(name), args[0])
                 if (method.returnType == Void.TYPE) {
                     entity = newEntity
