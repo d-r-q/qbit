@@ -14,7 +14,7 @@ interface EntityHolder {
 
 }
 
-private class EntityProxy<T>(private val entity: Entity, private val clazz: Class<T>) : InvocationHandler {
+private class EntityProxy<T>(private var entity: Entity, private val clazz: Class<T>) : InvocationHandler {
 
     private val method2attr = entity.keys
             .map { it.name.name to it }
@@ -32,11 +32,23 @@ private class EntityProxy<T>(private val entity: Entity, private val clazz: Clas
                 method.invoke(entity, args)
             }
         } else {
-            val name = method.name
+            val name = method.name.let {
+                if (it.startsWith("set") || it.startsWith("get")) {
+                    it[3].toLowerCase() + it.substring(4)
+                } else {
+                    it
+                }
+            }
             if (args == null && name in method2attr) {
                 entity[method2attr.getValue(name)]
             } else if (args?.size == 1 && name in method2attr) {
-                proxy(entity.set(method2attr.getValue(name), args[0]), clazz)
+                val newEntity = entity.set(method2attr.getValue(name), args[0])
+                if (method.returnType == Void.TYPE) {
+                    entity = newEntity
+                    Unit
+                } else {
+                    proxy(newEntity, clazz)
+                }
             } else {
                 throw IllegalStateException("Method $method could not be implemented")
             }
