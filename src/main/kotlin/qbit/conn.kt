@@ -4,6 +4,7 @@ import qbit.EInstance.entitiesCount
 import qbit.EInstance.forks
 import qbit.EInstance.iid
 import qbit.ns.Namespace
+import qbit.schema.Attr
 import qbit.schema.eq
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
@@ -223,7 +224,8 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
                 assert { es.all { it is StoredEntity && !it.dirty } }
                 return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap()) to DbState(baseState.head, db)
             }
-            validate(baseState.db, facts)
+            val newAttrs = es.filterIsInstance<Attr<*>>()
+            validate(baseState.db, facts, newAttrs)
             val newHead = persistFacts(facts)
             val newDb = db(conn.graph, baseState.db, newHead)
 

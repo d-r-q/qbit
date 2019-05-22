@@ -2,8 +2,9 @@ package qbit
 
 import qbit.schema.Attr
 
-fun validate(db: Db, facts: List<Fact>) {
-    val factAttrs = facts.map { it.attr to db.attr(it.attr) }.toMap()
+fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
+    val newAttrsByName = newAttrs.associateBy { it.str() }
+    val factAttrs = facts.map { it.attr to (db.attr(it.attr) ?: newAttrsByName[it.attr]) }.toMap()
     val unknownAttrNames = factAttrs
             .filter { it.value == null }
             .map { it.key }
