@@ -1,7 +1,6 @@
 package qbit
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Test
 import qbit.ns.root
 import qbit.schema.Attr
@@ -16,9 +15,9 @@ class IndexTest {
 
     @Test
     fun testVaet() {
-        val f1 = Fact(EID(1, 0), "attr1", "value1", false)
-        val f2 = Fact(EID(2, 0), "attr2", "value2", false)
-        val f3 = Fact(EID(3, 0), "attr3", "value3", false)
+        val f1 = Fact(EID(1, 0), "attr1", "value1")
+        val f2 = Fact(EID(2, 0), "attr2", "value2")
+        val f3 = Fact(EID(3, 0), "attr3", "value3")
 
         assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
 
@@ -143,6 +142,21 @@ class IndexTest {
                 index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray())
         assertArrayEquals(arrayOf(eid1, eid2),
                 index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
+    }
+
+    @Test
+    fun testLoadTombstones() {
+        val dbUuid = DbUuid(IID(0, 1))
+        val time1 = System.currentTimeMillis()
+        val eid = EID(0, 0)
+        val _attr1 = ScalarAttr(root["attr1"], QInt)
+
+        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
+        val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
+                Fact(eid, tombstone, true)
+        )))
+        val index = Index(Graph { null }, n2)
+        assertNull(index.entityById(eid))
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {

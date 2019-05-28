@@ -4,7 +4,7 @@ import qbit.storage.NodesStorage
 
 class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
 
-    fun store(head: Node<Hash>, e: List<Fact>): NodeVal<Hash> {
+    fun store(head: Node<Hash>, e: Collection<Fact>): NodeVal<Hash> {
         try {
             return store(head, *e.toTypedArray())
         } catch (e: Exception) {

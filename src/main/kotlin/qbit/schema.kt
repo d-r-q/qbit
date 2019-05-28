@@ -23,3 +23,5 @@ object EInstance {
     val iid: ScalarAttr<Int> = ScalarAttr(qbitInstance["iid"], QInt, true)
 
 }
+
+val tombstone = ScalarAttr(Namespace.of("qbit")["tombstone"], QBoolean, false)

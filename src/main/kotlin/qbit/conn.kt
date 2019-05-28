@@ -52,6 +52,10 @@ fun qbit(storage: Storage): LocalConn {
             Fact(EID(iid.value, eid), EAttr.type, EInstance.iid.type.code),
             Fact(EID(iid.value, eid), EAttr.unique, EInstance.iid.unique))
     eid++
+    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, tombstone.str()),
+            Fact(EID(iid.value, eid), EAttr.type, tombstone.type.code),
+            Fact(EID(iid.value, eid), EAttr.unique, tombstone.unique))
+    eid++
     trx += listOf(
             Fact(EID(iid.value, eid), EInstance.iid, 0),
             Fact(EID(iid.value, eid), forks, 0),
@@ -117,13 +121,14 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
             instance = instance.set(EInstance.forks, forks + 1)
 
             val newInstance = Entity(EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
-            val newHead = writer.store( head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
+            val newHead = writer.store(head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
             swapHead(head, newHead)
             return Pair(forkId, newHead)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
     }
+
     fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
     }
@@ -136,6 +141,16 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         val res = trx.persist(es)
         trx.commit()
         return res
+    }
+
+    fun delete(vararg eids: EID) {
+        delete(eids.asList())
+    }
+
+    fun delete(eids: Collection<EID>) {
+        val trx = trx()
+        trx.delete(eids)
+        trx.commit()
     }
 
     fun trx() =
@@ -196,6 +211,10 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         return res
     }
 
+    fun delete(eids: Collection<EID>) {
+        this.state = deleteImpl(eids)
+    }
+
     fun commit() {
         val lstate = state
         if (lstate != null) {
@@ -212,6 +231,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
     private fun persistImpl(es: Collection<Entitiable>): Pair<WriteResult, DbState> {
         try {
             // TODO: check for conflict modifications in parallel threads
+            // TODO: now persistence of entity with all attr removes is noop
 
             val db = baseState.db
 
@@ -230,7 +250,6 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val newDb = db(conn.graph, baseState.db, newHead)
 
             val persistedEntities = es
-                    .filter { !((it as? StoredEntity)?.deleted ?: false) }
                     .map { Entity(allEs[it]!!.eid, newDb) }.toList()
             val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, newDb) }
 
@@ -285,9 +304,16 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         return facts
     }
 
-    private fun persistFacts(facts: MutableList<Fact>): NodeVal<Hash> {
+    private fun deleteImpl(eids: Collection<EID>): DbState {
+        val tombstones = eids.map { Fact(it, tombstone, true) }
+        val newHead = persistFacts(tombstones)
+        return DbState(newHead, db(conn.graph, baseState.db, newHead))
+    }
+
+    private fun persistFacts(facts: Collection<Fact>): NodeVal<Hash> {
         return conn.writer.store(baseState.head, facts)
     }
+
 }
 
 internal class DbState(val head: NodeVal<Hash>, val db: IndexDb)
@@ -298,13 +324,7 @@ internal fun db(graph: Graph, oldDb: IndexDb, newHead: NodeVal<Hash>): IndexDb {
     } else {
         val entities = newHead.data.trx.toList()
                 .groupBy { it.eid }
-                .map {
-                    if (!it.value[0].deleted) {
-                        it.key to it.value
-                    } else {
-                        it.key to emptyList()
-                    }
-                }
+                .map { it.key to it.value }
         IndexDb(oldDb.index.add(entities))
     }
 }

@@ -42,7 +42,7 @@ internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): 
                 .toMap(HashMap()) as MutableMap<RefAttr<Any>, List<Entity>>,
 
         EntityCache(QBitEidResolver(db)),
-        deleted = false, dirty = false)
+        dirty = false)
 
 // TODO: make it lazy
 internal fun Entity(eid: EID, db: Db): StoredEntity = db.pull(eid)!!
@@ -94,31 +94,27 @@ internal fun <T : Entity> T.setRefs(ref2eid: IdentityHashMap<Entitiable, Identif
                 }
 
 internal fun Entitiable.toFacts(eid: EID): Collection<Fact> =
-        this.toFacts(eid, false)
-
-
-internal fun Entitiable.toFacts(eid: EID, deleted: Boolean): Collection<Fact> =
         this.entries.flatMap { (attr: Attr<Any>, value) ->
             when (attr) {
-                is ScalarRefAttr -> singleton(refToFacts(eid, attr, value, deleted))
-                is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>, deleted)
-                is RefListAttr -> refListToFacts(eid, attr, value as List<Entity>, deleted)
-                else -> singleton(attrToFacts(eid, attr, value, deleted))
+                is ScalarRefAttr -> singleton(refToFacts(eid, attr, value))
+                is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>)
+                is RefListAttr -> refListToFacts(eid, attr, value as List<Entity>)
+                else -> singleton(attrToFacts(eid, attr, value))
             }
         }
 
 
-internal fun <T : Any> attrToFacts(eid: EID, attr: Attr<T>, value: T, deleted: Boolean) =
-        Fact(eid, attr, value, deleted)
+internal fun <T : Any> attrToFacts(eid: EID, attr: Attr<T>, value: T) =
+        Fact(eid, attr, value)
 
-internal fun refToFacts(eid: EID, attr: ScalarRefAttr, value: Any, deleted: Boolean) =
-        Fact(eid, attr, eidOf(value)!!, deleted)
+internal fun refToFacts(eid: EID, attr: ScalarRefAttr, value: Any) =
+        Fact(eid, attr, eidOf(value)!!)
 
-internal fun listToFacts(eid: EID, attr: ListAttr<*>, value: List<Any>, deleted: Boolean) =
-        value.map { Fact(eid, attr, it, deleted) }
+internal fun listToFacts(eid: EID, attr: ListAttr<*>, value: List<Any>) =
+        value.map { Fact(eid, attr, it) }
 
-internal fun refListToFacts(eid: EID, attr: RefListAttr, value: List<Entity>, deleted: Boolean) =
-        value.map { Fact(eid, attr, eidOf(it)!!, deleted) }
+internal fun refListToFacts(eid: EID, attr: RefListAttr, value: List<Entity>) =
+        value.map { Fact(eid, attr, eidOf(it)!!) }
 
 internal fun eidOf(a: Any): EID? =
         when (a) {
@@ -143,8 +139,6 @@ interface IdentifiedEntity : Entity {
 
 interface StoredEntity : IdentifiedEntity {
 
-    val deleted: Boolean
-
     val dirty: Boolean
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity
@@ -155,12 +149,10 @@ interface StoredEntity : IdentifiedEntity {
 
     override fun set(vararg values: AttrValue<Attr<*>, *>): StoredEntity
 
-    fun delete(): StoredEntity
-
 }
 
 internal fun IdentifiedEntity.toFacts() =
-        this.toFacts(eid, (this as? StoredEntity)?.deleted ?: false)
+        this.toFacts(eid)
 
 internal class MapEntity(
         internal val map: Map<Attr<Any>, Any>,
@@ -266,62 +258,44 @@ private class StoredMapEntity(
         val map: MutableMap<Attr<Any>, Any>,
         val refs: MutableMap<RefAttr<Any>, List<Entity>>,
         val eidResolver: EidResolver,
-        override val deleted: Boolean,
         override val dirty: Boolean,
         private val delegate: MapEntity = MapEntity(map, refs, eidResolver)
 ) :
         Entity by delegate,
         StoredEntity {
 
-    constructor(eid: EID, me: MapEntity, deleted: Boolean, dirty: Boolean) : this(eid, HashMap(me.map),
-            HashMap(me.refs), me.eidResolver, deleted, dirty)
-
-    override fun delete(): StoredEntity =
-            StoredMapEntity(eid, map, refs, eidResolver, deleted = true, dirty = true)
+    constructor(eid: EID, me: MapEntity, dirty: Boolean) : this(eid, HashMap(me.map),
+            HashMap(me.refs), me.eidResolver, dirty)
 
     override fun <T : Any> set(key: Attr<T>, value: T): StoredEntity {
-        if (deleted) {
-            throw QBitException("Could not change entity marked for deletion")
-        }
         if ((map as Map<Attr<T>, T>)[key] == value) {
             return this
         }
-        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
+        return StoredMapEntity(eid, delegate.set(key, value), true)
     }
 
     override fun set(key: ScalarRefAttr, value: Entity): StoredEntity {
-        if (deleted) {
-            throw QBitException("Could not change entity marked for deletion")
-        }
         if (refs[key]?.firstOrNull() == value) {
             return this
         }
 
-        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
+        return StoredMapEntity(eid, delegate.set(key, value), true)
     }
 
 
     override fun set(key: RefListAttr, value: List<Entity>): StoredEntity {
-        if (deleted) {
-            throw QBitException("Could not change entity marked for deletion")
-        }
         if (refs[key] == value) {
             return this
         }
 
-        return StoredMapEntity(eid, delegate.set(key, value), deleted, true)
+        return StoredMapEntity(eid, delegate.set(key, value), true)
     }
 
     override fun set(vararg values: AttrValue<Attr<*>, *>): StoredEntity {
-
-        if (deleted) {
-            throw QBitException("Could not change entity marked for deletion")
-        }
-
         if (values.any { this.getO(it.attr) == it.value }) {
             return this
         }
-        return StoredMapEntity(eid, delegate.set(*values), deleted, true)
+        return StoredMapEntity(eid, delegate.set(*values), true)
     }
 }
 

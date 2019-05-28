@@ -7,11 +7,13 @@ typealias RawEntity = Pair<EID, List<Fact>>
 
 private fun loadFacts(graph: Graph, head: NodeVal<Hash>): List<RawEntity> {
     val entities = HashMap<EID, List<Fact>>()
+    val tombstones = HashSet<EID>()
     var n: NodeVal<Hash>? = head
     while (n != null) {
-        val toAdd = n.data.trx
-                .filterNot { it.deleted || entities.containsKey(it.eid) }
+        val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.str() }
+        tombstones += removed.map { it.eid }.toSet()
         toAdd
+                .filterNot { tombstones.contains(it.eid) || entities.containsKey(it.eid) }
                 .groupBy { it.eid }
                 .forEach {
                     entities[it.key] = it.value
@@ -82,7 +84,7 @@ class Index(
         val newIndex = ArrayList(index)
 
         for (e in entities) {
-            val prev = if (e.second.isNotEmpty()) {
+            val prev = if (e.second[0].attr != tombstone.str()) {
                 newEntities.put(e.first, e)
             } else {
                 newEntities.remove(e.first)

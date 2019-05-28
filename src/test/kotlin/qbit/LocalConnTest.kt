@@ -58,8 +58,7 @@ class LocalConnTest {
         val pulledE2 = conn.db.pull(se.eid)
         assertEquals("value2", pulledE2!![_attr])
 
-        val deleted = pulledE2.delete()
-        conn.persist(deleted)
+        conn.delete(pulledE2.eid)
 
         val deletedPulledE2 = conn.db.pull(se.eid)
         assertNull(deletedPulledE2)
