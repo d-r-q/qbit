@@ -41,7 +41,11 @@ private class EntityProxy<T>(private var entity: Entity, private val clazz: Clas
             }
             if (args == null) {
                 method2attr[name]?.let {
-                    entity.getO(it)
+                    val res = entity.getO(it)
+                    when (res) {
+                        is Entity -> proxy(res, method.returnType)
+                            else -> res
+                    }
                 }
             } else if (args.size == 1 && name in method2attr) {
                 val newEntity = entity.set(method2attr.getValue(name), args[0])
