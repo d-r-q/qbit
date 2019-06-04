@@ -102,9 +102,9 @@ class IndexTest {
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
         assertEquals(1, index.entities.size)
-        assertEquals(2, index.entityById(eid)!!.getValue("/attr1"))
-        assertEquals(1, index.entityById(eid)!!.getValue("/attr2"))
-        assertEquals(0, index.entityById(eid)!!.getValue("/attr3"))
+        assertEquals(2, index.entityById(eid)!!.getValue("/attr1")[0])
+        assertEquals(1, index.entityById(eid)!!.getValue("/attr2")[0])
+        assertEquals(0, index.entityById(eid)!!.getValue("/attr3")[0])
     }
 
     @Test

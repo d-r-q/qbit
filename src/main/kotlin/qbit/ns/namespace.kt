@@ -4,6 +4,9 @@ import java.util.Arrays.asList
 
 val root = Namespace(null, "")
 
+fun ns(vararg parts: String) =
+        Namespace.of(*parts)
+
 data class Namespace(val parent: Namespace?, val name: String) {
 
     constructor(name: String) : this(null, name)

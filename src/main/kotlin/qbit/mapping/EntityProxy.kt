@@ -1,9 +1,9 @@
 package qbit.mapping
 
 import qbit.*
-import java.lang.IllegalStateException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Proxy
 
 interface EntityHolder {
@@ -25,12 +25,6 @@ private class EntityProxy<T>(private var entity: Entity, private val clazz: Clas
             return entity
         } else if (method.name == "eid" && method.returnType == EID::class.java) {
             return (entity as? IdentifiedEntity)?.eid
-        } else if (entity.javaClass.methods.contains(method)) {
-            if (args == null || args.isEmpty()) {
-                method.invoke(entity)
-            } else {
-                method.invoke(entity, args)
-            }
         } else {
             val name = method.name.let {
                 if (it.startsWith("set") || it.startsWith("get")) {
@@ -41,14 +35,29 @@ private class EntityProxy<T>(private var entity: Entity, private val clazz: Clas
             }
             if (args == null) {
                 method2attr[name]?.let {
-                    val res = entity.getO(it)
-                    when (res) {
+                    when (val res = entity.getO(it)) {
                         is Entity -> proxy(res, method.returnType)
-                            else -> res
+                        is List<*> -> res.map { item ->
+                            if (item is Entity) {
+                                proxy(item, (method.genericReturnType as ParameterizedType).actualTypeArguments[0] as Class<*>)
+                            } else {
+                                item
+                            }
+                        }
+                        else -> res
                     }
                 }
             } else if (args.size == 1 && name in method2attr) {
-                val newEntity = entity.set(method2attr.getValue(name), args[0])
+                @Suppress("UNCHECKED_CAST")
+                val toStore = when {
+                    args[0] is EntityHolder -> (args[0] as EntityHolder).entity()
+                    args[0] is List<*> && (args[0] as List<*>).size > 0 &&
+                            (args[0] as List<*>)[0] is EntityHolder ->
+                        (args[0] as List<EntityHolder>).map { it.entity() }
+                    else -> args[0]
+                }
+                val attr = method2attr.getValue(name)
+                val newEntity = entity.set(attr, toStore)
                 if (method.returnType == Void.TYPE) {
                     entity = newEntity
                     Unit

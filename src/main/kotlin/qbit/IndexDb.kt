@@ -69,7 +69,8 @@ class IndexDb(internal val index: Index) : Db {
         val attrValues = entity.entries.map {
             val attr = schema[it.key]
             require(attr != null)
-            attr to it.value
+            require(attr.isList() || it.value.size == 1)
+            attr to if (attr.isList()) it.value else it.value[0]
         }
         return Entity(eid, attrValues, this)
     }
@@ -126,11 +127,11 @@ class IndexDb(internal val index: Index) : Db {
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEidss
                     .map {
-                        val e = index.entityById(it)!!
-                        val name = e.getValue(name.str()) as String
-                        val type = e.getValue(type.str()) as Byte
-                        val unique = e[unique.str()] as? Boolean ?: false
-                        val list = e[list.str()] as? Boolean ?: false
+                        val e: Map<String, List<Any>> = index.entityById(it)!!
+                        val name = e.getValue(name.str())[0] as String
+                        val type = e.getValue(type.str())[0] as Byte
+                        val unique = e[unique.str()]?.firstOrNull() as? Boolean ?: false
+                        val list = e[list.str()]?.firstOrNull() as? Boolean ?: false
                         val attr: Attr<Any> =
                                 when {
                                     list && type == QEntity.code -> RefListAttr(name, unique)

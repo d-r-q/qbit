@@ -1,7 +1,6 @@
 package qbit.mapping
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.*
 import org.junit.Test
 import qbit.Entity
 import qbit.QString
@@ -25,9 +24,7 @@ interface User : EntityHolder {
 }
 
 fun Post(ppost: String, puser: Entity) = proxy<Post>(Entity(post eq ppost, user eq puser))
-interface Post {
-
-    var post: String
+interface Post : EntityHolder {
 
     var user: User
 
@@ -53,6 +50,15 @@ class EntityProxyTest {
         val user = User("test")
         val post = Post("post", user.entity())
         assertEquals("test", post.user.name)
+    }
+
+    @Test
+    fun testSetEntity() {
+        val user1 = User("test1")
+        val user2 = User("test3")
+        val post = Post("post", user1.entity())
+        post.user = user2
+        assertEquals("test3", post.entity()[user][name])
     }
 
 }

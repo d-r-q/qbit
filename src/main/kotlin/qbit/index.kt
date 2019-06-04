@@ -99,18 +99,14 @@ class Index(
     }
 
     fun add(e: RawEntity): Index {
-        return add(e)
+        return add(listOf(e))
     }
 
-    fun entityById(eid: EID): Map<String, Any>? =
+    fun entityById(eid: EID): Map<String, List<Any>>? =
             entities[eid]?.second
                     ?.groupBy { it.attr }
                     ?.mapValues {
-                        if (it.value.size == 1) {
-                            it.value[0].value
-                        } else {
-                            it.value.map { f -> f.value }
-                        }
+                        it.value.map { f -> f.value }
                     }
 
     fun eidsByPred(pred: QueryPred): Sequence<EID> {

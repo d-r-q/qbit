@@ -40,10 +40,9 @@ class DbTest {
 
         val _cat = ListAttr(root["cat"], QString)
 
-        val cat = Entity(EAttr.name eq _cat.str(), EAttr.type eq QString.code)
         val e1 = Entity(_cat eq listOf("C1", "C2"))
         val theEid = eids.next()
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((cat.toFacts(eids.next()) + e1.toFacts(theEid)).toTypedArray()))
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((_cat.toFacts(eids.next()) + e1.toFacts(theEid)).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
