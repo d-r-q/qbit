@@ -3,6 +3,8 @@ package qbit.serialization
 import qbit.*
 import java.io.EOFException
 import java.io.InputStream
+import java.math.BigDecimal
+import java.math.BigInteger
 import java.nio.CharBuffer
 import java.time.Instant
 import java.time.ZoneId
@@ -63,6 +65,10 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
             is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().nano), byteArray(a.zone.id))
+            is BigDecimal -> {
+                val bytes = a.unscaledValue().toByteArray()
+                byteArray(QDecimal.code, serializeInt(a.scale()), serializeInt(bytes.size), bytes)
+            }
             else -> throw AssertionError("Should never happen, a is $a")
         }
     }
@@ -159,6 +165,12 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
             String(readBytes(ins, count), Charsets.UTF_8) as T
         }
         QEID -> EID(readLong(ins)) as T
+        QDecimal -> {
+            val scale = readInt(ins)
+            val size = readInt(ins)
+            val bytes = readBytes(ins, size)
+            BigInteger(bytes).toBigDecimal(scale)
+        }
         QEntity -> throw AssertionError("Should never happen")
         is QList<*> -> throw AssertionError("Should never happen")
     }

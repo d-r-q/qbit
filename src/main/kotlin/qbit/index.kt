@@ -92,7 +92,7 @@ class Index(
             if (prev != null) {
                 newIndex.removeAll(prev.second)
             }
-            newIndex.addAll(e.second)
+            newIndex.addAll(e.second.filter { it.value is Comparable<*> })
         }
 
         return Index(newEntities, newIndex.sortedWith(aveCmp))

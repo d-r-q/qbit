@@ -6,14 +6,19 @@ import qbit.serialization.*
 import java.io.ByteArrayInputStream
 import java.io.EOFException
 import java.io.InputStream
+import java.math.BigDecimal
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 
 class SimpleSerializationTest {
 
-    private val intValues: List<Int> = listOf(0, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())
+    private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())
     private val longValues: List<Long> = listOf(Long.MAX_VALUE, Long.MIN_VALUE, *(intValues.map { it.toLong() }.toTypedArray()))
+    private val decimalValues: List<BigDecimal> = listOf(
+            BigDecimal(Long.MIN_VALUE).minus(BigDecimal(1)),
+            BigDecimal(Long.MAX_VALUE).plus(BigDecimal(1)),
+            *longValues.map { BigDecimal(it) }.toTypedArray())
 
     @Test
     fun testReadLong() {
@@ -50,6 +55,11 @@ class SimpleSerializationTest {
     @Test
     fun testDeserializeInt() {
         testValues(intValues, { serialize(it) }, { deserialize(it, QInt) as Int })
+    }
+
+    @Test
+    fun testDeSerializeDecimal() {
+        testValues(decimalValues, { serialize(it) }, { deserialize(it, QDecimal) as BigDecimal })
     }
 
     private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {

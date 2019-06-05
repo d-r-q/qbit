@@ -3,11 +3,14 @@ package qbit
 import org.junit.Assert.*
 import org.junit.Test
 import qbit.ns.Namespace
+import qbit.ns.root
 import qbit.schema.ListAttr
 import qbit.schema.RefAttr
 import qbit.schema.ScalarAttr
 import qbit.schema.eq
 import qbit.storage.MemStorage
+import java.math.BigDecimal
+import java.time.*
 
 class LocalConnTest {
 
@@ -273,6 +276,83 @@ class LocalConnTest {
         trx.commit()
 
         assertEquals("3", conn.db.pull(se.eid)!![_id])
+    }
+
+    @Test
+    fun testPersistDataTypes() {
+        val bool = ScalarAttr(root["bool"], QBoolean)
+        val boolList = ListAttr(root["boolList"], QBoolean)
+        val byt = ScalarAttr(root["byte"], QByte)
+        val bytList = ListAttr(root["byteList"], QByte)
+        val nt = ScalarAttr(root["int"], QInt)
+        val ntList = ListAttr(root["intList"], QInt)
+        val lng = ScalarAttr(root["long"], QLong)
+        val lngList = ListAttr(root["longList"], QLong)
+        val str = ScalarAttr(root["str"], QString)
+        val strList = ListAttr(root["strList"], QString)
+        val bytes = ScalarAttr(root["bytes"], QBytes)
+        val bytesList = ListAttr(root["bytesList"], QBytes)
+        val eid = ScalarAttr(root["eid"], QEID)
+        val eidList = ListAttr(root["eidList"], QEID)
+        val instant = ScalarAttr(root["instant"], QInstant)
+        val instantList = ListAttr(root["instantList"], QInstant)
+        val dt = ScalarAttr(root["dateTime"], QZonedDateTime)
+        val dtList = ListAttr(root["dateTimeList"], QZonedDateTime)
+        val decimal = ScalarAttr(root["decimal"], QDecimal)
+        val decimalList = ListAttr(root["decimalList"], QDecimal)
+
+        val boolVal = true
+        val boolListVal = listOf(true, false)
+        val byteVal = 0
+        val byteListVal = listOf(Byte.MIN_VALUE, Byte.MAX_VALUE)
+        val ntVal = 0
+        val ntListVal = listOf(Int.MIN_VALUE, Int.MAX_VALUE)
+        val lngVal = 0
+        val lngListVal = listOf(Long.MIN_VALUE, Long.MAX_VALUE)
+        val strVal = ""
+        val strListVal = listOf("String", "Строка", "ライン", "线", "שורה")
+        val bytesVal = byteArrayOf()
+        val bytesListVal = listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE))
+        val eidVal = EID(0)
+        val eidListVal = listOf(EID(Long.MIN_VALUE), EID(Long.MAX_VALUE))
+        val instantVal = Instant.now()
+        val instantListVal = listOf(Instant.ofEpochMilli(Int.MIN_VALUE.toLong()), Instant.ofEpochMilli(0), Instant.ofEpochMilli(Int.MAX_VALUE.toLong()))
+        val dtVal = ZonedDateTime.now()
+        val dtListVal = listOf(ZonedDateTime.of(-2200, 1, 1, 0, 0, 0, 0, ZoneId.of("+01:00")),
+                ZonedDateTime.now(ZoneId.of("Europe/Moscow")),
+                ZonedDateTime.of(2200, 12, 31, 23, 59, 59, 999999999, ZoneId.of("Z")))
+        val decimalVal = BigDecimal(0)
+        val decimalListVal = listOf(BigDecimal(Long.MIN_VALUE).minus(BigDecimal(1)), BigDecimal(Long.MAX_VALUE).plus(BigDecimal(1)))
+
+        val entity = Entity(bool eq boolVal, boolList eq boolListVal, byt eq byteVal, bytList eq byteListVal,
+                nt eq ntVal, ntList eq ntListVal, lng eq lngVal, lngList eq lngListVal, str eq strVal, strList eq strListVal,
+                bytes eq bytesVal, bytesList eq bytesListVal, eid eq eidVal, eidList eq eidListVal, instant eq instantVal, instantList eq instantListVal,
+                dt eq dtVal, dtList eq dtListVal, decimal eq decimalVal, decimalList eq decimalListVal)
+        val conn = qbit(MemStorage())
+        val eeid = conn.persist(entity, bool, boolList, byt, bytList, nt, ntList, lng, lngList, str, strList,
+                bytes, bytesList, eid, eidList, instant, instantList, dt, dtList, decimal, decimalList).storedEntity().eid
+        val stored = conn.db.pull(eeid)!!
+
+        assertEquals(boolVal, stored[bool])
+        assertEquals(boolListVal, stored[boolList])
+        assertEquals(byteVal, stored[byt])
+        assertEquals(byteListVal, stored[bytList])
+        assertEquals(ntVal, stored[nt])
+        assertEquals(ntListVal, stored[ntList])
+        assertEquals(lngVal, stored[lng])
+        assertEquals(lngListVal, stored[lngList])
+        assertEquals(strVal, stored[str])
+        assertEquals(strListVal, stored[strList])
+        assertEquals(bytesVal, stored[bytes])
+        assertEquals(bytesListVal, stored[bytesList])
+        assertEquals(eidVal, stored[eid])
+        assertEquals(eidListVal, stored[eidList])
+        assertEquals(instantVal, stored[instant])
+        assertEquals(instantListVal, stored[instantList])
+        assertEquals(dtVal, stored[dt])
+        assertEquals(dtListVal, stored[dtList])
+        assertEquals(decimalVal, stored[decimal])
+        assertEquals(decimalListVal, stored[decimalList])
     }
 }
 

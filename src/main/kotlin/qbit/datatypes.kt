@@ -1,16 +1,13 @@
 package qbit
 
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZonedDateTime
 
 /**
  * Possible:
- * - Boolean
  * - Double
  * - BigInteger
- * - BigDecimal
- * - Instant
- * - ZonedDateTime
  *
  * Datomic:
  * - UUID
@@ -33,7 +30,7 @@ sealed class DataType<out T : Any> {
     companion object {
 
         private val values: Array<DataType<*>>
-            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID, QInstant, QZonedDateTime)
+            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QEID, QInstant, QZonedDateTime, QDecimal)
 
         fun ofCode(code: Byte): DataType<*>? = values.firstOrNull { it.code == code }
 
@@ -47,6 +44,7 @@ sealed class DataType<out T : Any> {
             is EID -> QEID as DataType<T>
             is Instant -> QInstant as DataType<T>
             is ZonedDateTime -> QZonedDateTime as DataType<T>
+            is BigDecimal -> QDecimal as DataType<T>
             else -> null
         }
     }
@@ -96,6 +94,12 @@ object QInstant : DataType<Instant>() {
     override val code = 4.toByte()
 
 }
+
+object QDecimal : DataType<BigDecimal>() {
+
+    override val code = 5.toByte()
+}
+
 
 object QZonedDateTime : DataType<ZonedDateTime>() {
 
