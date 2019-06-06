@@ -26,7 +26,7 @@ val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 
 fun main() {
     var totalTime = 0L
-    val iterations = 100
+    val iterations = 10
     for (i in 0..iterations) {
         val dbDir = File("/home/azhidkov/tmp/q5-db")
         if (dbDir.exists()) {

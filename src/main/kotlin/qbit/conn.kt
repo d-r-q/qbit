@@ -11,6 +11,7 @@ import qbit.storage.Storage
 import java.util.*
 import java.util.Collections.singleton
 import java.util.Collections.singletonList
+import kotlin.ConcurrentModificationException
 
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(1, 4)
@@ -229,8 +230,10 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
     }
 
     private fun persistImpl(es: Collection<Entitiable>): Pair<WriteResult, DbState> {
+        if (conn.head != base.head) {
+            throw ConcurrentModificationException("Another modification has been committed")
+        }
         try {
-            // TODO: check for conflict modifications in parallel threads
             // TODO: now persistence of entity with all attr removes is noop
 
             val db = baseState.db
