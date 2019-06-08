@@ -60,7 +60,7 @@ interface Db {
 
 }
 
-class IndexDb(internal val index: Index) : Db {
+class IndexDb(internal val index: Index, val hash: Hash) : Db {
 
     private val schema = loadAttrs(index)
 

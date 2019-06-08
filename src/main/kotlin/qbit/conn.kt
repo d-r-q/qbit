@@ -8,6 +8,8 @@ import qbit.schema.Attr
 import qbit.schema.eq
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
+import java.lang.AssertionError
+import java.lang.UnsupportedOperationException
 import java.util.*
 import java.util.Collections.singleton
 import java.util.Collections.singletonList
@@ -86,7 +88,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     internal val graph = Graph(nodesStorage)
     internal val writer = Writer(nodesStorage, dbUuid)
 
-    var db = IndexDb(Index(graph, head))
+    var db = IndexDb(Index(graph, head), head.hash)
 
     /**
      * Instance descriptor eid
@@ -196,6 +198,9 @@ class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val cre
 
 class QbitTrx internal constructor(val conn: LocalConn, private val base: DbState, private var state: DbState? = null) {
 
+    val db
+        get() = (this.state ?: this.base).db
+
     private val baseState
         get() = this.state ?: this.base
 
@@ -236,7 +241,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         try {
             // TODO: now persistence of entity with all attr removes is noop
 
-            val db = baseState.db
+            val db = this.db
 
             val instance = db.pull(conn.instanceEid) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(conn.dbUuid.iid.value, instance[entitiesCount]).nextEids()
@@ -323,11 +328,25 @@ internal class DbState(val head: NodeVal<Hash>, val db: IndexDb)
 
 internal fun db(graph: Graph, oldDb: IndexDb, newHead: NodeVal<Hash>): IndexDb {
     return if (newHead is Merge) {
-        IndexDb(Index(graph, newHead))
+        IndexDb(Index(graph, newHead), newHead.hash)
     } else {
-        val entities = newHead.data.trx.toList()
-                .groupBy { it.eid }
-                .map { it.key to it.value }
-        IndexDb(oldDb.index.add(entities))
+        fun nodesTo(n: NodeVal<Hash>, target: Hash): List<NodeVal<Hash>> {
+            return when {
+                n.hash == target -> emptyList()
+                n is Leaf -> nodesTo(graph.resolveNode(n.parent), target) + n
+                n is Merge -> throw UnsupportedOperationException("Merges not yet supported")
+                else -> {
+                    check(n is Root)
+                    throw AssertionError("Should never happen")
+                }
+            }
+        }
+        val nodes = nodesTo(graph.resolveNode(newHead), oldDb.hash)
+        return nodes.fold(oldDb) { db, n ->
+            val entities = n.data.trx.toList()
+                    .groupBy { it.eid }
+                    .map { it.key to it.value }
+            IndexDb(db.index.add(entities), n.hash)
+        }
     }
 }
