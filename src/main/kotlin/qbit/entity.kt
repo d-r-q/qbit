@@ -21,9 +21,9 @@ interface AttrValue<out A : Attr<T>, out T : Any> {
 
 }
 
-data class ScalarAttrValue<out T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
+data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
 data class ScalarRefAttrValue(override val attr: ScalarRefAttr, override val value: Entity) : AttrValue<ScalarRefAttr, Entity>
-data class ListAttrValue<out T : Any>(override val attr: ListAttr<T>, override val value: List<T>) : AttrValue<ListAttr<T>, List<T>>
+data class ListAttrValue<T : Any>(override val attr: ListAttr<T>, override val value: List<T>) : AttrValue<ListAttr<T>, List<T>>
 data class RefListAttrValue(override val attr: RefListAttr, override val value: List<Entity>) : AttrValue<RefListAttr, List<Entity>>
 
 fun Entity(vararg entries: AttrValue<Attr<*>, *>): Entity =

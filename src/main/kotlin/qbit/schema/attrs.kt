@@ -25,9 +25,9 @@ interface RefAttr<out T : Any> : Attr<T>
 
 interface ScalarRefAttr : RefAttr<Entity>
 
-interface ScalarAttr<out T : Any> : Attr<T>
+interface ScalarAttr<T : Any> : Attr<T>
 
-interface ListAttr<out T : Any> : Attr<List<T>> {
+interface ListAttr<T : Any> : Attr<List<T>> {
 
     val itemsType: DataType<T>
 
@@ -92,7 +92,7 @@ private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val uniq
 
     private val map = mapOf(EAttr.name to name.toStr(), EAttr.type to type.code, EAttr.unique to unique, EAttr.list to list)
 
-    override val keys: Set<ScalarAttr<Any>> = map.keys
+    override val keys: Set<ScalarAttr<Any>> by lazy {  map.keys.filterIsInstance<ScalarAttr<Any>>().toSet() }
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> getO(key: Attr<T>): T? = (map as Map<Attr<T>, T>)[key]

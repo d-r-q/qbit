@@ -303,11 +303,11 @@ class LocalConnTest {
 
         val boolVal = true
         val boolListVal = listOf(true, false)
-        val byteVal = 0
+        val byteVal = 0.toByte()
         val byteListVal = listOf(Byte.MIN_VALUE, Byte.MAX_VALUE)
         val ntVal = 0
         val ntListVal = listOf(Int.MIN_VALUE, Int.MAX_VALUE)
-        val lngVal = 0
+        val lngVal = 0L
         val lngListVal = listOf(Long.MIN_VALUE, Long.MAX_VALUE)
         val strVal = ""
         val strListVal = listOf("String", "Строка", "ライン", "线", "שורה")
