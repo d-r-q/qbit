@@ -1,6 +1,8 @@
 package qbit.q5bulk
 
+import org.hamcrest.core.Is.`is`
 import org.junit.Assert.*
+import org.junit.Assume.assumeThat
 import org.junit.Test
 import qbit.*
 import qbit.ns.Namespace
@@ -33,6 +35,9 @@ class Q5Test {
 
     @Test
     fun test() {
+        val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")
+        assumeThat(dataDir.exists(), `is`(true))
+        val dataFiles = dataDir.listFiles()
         val dbDir = File("/home/azhidkov/tmp/q5-db")
         if (dbDir.exists()) {
             dbDir.deleteRecursively()
@@ -42,7 +47,6 @@ class Q5Test {
         val conn = qbit(FileSystemStorage(dbDir))
 
         conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
-        val dataFiles = File("/home/azhidkov/0my/Alive/qbit/q5").listFiles()
         val categories = HashMap<String, Entity>()
 
         dataFiles.forEachIndexed { idx, file ->
