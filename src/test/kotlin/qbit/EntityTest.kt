@@ -13,19 +13,26 @@ class EntityTest {
     fun testCreate() {
         val user = Namespace("user")
         val _attr = ScalarAttr(user["attr"], QString)
+        val _list = ListAttr(user["list"], QString)
         val _ref = RefAttr(user["ref"])
+        val _refList = RefListAttr((user["refList"]))
         val _eid = ScalarAttr(user["some_eid"], QEID)
 
         val e1 = Entity(_attr eq "e1")
         assertTrue((e1 as MapEntity).refs.isEmpty())
-        val e2 = Entity(_attr eq "e2", _ref eq e1, _eid eq EID(0, 3))
-        assertTrue((e2 as MapEntity).map.size == 2)
-        assertTrue(e2.refs.size == 1)
+        val e2 = Entity(_attr eq "e2", _ref eq e1, _eid eq EID(0, 3), _list eq listOf("one", "two"),
+                _refList eq listOf(e1))
+        assertTrue((e2 as MapEntity).map.size == 3)
+        assertTrue(e2.refs.size == 2)
 
         assertEquals("e2", e2[_attr])
         assertEquals(EID(0, 3), e2[_eid])
         assertTrue(e2[_ref] === e1)
-        assertEquals(3, e2.entries.size)
+        assertArrayEquals(arrayOf("one", "two"), e2[_list].toTypedArray())
+        val list: List<Entity<*>> = e2[_refList]
+        val array: Array<Entity<*>> = list.toTypedArray()
+        assertArrayEquals(arrayOf(e1), list.toTypedArray())
+        assertEquals(5, e2.entries.size)
     }
 
     @Test

@@ -54,6 +54,7 @@ interface Db {
 
     fun pull(eid: EID): StoredEntity?
 
+    // Todo: add check that attrs are presented in schema
     fun query(vararg preds: QueryPred): Sequence<StoredEntity>
 
     fun attr(attr: String): Attr<Any>?

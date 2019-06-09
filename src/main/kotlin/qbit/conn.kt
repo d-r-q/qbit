@@ -2,14 +2,10 @@ package qbit
 
 import qbit.EInstance.entitiesCount
 import qbit.EInstance.forks
-import qbit.EInstance.iid
 import qbit.ns.Namespace
 import qbit.schema.Attr
-import qbit.schema.eq
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
-import java.lang.AssertionError
-import java.lang.UnsupportedOperationException
 import java.util.*
 import java.util.Collections.singleton
 import java.util.Collections.singletonList
@@ -76,10 +72,6 @@ interface Conn {
 
     var head: NodeVal<Hash>
 
-    fun fork(): Pair<DbUuid, NodeVal<Hash>>
-
-    fun push(noveltyRoot: Node<Hash>): Merge<Hash>
-
 }
 
 class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var head: NodeVal<Hash>) : Conn {
@@ -113,33 +105,14 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
     }
 
-    override fun fork(): Pair<DbUuid, NodeVal<Hash>> {
-        try {
-
-            var instance = db.pull(instanceEid)!!
-            val forks = instance[forks]
-            val forkId = DbUuid(dbUuid.iid.fork(forks + 1))
-            val forkInstanceEid = EID(forkId.iid.value, 0)
-
-            instance = instance.set(EInstance.forks, forks + 1)
-
-            val newInstance = Entity(EInstance.forks eq 0, entitiesCount eq 1, iid eq forkId.iid.value)
-            val newHead = writer.store(head, instance.toFacts() + newInstance.toFacts(forkInstanceEid))
-            swapHead(head, newHead)
-            return Pair(forkId, newHead)
-        } catch (e: Exception) {
-            throw QBitException(cause = e)
-        }
-    }
-
-    fun persist(e: Entitiable): WriteResult {
+    fun persist(e: Entitiable<*>): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable): WriteResult =
+    fun persist(vararg es: Entitiable<*>): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable>): WriteResult {
+    fun persist(es: Collection<Entitiable<*>>): WriteResult {
         val trx = trx()
         val res = trx.persist(es)
         trx.commit()
@@ -159,25 +132,13 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     fun trx() =
             QbitTrx(this, DbState(head, db))
 
-
-    override fun push(noveltyRoot: Node<Hash>): Merge<Hash> {
-        val newDb = writer.appendGraph(noveltyRoot)
-        val myNovelty = Graph.findSubgraph(head, Graph.refs(noveltyRoot).asSequence().map { it.hash }.toSet())
-        val head = writer.appendNode(merge(head, newDb))
-        swapHead(this.head, head)
-        return Merge(head.hash, myNovelty, NodeRef(noveltyRoot), dbUuid, head.timestamp, head.data)
-    }
-
-    private fun merge(head1: Node<Hash>, head2: Node<Hash>): Merge<Hash?> =
-            Merge(null, head1, head2, dbUuid, System.currentTimeMillis(), NodeData(emptyArray()))
-
 }
 
-class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable, StoredEntity>) {
+class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable<*>, StoredEntity>) {
 
     operator fun component1(): Db = db
 
-    operator fun component2(): Map<Entitiable, StoredEntity> = createdEntities
+    operator fun component2(): Map<Entitiable<*>, StoredEntity> = createdEntities
 
     operator fun component3(): StoredEntity = persistedEntities[0]
 
@@ -204,14 +165,14 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
     private val baseState
         get() = this.state ?: this.base
 
-    fun persist(e: Entitiable): WriteResult {
+    fun persist(e: Entitiable<*>): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable): WriteResult =
+    fun persist(vararg es: Entitiable<*>): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable>): WriteResult {
+    fun persist(es: Collection<Entitiable<*>>): WriteResult {
         val (res, newState) = persistImpl(es)
         this.state = newState
         return res
@@ -234,7 +195,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         // todo: delete nodes up to conn.head
     }
 
-    private fun persistImpl(es: Collection<Entitiable>): Pair<WriteResult, DbState> {
+    private fun persistImpl(es: Collection<Entitiable<*>>): Pair<WriteResult, DbState> {
         if (conn.head != base.head) {
             throw ConcurrentModificationException("Another modification has been committed")
         }
@@ -246,7 +207,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val instance = db.pull(conn.instanceEid) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(conn.dbUuid.iid.value, instance[entitiesCount]).nextEids()
 
-            val allEs: IdentityHashMap<Entitiable, IdentifiedEntity> = unfoldEntitiesGraph(es, eids)
+            val allEs: IdentityHashMap<Entitiable<*>, Entity<EID>> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
                 assert { es.all { it is StoredEntity && !it.dirty } }
@@ -270,21 +231,22 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         }
     }
 
-    private fun unfoldEntitiesGraph(es: Collection<Entitiable>, eids: Iterator<EID>): IdentityHashMap<Entitiable, IdentifiedEntity> {
-        val res = IdentityHashMap<Entitiable, IdentifiedEntity>()
+    private fun unfoldEntitiesGraph(es: Collection<Entitiable<*>>, eids: Iterator<EID>): IdentityHashMap<Entitiable<*>, Entity<EID>> {
+        val res = IdentityHashMap<Entitiable<*>, Entity<EID>>()
 
-        fun body(es: Collection<Entitiable>) {
+        fun body(es: Collection<Entitiable<*>>) {
             es.forEach {
                 if (!res.contains(it)) {
                     when (it) {
-                        is IdentifiedEntity -> res[it] = it
-                        is Entity -> res[it] = it.toIdentified(eids.next())
+                        is Entity -> {
+                            res[it] = if (it.eid != null) it as Entity<EID> else it.toIdentified(eids.next())
+                        }
                         else -> res[it] = Entity(*it.entries.toTypedArray()).toIdentified(eids.next())
                     }
                 }
                 it.entries.forEach { e ->
                     if (e is ScalarRefAttrValue) {
-                        val value: Entity? = e.value
+                        val value: Entity<*>? = e.value
                         if (value != null && res[value] == null) {
                             body(singletonList(value))
                         }
@@ -299,9 +261,9 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         return res
     }
 
-    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, IdentifiedEntity>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
-        val entitiesToStore: List<IdentifiedEntity> = allEs.values.filter { it !is StoredEntity || it.dirty }
-        val linkedEntities: List<IdentifiedEntity> = entitiesToStore.map { it.setRefs(allEs) }
+    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable<*>, Entity<EID>>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
+        val entitiesToStore: List<Entity<EID>> = allEs.values.filter { it !is StoredEntity || it.dirty }
+        val linkedEntities: List<Entity<EID>> = entitiesToStore.map { it.setRefs(allEs) }
         val facts: MutableList<Fact> = linkedEntities
                 .flatMap { it.toFacts() }
                 .toMutableList()

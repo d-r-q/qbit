@@ -1,7 +1,8 @@
 package qbit.q5bulk
 
 import org.hamcrest.core.Is.`is`
-import org.junit.Assert.*
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeThat
 import org.junit.Test
 import qbit.*
@@ -12,7 +13,9 @@ import qbit.schema.eq
 import qbit.storage.FileSystemStorage
 import java.io.File
 import java.text.SimpleDateFormat
-import java.time.*
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 val cat = Namespace.of("q5", "category")
@@ -47,7 +50,7 @@ class Q5Test {
         val conn = qbit(FileSystemStorage(dbDir))
 
         conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
-        val categories = HashMap<String, Entity>()
+        val categories = HashMap<String, Entity<*>>()
 
         dataFiles.forEachIndexed { idx, file ->
             when {
@@ -59,7 +62,7 @@ class Q5Test {
             var device = ""
             val fileDate = ZonedDateTime.parse(file.name.substringBefore("-") + "010000+0700", DateTimeFormatter.ofPattern("yyMMddHHmm[X]"))
             val nextDate = fileDate.plusMonths(1)
-            val trxes = ArrayList<Entity>()
+            val trxes = ArrayList<Entity<*>>()
             file.forEachLine { line ->
                 val data = parse(line, categories)
                 data?.let { (trx, cat) ->
@@ -77,8 +80,8 @@ class Q5Test {
 
     }
 
-    private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity>, conn: LocalConn) {
-        val trxes = ArrayList<Entity>()
+    private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
+        val trxes = ArrayList<Entity<*>>()
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -96,9 +99,9 @@ class Q5Test {
                 }
     }
 
-    private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity>, conn: LocalConn) {
-        var trxes1 = ArrayList<Entity>()
-        var trxes2 = ArrayList<Entity>()
+    private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
+        var trxes1 = ArrayList<Entity<*>>()
+        var trxes2 = ArrayList<Entity<*>>()
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -123,11 +126,11 @@ class Q5Test {
         trxes1 = trxes1.map {
             val catName = it[trxCategory][catName]
             it.set(trxCategory eq categories[catName]!!)
-        }.toCollection(ArrayList<Entity>())
+        }.toCollection(ArrayList<Entity<*>>())
         trxes2 = trxes2.map {
             val catName = it[trxCategory][catName]
             it.set(trxCategory eq categories[catName]!!)
-        }.toCollection(ArrayList<Entity>())
+        }.toCollection(ArrayList<Entity<*>>())
         trx.persist(trxes1)
         trx.persist(trxes2)
         trx.commit()
@@ -136,7 +139,7 @@ class Q5Test {
         }
     }
 
-    private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity>, conn: LocalConn) {
+    private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -148,7 +151,7 @@ class Q5Test {
         }
     }
 
-    private fun parse(sourceLine: String, categories: Map<String, Entity>): Pair<Entity, Entity>? {
+    private fun parse(sourceLine: String, categories: Map<String, Entity<*>>): Pair<Entity<*>, Entity<*>>? {
         val fieldsV1 = sourceLine
                 .replace("\uFEFF", "") // Remove BOM
                 .split("\",\"".toRegex())

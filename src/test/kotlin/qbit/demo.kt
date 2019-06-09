@@ -1,9 +1,16 @@
 package qbit
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import qbit.mapping.EntityHolder
-import qbit.mapping.proxy
+import qbit.Tweets.author
+import qbit.Tweets.content
+import qbit.Tweets.date
+import qbit.Tweets.likes
+import qbit.Users.lastLogin
+import qbit.mapping.AttrDelegate
+import qbit.mapping.TypedEntity
 import qbit.mapping.pullAs
+import qbit.mapping.typify
 import qbit.ns.Namespace
 import qbit.schema.*
 import qbit.storage.MemStorage
@@ -13,12 +20,26 @@ import java.time.format.DateTimeFormatter
 
 val HHmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-interface User : Entity, EntityHolder {
+val tweetNs = Namespace.of("demo", "tweet")
+val userNs = Namespace.of("demo", "user")
 
-    fun name(): String
-    fun name(newName: String): User
+object Users {
+    val name = ScalarAttr(userNs["name"], QString, unique = true)
+    val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
+}
 
-    fun last_login(): Instant
+object Tweets {
+    val content = ScalarAttr(tweetNs["content"], QString)
+    val author = RefAttr(tweetNs["author"])
+    val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
+    val likes = RefListAttr(tweetNs["likes"])
+}
+
+class User<E: EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
+
+    var name: String by AttrDelegate(Users.name)
+
+    val last_login: Instant by AttrDelegate(Users.lastLogin)
 
 }
 
@@ -26,21 +47,11 @@ class Demo {
 
     @Test
     fun main() {
-        val tweetNs = Namespace.of("demo", "tweet")
-        val userNs = Namespace.of("demo", "user")
-
-        val name = ScalarAttr(userNs["name"], QString, unique = true)
-        val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
-
-        val content = ScalarAttr(tweetNs["content"], QString)
-        val author = RefAttr(tweetNs["author"])
-        val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
-        val likes = RefListAttr(tweetNs["likes"])
 
         val conn = qbit(MemStorage())
-        conn.persist(name, lastLogin, content, author, date, likes)
+        conn.persist(Users.name, lastLogin, content, author, date, likes)
 
-        val user = Entity(name eq "@azhidkov", lastLogin eq Instant.now())
+        val user = Entity(Users.name eq "@azhidkov", lastLogin eq Instant.now())
         val tweet = Entity(content eq "Hello @HackDay",
                 author eq user,
                 date eq ZonedDateTime.now())
@@ -48,20 +59,20 @@ class Demo {
         conn.persist(storedUser.set(lastLogin, Instant.now()))
 
         val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
-        println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
+        println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
 
-        val cris = Entity(name eq "@cris", lastLogin eq Instant.now())
+        val cris = Entity(Users.name eq "@cris", lastLogin eq Instant.now())
         var nTweet: StoredEntity = sTweet.set(content eq "Array set works", likes eq listOf(storedUser, cris))
         nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
         println(nTweet[content])
-        println(nTweet[likes].map { it[name] })
-        val users = nTweet[likes].map { proxy<User>(it) }
-        println(users.map { p -> "${p.name()}: ${p.last_login()}" })
+        println(nTweet[likes].map { it[Users.name] })
+        val users = nTweet[likes].map { typify<EID?, User<EID?>>(it) }
+        println(users.map { p -> "${p.name}: ${p.last_login}" })
 
-        val nUser = users[0].name("@reflection_rulezz")
-        conn.persist(nUser.entity())
-        println(conn.db.pullAs<User>(nUser.eid()!!)!!.name())
+        users[0].name = "@reflection_rulezz"
+        conn.persist(users[0])
+        assertEquals("@reflection_rulezz", conn.db.pullAs<User<EID>>(users[0].eid!!)!!.name)
 
     }
 }
