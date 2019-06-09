@@ -23,6 +23,12 @@ object Trxes {
     val categories = RefListAttr(trx["categories"])
 }
 
+object Nodes {
+    val ns = ns("nodes")
+    val next = RefAttr(ns["next"])
+    val data = ScalarAttr(ns["data"], QString)
+}
+
 fun Category(name: String) = Category(Entity(Categories.name eq name))
 class Category<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
@@ -41,7 +47,7 @@ class Trx<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
     val primaryCategory: Category<*> by RefAttrDelegate(Trxes.primaryCategory)
 
     fun primaryCategory(cat: Category<*>): Trx<E> {
-        entity = entity.set(Trxes.primaryCategory, cat)
+        entity = entity.with(Trxes.primaryCategory, cat)
         return this
     }
 
@@ -49,12 +55,21 @@ class Trx<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
 }
 
-class ProxyITest {
+fun Node(data: String) = Node(Entity(Nodes.data eq data))
+class Node<E: EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
+
+    var next: Node<E>? by RefAttrDelegate(Nodes.next)
+
+    var data: String by AttrDelegate(Nodes.data)
+
+}
+
+class TypedEntityITest {
 
     @Test
     fun test() {
         val conn = qbit(MemStorage())
-        conn.persist(Categories.name, sums, primaryCategory, Trxes.categories)
+        conn.persist(Categories.name, sums, primaryCategory, Trxes.categories, Nodes.next, Nodes.data)
         conn.persist(Category("cat1"), Category("cat2"), Category("cat3"))
         val cat1 = conn.db.queryAs<Category<EID>>(attrIs(Categories.name, "cat1")).first()
         val cat2 = conn.db.queryAs<Category<EID>>(attrIs(Categories.name, "cat2")).first()
@@ -81,5 +96,28 @@ class ProxyITest {
         trx = conn.persist(trx).storedEntityAs()
         assertArrayEquals(arrayOf(1L), trx.sums.toTypedArray())
         assertEquals(origEid, trx.eid)
+
+        trx.primaryCategory.name = "cat3.1"
+        assertEquals("cat3.1", trx.primaryCategory.name)
+        val pcEid = trx.primaryCategory.eid!!
+        trx.categories[0].name = "cat2.1"
+        assertEquals("cat2.1", trx.categories[0].name)
+        val scEid = trx.categories[0].eid!!
+        conn.persist(trx)
+        assertEquals("cat3.1", conn.db.pullAs<Category<EID>>(pcEid)!!.name)
+        assertEquals("cat2.1", conn.db.pullAs<Category<EID>>(scEid)!!.name)
+
+        val n1 = Node("n1")
+        val n2 = Node("n2")
+        val n3 = Node("n3")
+        n1.next = n2
+        n2.next = n3
+        n3.next = n1
+        val n1Stored = conn.persist(n1, n2, n3).createdEntities[n1]!!.typed<EID, Node<EID>>()
+        assertEquals("n1", n1Stored.data)
+        assertEquals("n2", n1Stored.next?.data)
+        assertEquals("n3", n1Stored.next?.next?.data)
+        assertEquals("n1", n1Stored.next?.next?.next?.data)
+        assertEquals(n1Stored.eid, n1Stored.next?.next?.next?.eid)
     }
 }

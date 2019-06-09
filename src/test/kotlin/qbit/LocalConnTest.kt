@@ -27,7 +27,7 @@ class LocalConnTest {
         conn.persist(_attr)
         val e = Entity(_attr eq "value")
         var se = conn.persist(e).storedEntity()
-        se = se.set(_attr, "value2")
+        se = se.with(_attr, "value2")
         conn.persist(se)
         val pulledE2 = conn.db.pull(se.eid)
         assertEquals("value2", pulledE2!![_attr])
@@ -55,7 +55,7 @@ class LocalConnTest {
 
         val e = Entity(_attr eq "value")
         var se = conn.persist(e).storedEntity()
-        se = se.set(_attr, "value2")
+        se = se.with(_attr, "value2")
         conn.persist(se)
 
         val pulledE2 = conn.db.pull(se.eid)
@@ -100,7 +100,7 @@ class LocalConnTest {
         e1 = conn.persist(e1).storedEntity()
         val e2 = Entity(_val eq "e2", _ref eq e1)
         val e3 = Entity(_val eq "e3", _ref eq e2)
-        e1 = e1.set(_ref, e3)
+        e1 = e1.with(_ref, e3)
 
         conn.persist(e1, e2, e3)
 
@@ -179,7 +179,7 @@ class LocalConnTest {
 
         conn.persist(unique, notUnique)
         val se1 = conn.persist(Entity(unique eq "unique", notUnique eq "notUnique1")).storedEntity()
-        val se2 = conn.persist(se1.set(notUnique, "notUnique2")).storedEntity()
+        val se2 = conn.persist(se1.with(notUnique, "notUnique2")).storedEntity()
         assertEquals("notUnique2", se2[notUnique])
     }
 
@@ -194,7 +194,7 @@ class LocalConnTest {
         val e1 = Entity(_val eq "e1")
         val se1 = conn.persist(e1).storedEntity()
         val h = conn.head
-        conn.persist(se1.set(_val, "e1"))
+        conn.persist(se1.with(_val, "e1"))
         assertEquals(h, conn.head)
     }
 
@@ -210,8 +210,8 @@ class LocalConnTest {
         val e1 = Entity(_val eq "e1")
         val e2 = Entity(_val eq "e2", _ref eq e1)
         var (se1, se2) = conn.persist(e1, e2).persistedEntities
-        se1 = se1.set(_val, "e1.1")
-        se2 = se2.set(_val, "e2.1")
+        se1 = se1.with(_val, "e1.1")
+        se2 = se2.with(_val, "e2.1")
 
         se2 = conn.persist(se2, se1).storedEntity()
         assertEquals("e1.1", se2[_ref][_val])
@@ -246,7 +246,7 @@ class LocalConnTest {
 
         assertEquals(listOf("1", "2"), se[_list])
 
-        se = conn.persist(se.set(_list, emptyList())).storedEntity()
+        se = conn.persist(se.with(_list, emptyList())).storedEntity()
         assertNull(se.getO(_list))
     }
 
@@ -264,7 +264,7 @@ class LocalConnTest {
         assertEquals("1", se[_id])
 
         val trx = conn.trx()
-        trx.persist(se.set(_id eq "2"))
+        trx.persist(se.with(_id eq "2"))
 
         assertEquals("1", conn.db.pull(se.eid)!![_id])
 
@@ -272,7 +272,7 @@ class LocalConnTest {
 
         assertEquals("1", conn.db.pull(se.eid)!![_id])
 
-        trx.persist(se.set(_id eq "3"))
+        trx.persist(se.with(_id eq "3"))
         trx.commit()
 
         assertEquals("3", conn.db.pull(se.eid)!![_id])

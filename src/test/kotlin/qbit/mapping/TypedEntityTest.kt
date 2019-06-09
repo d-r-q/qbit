@@ -130,4 +130,17 @@ class EntityProxyTest {
         post.mentions = null
         assertNull(post.mentions)
     }
+
+    @Test
+    fun testTypifyTyped() {
+        val user = User("user1")
+        assertEquals(user, typify(user, User::class.java))
+    }
+
+    @Test
+    fun testTypifyTypedReified() {
+        val user: Entity<EID?> = User("user1")
+        val typify: User<EID?> = typify(user)
+        assertEquals(user, typify)
+    }
 }

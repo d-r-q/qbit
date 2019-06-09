@@ -125,11 +125,11 @@ class Q5Test {
         }
         trxes1 = trxes1.map {
             val catName = it[trxCategory][catName]
-            it.set(trxCategory eq categories[catName]!!)
+            it.with(trxCategory eq categories[catName]!!)
         }.toCollection(ArrayList<Entity<*>>())
         trxes2 = trxes2.map {
             val catName = it[trxCategory][catName]
-            it.set(trxCategory eq categories[catName]!!)
+            it.with(trxCategory eq categories[catName]!!)
         }.toCollection(ArrayList<Entity<*>>())
         trx.persist(trxes1)
         trx.persist(trxes2)

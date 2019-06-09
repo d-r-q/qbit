@@ -40,7 +40,7 @@ class EntityTest {
         var first = Entity()
         val second = Entity()
         val attr = RefAttr(root["test"])
-        first = first.set(attr, second)
+        first = first.with(attr, second)
         assertTrue(second === first[attr])
     }
 
@@ -48,7 +48,7 @@ class EntityTest {
     fun testListAttr() {
         var e = Entity()
         val attr = ListAttr(root["test"], QString)
-        e = e.set(attr, listOf("first"))
+        e = e.with(attr, listOf("first"))
         assertEquals(listOf("first"), e[attr])
     }
 
@@ -59,7 +59,7 @@ class EntityTest {
         val _second = RefAttr(root["second"])
         val _third = ListAttr(root["third"], QString)
         val referee = Entity()
-        e = e.set(_first eq 1,
+        e = e.with(_first eq 1,
                 _second eq referee,
                 _third eq listOf("3"))
         assertEquals(1, e[_first])
@@ -76,7 +76,7 @@ class EntityTest {
         val ref = RefAttr(root["ref"])
         var e: StoredEntity = StoredMapEntity(EID(0), mapOf(ref to r1) as MutableMap<Attr<*>, Any>,
                 hashMapOf(), { null }, false)
-        e = e.set(ref, r2)
+        e = e.with(ref, r2)
         assertEquals(1, e.toFacts().size)
     }
 
@@ -86,7 +86,7 @@ class EntityTest {
         val s2 = ScalarAttr(root["scalar2"], QString)
         val e: StoredEntity = StoredMapEntity(EID(0), mapOf(s1 to "value1", s2 to "value2") as MutableMap<Attr<*>, Any>,
                 hashMapOf(), { null }, false)
-        val ne = e.set(s1 eq "value1", s2 eq "value3")
+        val ne = e.with(s1 eq "value1", s2 eq "value3")
         assertNotEquals(ne, e)
         assertEquals("value3", ne[s2])
     }
@@ -95,7 +95,7 @@ class EntityTest {
     fun testUpdateRefList() {
         val rl = RefListAttr(root["refList"])
         var e: StoredEntity = StoredMapEntity(EID(0), mapOf(rl to listOf(EID(1), EID(2))) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
-        e = e.set(rl, listOf(Entity()))
+        e = e.with(rl, listOf(Entity()))
         assertEquals(1, e.entries.size)
     }
 
@@ -104,7 +104,7 @@ class EntityTest {
         val s = ScalarAttr(root["scalar"], QString)
         val ref = RefAttr(root["refList"])
         var e: StoredEntity = StoredMapEntity(EID(0), mapOf(s to "any", ref to EID(1)) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
-        e = e.set(ref eq Entity(), s eq "newAny")
+        e = e.with(ref eq Entity(), s eq "newAny")
         assertEquals(2, e.entries.size)
     }
 
@@ -113,7 +113,7 @@ class EntityTest {
         val s = ScalarAttr(root["scalar"], QString)
         val rl = RefListAttr(root["refList"])
         var e: StoredEntity = StoredMapEntity(EID(0), mapOf(s to "any", rl to listOf(EID(1), EID(2))) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
-        e = e.set(rl eq listOf(Entity()), s eq "newAny")
+        e = e.with(rl eq listOf(Entity()), s eq "newAny")
         assertEquals(2, e.entries.size)
     }
 

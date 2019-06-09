@@ -269,7 +269,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
                 .toMutableList()
         val newEntitiesCnt = eids.next().eid
         if (instance[entitiesCount] < newEntitiesCnt) {
-            facts += instance.set(entitiesCount, newEntitiesCnt).toFacts()
+            facts += instance.with(entitiesCount, newEntitiesCnt).toFacts()
         }
         return facts
     }

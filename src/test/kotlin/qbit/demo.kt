@@ -56,13 +56,13 @@ class Demo {
                 author eq user,
                 date eq ZonedDateTime.now())
         val storedUser = conn.persist(tweet).createdEntities.getValue(user)
-        conn.persist(storedUser.set(lastLogin, Instant.now()))
+        conn.persist(storedUser.with(lastLogin, Instant.now()))
 
         val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
         println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
 
         val cris = Entity(Users.name eq "@cris", lastLogin eq Instant.now())
-        var nTweet: StoredEntity = sTweet.set(content eq "Array set works", likes eq listOf(storedUser, cris))
+        var nTweet: StoredEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
         nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
         println(nTweet[content])
