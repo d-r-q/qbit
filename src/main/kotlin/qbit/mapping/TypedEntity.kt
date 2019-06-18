@@ -55,6 +55,11 @@ abstract class TypedEntity<E : EID?>(var entity: Entity<E>) : Entity<E> {
     override fun toIdentified(eid: EID): Entity<EID> {
         return entity.toIdentified(eid)
     }
+
+    override fun detouch(): Entity<E> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
 }
 
 class AttrDelegate<T>(private val attr: Attr<Any>) : ReadWriteProperty<TypedEntity<*>, T> {

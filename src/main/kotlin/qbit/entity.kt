@@ -76,6 +76,8 @@ interface Entitiable<out E : EID?> {
             value
         }.toSet()
 
+    fun detouch() : Entitiable<E>
+
 }
 
 interface Entity<out E : EID?> : Entitiable<E> {
@@ -91,6 +93,8 @@ interface Entity<out E : EID?> : Entitiable<E> {
     fun toIdentified(eid: EID): Entity<EID>
 
     fun <T : Any> remove(key: Attr<T>): Entity<E>
+
+    override fun detouch(): Entity<E>
 
 }
 
@@ -160,7 +164,6 @@ internal class MapEntity<E : EID?>(
         override val eid: E
 ) :
         Entity<E> {
-
     init {
         assert { map.keys.intersect(refs.keys).isEmpty() }
     }
@@ -258,6 +261,15 @@ internal class MapEntity<E : EID?>(
 
     override fun toIdentified(eid: EID): Entity<EID> =
             MapEntity(map, refs, eidResolver, eid)
+
+    override fun detouch(): Entity<E> {
+        val newMap = HashMap(map)
+
+        for ((key, value) in refs) {
+            newMap[key] = value.map { it.eid }
+        }
+        return MapEntity(newMap, emptyMap(), emptyEidResolver, eid)
+    }
 
 }
 

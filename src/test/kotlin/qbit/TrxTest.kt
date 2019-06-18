@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 import qbit.ns.root
 import qbit.schema.ScalarAttr
-import qbit.schema.eq
 import qbit.storage.MemStorage
 
 
