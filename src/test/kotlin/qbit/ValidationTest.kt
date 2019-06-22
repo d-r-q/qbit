@@ -1,10 +1,9 @@
 package qbit
 
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
-import qbit.schema.ScalarAttr
-import qbit.schema.eq
 
 class ValidationTest {
 

@@ -2,8 +2,9 @@ package qbit
 
 import qbit.EInstance.entitiesCount
 import qbit.EInstance.forks
+import qbit.model.*
+import qbit.model.Entity
 import qbit.ns.Namespace
-import qbit.schema.Attr
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 import java.util.*
@@ -105,14 +106,14 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
     }
 
-    fun persist(e: Entitiable<*>): WriteResult {
+    fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable<*>): WriteResult =
+    fun persist(vararg es: Entitiable): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable<*>>): WriteResult {
+    fun persist(es: Collection<Entitiable>): WriteResult {
         val trx = trx()
         val res = trx.persist(es)
         trx.commit()
@@ -134,25 +135,25 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
 }
 
-class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<Entitiable<*>, StoredEntity>) {
+class WriteResult(val db: Db, val persistedEntities: List<AttachedEntity>, val createdEntities: Map<Entitiable, AttachedEntity>) {
 
     operator fun component1(): Db = db
 
-    operator fun component2(): Map<Entitiable<*>, StoredEntity> = createdEntities
+    operator fun component2(): Map<Entitiable, AttachedEntity> = createdEntities
 
-    operator fun component3(): StoredEntity = persistedEntities[0]
+    operator fun component3(): AttachedEntity = persistedEntities[0]
 
-    operator fun component4(): StoredEntity = persistedEntities[1]
+    operator fun component4(): AttachedEntity = persistedEntities[1]
 
-    operator fun component5(): StoredEntity = persistedEntities[2]
+    operator fun component5(): AttachedEntity = persistedEntities[2]
 
-    operator fun component6(): StoredEntity = persistedEntities[3]
+    operator fun component6(): AttachedEntity = persistedEntities[3]
 
-    operator fun component7(): StoredEntity = persistedEntities[4]
+    operator fun component7(): AttachedEntity = persistedEntities[4]
 
-    operator fun component8(): StoredEntity = persistedEntities[5]
+    operator fun component8(): AttachedEntity = persistedEntities[5]
 
-    fun storedEntity(): StoredEntity =
+    fun storedEntity(): AttachedEntity =
             persistedEntities[0]
 
 }
@@ -165,14 +166,14 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
     private val baseState
         get() = this.state ?: this.base
 
-    fun persist(e: Entitiable<*>): WriteResult {
+    fun persist(e: Entitiable): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable<*>): WriteResult =
+    fun persist(vararg es: Entitiable): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable<*>>): WriteResult {
+    fun persist(es: Collection<Entitiable>): WriteResult {
         val (res, newState) = persistImpl(es)
         this.state = newState
         return res
@@ -195,7 +196,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         // todo: delete nodes up to conn.head
     }
 
-    private fun persistImpl(es: Collection<Entitiable<*>>): Pair<WriteResult, DbState> {
+    private fun persistImpl(es: Collection<Entitiable>): Pair<WriteResult, DbState> {
         if (conn.head != base.head) {
             throw ConcurrentModificationException("Another modification has been committed")
         }
@@ -207,11 +208,11 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val instance = db.pull(conn.instanceEid) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(conn.dbUuid.iid.value, instance[entitiesCount]).nextEids()
 
-            val allEs: IdentityHashMap<Entitiable<*>, Entity<EID>> = unfoldEntitiesGraph(es, eids)
+            val allEs: IdentityHashMap<Entitiable, Entity> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
-                assert { es.all { it is StoredEntity && !it.dirty } }
-                return WriteResult(db, es.filterIsInstance<StoredEntity>(), emptyMap()) to DbState(baseState.head, db)
+                assert { es.all { it is AttachedEntity && !it.dirty } }
+                return WriteResult(db, es.filterIsInstance<AttachedEntity>(), emptyMap()) to DbState(baseState.head, db)
             }
             val newAttrs = es.filterIsInstance<Attr<*>>()
             validate(baseState.db, facts, newAttrs)
@@ -220,7 +221,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
 
             val persistedEntities = es
                     .map { Entity(allEs[it]!!.eid, newDb) }.toList()
-            val createdEntities = allEs.filterKeys { it !is StoredEntity }.mapValues { Entity(it.value.eid, newDb) }
+            val createdEntities = allEs.filterKeys { it !is AttachedEntity }.mapValues { Entity(it.value.eid, newDb) }
 
             return WriteResult(db, persistedEntities, createdEntities) to DbState(newHead, newDb)
 
@@ -231,27 +232,26 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         }
     }
 
-    private fun unfoldEntitiesGraph(es: Collection<Entitiable<*>>, eids: Iterator<EID>): IdentityHashMap<Entitiable<*>, Entity<EID>> {
-        val res = IdentityHashMap<Entitiable<*>, Entity<EID>>()
+    private fun unfoldEntitiesGraph(es: Collection<Entitiable>, eids: Iterator<EID>): IdentityHashMap<Entitiable, Entity> {
+        val res = IdentityHashMap<Entitiable, Entity>()
 
-        fun body(es: Collection<Entitiable<*>>) {
+        fun body(es: Collection<Entitiable>) {
             es.forEach {
                 if (!res.contains(it)) {
                     when (it) {
-                        is Entity -> {
-                            res[it] = if (it.eid != null) it as Entity<EID> else it.toIdentified(eids.next())
-                        }
-                        else -> res[it] = Entity(*it.entries.toTypedArray()).toIdentified(eids.next())
+                        is Entity -> res[it] = it
+                        is MaybeEntity -> res[it] = it.toIdentified(it.eid ?: eids.next())
+                        else -> res[it] = it.toIdentified(eids.next())
                     }
                 }
-                it.entries.forEach { e ->
-                    if (e is ScalarRefAttrValue) {
-                        val value: Entity<*>? = e.value
-                        if (value != null && res[value] == null) {
+                it.keys.forEach { attr ->
+                    if (attr is ScalarRefAttr) {
+                        val value: Entitiable = it[attr]
+                        if (res[value] == null) {
                             body(singletonList(value))
                         }
-                    } else if (e is RefListAttrValue) {
-                        body(e.value)
+                    } else if (attr is RefListAttr) {
+                        body(it[attr])
                     }
                 }
             }
@@ -261,9 +261,9 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         return res
     }
 
-    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable<*>, Entity<EID>>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
-        val entitiesToStore: List<Entity<EID>> = allEs.values.filter { it !is StoredEntity || it.dirty }
-        val linkedEntities: List<Entity<EID>> = entitiesToStore.map { it.setRefs(allEs) }
+    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable, Entity>, eids: Iterator<EID>, instance: AttachedEntity): MutableList<Fact> {
+        val entitiesToStore: List<Entity> = allEs.values.filter { it !is AttachedEntity || it.dirty }
+        val linkedEntities: List<Entity> = entitiesToStore.map { it.setRefs(allEs) }
         val facts: MutableList<Fact> = linkedEntities
                 .flatMap { it.toFacts() }
                 .toMutableList()

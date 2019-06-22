@@ -2,9 +2,9 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
-import qbit.schema.*
 
 @Suppress("UNCHECKED_CAST")
 class EntityTest {
@@ -19,25 +19,26 @@ class EntityTest {
         val _eid = ScalarAttr(user["some_eid"], QEID)
 
         val e1 = Entity(_attr eq "e1")
-        assertTrue((e1 as MapEntity).refs.isEmpty())
-        val e2 = Entity(_attr eq "e2", _ref eq e1, _eid eq EID(0, 3), _list eq listOf("one", "two"),
+        val e2 = Entity(
+                _attr eq "e2",
+                _ref eq e1,
+                _eid eq EID(0, 3),
+                _list eq listOf("one", "two"),
                 _refList eq listOf(e1))
-        assertTrue((e2 as MapEntity).map.size == 3)
-        assertTrue(e2.refs.size == 2)
+        assertTrue((e2 as ProtoEntity).map.size == 5)
 
         assertEquals("e2", e2[_attr])
         assertEquals(EID(0, 3), e2[_eid])
         assertTrue(e2[_ref] === e1)
         assertArrayEquals(arrayOf("one", "two"), e2[_list].toTypedArray())
-        val list: List<Entity<*>> = e2[_refList]
-        val array: Array<Entity<*>> = list.toTypedArray()
+        val list: List<Entitiable> = e2[_refList]
         assertArrayEquals(arrayOf(e1), list.toTypedArray())
         assertEquals(5, e2.entries.size)
     }
 
     @Test
     fun testPutRef() {
-        var first = Entity()
+        var first = DetachedEntity(EID(0))
         val second = Entity()
         val attr = RefAttr(root["test"])
         first = first.with(attr, second)
@@ -46,7 +47,7 @@ class EntityTest {
 
     @Test
     fun testListAttr() {
-        var e = Entity()
+        var e = DetachedEntity(EID(0))
         val attr = ListAttr(root["test"], QString)
         e = e.with(attr, listOf("first"))
         assertEquals(listOf("first"), e[attr])
@@ -54,7 +55,7 @@ class EntityTest {
 
     @Test
     fun testSetAttrs() {
-        var e = Entity()
+        var e = DetachedEntity(EID(0))
         val _first = ScalarAttr(root["first"], QLong)
         val _second = RefAttr(root["second"])
         val _third = ListAttr(root["third"], QString)
@@ -74,8 +75,7 @@ class EntityTest {
         val r1 = Entity(s eq "s1").toIdentified(EID(1))
         val r2 = Entity(s eq "s2").toIdentified(EID(2))
         val ref = RefAttr(root["ref"])
-        var e: StoredEntity = StoredMapEntity(EID(0), mapOf(ref to r1) as MutableMap<Attr<*>, Any>,
-                hashMapOf(), { null }, false)
+        var e = AttachedEntity(EID(0), mapOf(ref to r1), emptyDb, false)
         e = e.with(ref, r2)
         assertEquals(1, e.toFacts().size)
     }
@@ -84,8 +84,7 @@ class EntityTest {
     fun testSetStoredEntityVarargWithPartialUpdate() {
         val s1 = ScalarAttr(root["scalar1"], QString)
         val s2 = ScalarAttr(root["scalar2"], QString)
-        val e: StoredEntity = StoredMapEntity(EID(0), mapOf(s1 to "value1", s2 to "value2") as MutableMap<Attr<*>, Any>,
-                hashMapOf(), { null }, false)
+        val e = AttachedEntity(EID(0), mapOf(s1 to "value1", s2 to "value2"), emptyDb, false)
         val ne = e.with(s1 eq "value1", s2 eq "value3")
         assertNotEquals(ne, e)
         assertEquals("value3", ne[s2])
@@ -94,7 +93,7 @@ class EntityTest {
     @Test
     fun testUpdateRefList() {
         val rl = RefListAttr(root["refList"])
-        var e: StoredEntity = StoredMapEntity(EID(0), mapOf(rl to listOf(EID(1), EID(2))) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
+        var e = AttachedEntity(EID(0), mapOf(rl to listOf(EID(1), EID(2))), emptyDb, false)
         e = e.with(rl, listOf(Entity()))
         assertEquals(1, e.entries.size)
     }
@@ -103,7 +102,7 @@ class EntityTest {
     fun testUpdateRefViaVararg() {
         val s = ScalarAttr(root["scalar"], QString)
         val ref = RefAttr(root["refList"])
-        var e: StoredEntity = StoredMapEntity(EID(0), mapOf(s to "any", ref to EID(1)) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
+        var e = DetachedEntity(EID(0), mapOf(s to "any", ref to ProtoEntity()))
         e = e.with(ref eq Entity(), s eq "newAny")
         assertEquals(2, e.entries.size)
     }
@@ -112,7 +111,7 @@ class EntityTest {
     fun testUpdateRefListViaVararg() {
         val s = ScalarAttr(root["scalar"], QString)
         val rl = RefListAttr(root["refList"])
-        var e: StoredEntity = StoredMapEntity(EID(0), mapOf(s to "any", rl to listOf(EID(1), EID(2))) as MutableMap<Attr<*>, Any>, hashMapOf(), { null }, false)
+        var e = AttachedEntity(EID(0), mapOf(s to "any", rl to listOf(EID(1), EID(2))), emptyDb, false)
         e = e.with(rl eq listOf(Entity()), s eq "newAny")
         assertEquals(2, e.entries.size)
     }

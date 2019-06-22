@@ -2,12 +2,9 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
-import qbit.schema.ListAttr
-import qbit.schema.RefAttr
-import qbit.schema.ScalarAttr
-import qbit.schema.eq
 import qbit.storage.MemStorage
 import java.math.BigDecimal
 import java.time.*
@@ -247,7 +244,7 @@ class LocalConnTest {
         assertEquals(listOf("1", "2"), se[_list])
 
         se = conn.persist(se.with(_list, emptyList())).storedEntity()
-        assertNull(se.getO(_list))
+        assertNull(se.tryGet(_list))
     }
 
     @Test

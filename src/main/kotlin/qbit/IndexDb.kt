@@ -4,7 +4,9 @@ import qbit.EAttr.list
 import qbit.EAttr.name
 import qbit.EAttr.type
 import qbit.EAttr.unique
-import qbit.schema.*
+import qbit.model.*
+import qbit.model.Entity
+import java.util.*
 
 interface QueryPred {
     val attrName: String
@@ -52,10 +54,10 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 interface Db {
 
-    fun pull(eid: EID): StoredEntity?
+    fun pull(eid: EID): AttachedEntity?
 
     // Todo: add check that attrs are presented in schema
-    fun query(vararg preds: QueryPred): Sequence<StoredEntity>
+    fun query(vararg preds: QueryPred): Sequence<AttachedEntity>
 
     fun attr(attr: String): Attr<Any>?
 
@@ -65,18 +67,30 @@ class IndexDb(internal val index: Index, val hash: Hash) : Db {
 
     private val schema = loadAttrs(index)
 
-    override fun pull(eid: EID): StoredEntity? {
-        val entity = index.entityById(eid) ?: return null
-        val attrValues = entity.entries.map {
+    private val NotFound = AttachedEntity(EID(-1), emptyMap<Attr<Any>, Any>(), this, false)
+    private val entityCache = WeakHashMap<EID, AttachedEntity>()
+
+    override fun pull(eid: EID): AttachedEntity? {
+        val cached = entityCache[eid]
+        if (cached === NotFound) {
+            return null
+        } else if (cached != null) {
+            return cached
+        }
+
+        val rawEntity = index.entityById(eid) ?: return null
+        val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null)
             require(attr.isList() || it.value.size == 1)
             attr to if (attr.isList()) it.value else it.value[0]
         }
-        return Entity(eid, attrValues, this)
+        val entity = Entity(eid, attrValues, this)
+        entityCache[eid] = entity
+        return entity
     }
 
-    override fun query(vararg preds: QueryPred): Sequence<StoredEntity> {
+    override fun query(vararg preds: QueryPred): Sequence<AttachedEntity> {
         // filters data + base sequence data
         val arrayOfFalse = { Array(preds.size) { false } }
 

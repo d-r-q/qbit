@@ -1,4 +1,4 @@
-package qbit
+package qbit.model
 
 class EID(val iid: Int, val eid: Int) : Comparable<EID> {
 

@@ -1,6 +1,8 @@
 package qbit
 
-import qbit.schema.Attr
+import qbit.model.Attr
+import qbit.model.EID
+import qbit.model.IID
 
 data class DbUuid(val iid: IID)
 

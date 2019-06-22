@@ -2,10 +2,8 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.root
-import qbit.schema.Attr
-import qbit.schema.ScalarAttr
-import qbit.schema.eq
 import qbit.serialization.SimpleSerialization
 
 class IndexTest {

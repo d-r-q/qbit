@@ -2,11 +2,8 @@ package qbit.mapping
 
 import org.junit.Assert.*
 import org.junit.Test
-import qbit.EID
-import qbit.Entity
-import qbit.QString
+import qbit.model.*
 import qbit.ns.root
-import qbit.schema.*
 
 
 object Users {
@@ -32,7 +29,7 @@ object Posts {
 }
 
 fun User(name: String) = User(Entity(Users.name eq name))
-class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
+class User(entity: MutableEntitiable) : TypedEntity(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
@@ -42,14 +39,14 @@ class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
 }
 
-fun Post(post: String, user: User<EID?>) = Post(Entity(Posts.user eq user, Posts.post eq post))
-class Post<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
+fun Post(post: String, user: User) = Post(Entity(Posts.user eq user, Posts.post eq post))
+class Post(entity: MutableEntitiable) : TypedEntity(entity) {
 
-    var user: User<EID?> by RefAttrDelegate(Posts.user)
+    var user: User by RefAttrDelegate(Posts.user)
 
-    var replyTo: User<EID?>? by RefAttrDelegate(Posts.replyTo)
+    var replyTo: User? by RefAttrDelegate(Posts.replyTo)
 
-    var mentions: List<User<EID?>>? by RefListAttrDelegate(Posts.mentions)
+    var mentions: List<User>? by RefListAttrDelegate(Posts.mentions)
 
     val post: String by AttrDelegate(Posts.post)
 
@@ -83,7 +80,7 @@ class EntityProxyTest {
         val user2 = User("test3")
         val post = Post("post", user1)
         post.user = user2
-        assertEquals("test3", post[Posts.user][Users.name])
+        assertEquals("test3", post.user.name)
     }
 
     @Test
@@ -126,7 +123,7 @@ class EntityProxyTest {
         val post = Post("post", user1)
         assertNull(post.mentions)
         post.mentions = listOf(user2, user3)
-        assertEquals(listOf(user2, user3).toTypedArray(), post.mentions?.toTypedArray())
+        assertArrayEquals(listOf(user2, user3).toTypedArray(), post.mentions?.toTypedArray())
         post.mentions = null
         assertNull(post.mentions)
     }
@@ -139,8 +136,10 @@ class EntityProxyTest {
 
     @Test
     fun testTypifyTypedReified() {
-        val user: Entity<EID?> = User("user1")
-        val typify: User<EID?> = typify(user)
-        assertEquals(user, typify)
+        val user = User("user1")
+        val typified: User = typify(user)
+        assertEquals(user, typified)
     }
+
+    // todo: test generified typed entity
 }

@@ -2,6 +2,7 @@ package qbit
 
 import qbit.collections.firstMatchIdx
 import qbit.collections.subList
+import qbit.model.EID
 
 typealias RawEntity = Pair<EID, List<Fact>>
 

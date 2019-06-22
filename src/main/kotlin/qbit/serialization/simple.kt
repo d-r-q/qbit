@@ -1,6 +1,7 @@
 package qbit.serialization
 
 import qbit.*
+import qbit.model.*
 import java.io.EOFException
 import java.io.InputStream
 import java.math.BigDecimal

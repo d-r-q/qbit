@@ -1,4 +1,4 @@
-package qbit
+package qbit.model
 
 import java.math.BigDecimal
 import java.time.Instant
@@ -119,7 +119,7 @@ object QBytes : DataType<ByteArray>() {
 
 }
 
-object QEntity : DataType<Entity<*>>() {
+object QEntity : DataType<Entity>() {
 
     override val code = 18.toByte()
 

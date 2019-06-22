@@ -11,8 +11,8 @@ import qbit.mapping.AttrDelegate
 import qbit.mapping.TypedEntity
 import qbit.mapping.pullAs
 import qbit.mapping.typify
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.*
 import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -35,11 +35,11 @@ object Tweets {
     val likes = RefListAttr(tweetNs["likes"])
 }
 
-class User<E: EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
+class User(entity: MutableEntity) : TypedEntity(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
-    val last_login: Instant by AttrDelegate(Users.lastLogin)
+    val last_login: Instant by AttrDelegate(lastLogin)
 
 }
 
@@ -62,17 +62,18 @@ class Demo {
         println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
 
         val cris = Entity(Users.name eq "@cris", lastLogin eq Instant.now())
-        var nTweet: StoredEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
+        var nTweet: AttachedEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
         nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
         println(nTweet[content])
         println(nTweet[likes].map { it[Users.name] })
-        val users = nTweet[likes].map { typify<EID?, User<EID?>>(it) }
+        val likedUsers = nTweet[likes]
+        val users = likedUsers.filterIsInstance<Entity>().map { typify<User>(it) }
         println(users.map { p -> "${p.name}: ${p.last_login}" })
 
         users[0].name = "@reflection_rulezz"
         conn.persist(users[0])
-        assertEquals("@reflection_rulezz", conn.db.pullAs<User<EID>>(users[0].eid!!)!!.name)
+        assertEquals("@reflection_rulezz", conn.db.pullAs<User>(users[0].eid!!)!!.name)
 
     }
 }

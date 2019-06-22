@@ -3,10 +3,8 @@ package qbit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.root
-import qbit.schema.ListAttr
-import qbit.schema.ScalarAttr
-import qbit.schema.eq
 
 class DbTest {
 

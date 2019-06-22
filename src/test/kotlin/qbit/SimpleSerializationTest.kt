@@ -2,6 +2,7 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.*
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
 import java.io.EOFException

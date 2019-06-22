@@ -1,7 +1,7 @@
 package qbit
 
+import qbit.model.*
 import qbit.ns.Namespace
-import qbit.schema.ScalarAttr
 
 object EAttr {
 

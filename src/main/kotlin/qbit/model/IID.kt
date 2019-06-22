@@ -1,4 +1,6 @@
-package qbit
+package qbit.model
+
+import qbit.QBitException
 
 data class IID(val value: Int, val instanceBits: Byte) {
 

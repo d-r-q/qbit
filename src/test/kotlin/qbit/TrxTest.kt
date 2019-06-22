@@ -2,8 +2,9 @@ package qbit
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.model.QString
 import qbit.ns.root
-import qbit.schema.ScalarAttr
+import qbit.model.ScalarAttr
 import qbit.storage.MemStorage
 
 

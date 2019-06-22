@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.schema.Attr
+import qbit.model.Attr
 
 fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.str() }
