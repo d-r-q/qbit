@@ -25,20 +25,20 @@ class EntityTest {
                 _eid eq EID(0, 3),
                 _list eq listOf("one", "two"),
                 _refList eq listOf(e1))
-        assertTrue((e2 as ProtoEntity).map.size == 5)
+        assertTrue((e2 as DetachedEntity<*>).entries.size == 5)
 
         assertEquals("e2", e2[_attr])
         assertEquals(EID(0, 3), e2[_eid])
         assertTrue(e2[_ref] === e1)
         assertArrayEquals(arrayOf("one", "two"), e2[_list].toTypedArray())
-        val list: List<Entitiable> = e2[_refList]
+        val list: List<Entitiable<*>> = e2[_refList]
         assertArrayEquals(arrayOf(e1), list.toTypedArray())
         assertEquals(5, e2.entries.size)
     }
 
     @Test
     fun testPutRef() {
-        var first = DetachedEntity(EID(0))
+        var first = DetachedEntity<EID>(EID(0))
         val second = Entity()
         val attr = RefAttr(root["test"])
         first = first.with(attr, second)
@@ -47,7 +47,7 @@ class EntityTest {
 
     @Test
     fun testListAttr() {
-        var e = DetachedEntity(EID(0))
+        var e = DetachedEntity<EID>(EID(0))
         val attr = ListAttr(root["test"], QString)
         e = e.with(attr, listOf("first"))
         assertEquals(listOf("first"), e[attr])
@@ -55,7 +55,7 @@ class EntityTest {
 
     @Test
     fun testSetAttrs() {
-        var e = DetachedEntity(EID(0))
+        var e = DetachedEntity<EID>(EID(0))
         val _first = ScalarAttr(root["first"], QLong)
         val _second = RefAttr(root["second"])
         val _third = ListAttr(root["third"], QString)
@@ -102,7 +102,7 @@ class EntityTest {
     fun testUpdateRefViaVararg() {
         val s = ScalarAttr(root["scalar"], QString)
         val ref = RefAttr(root["refList"])
-        var e = DetachedEntity(EID(0), mapOf(s to "any", ref to ProtoEntity()))
+        var e = DetachedEntity(EID(0), mapOf<Attr<*>, Any>(s to "any", ref to DetachedEntity<EID?>()))
         e = e.with(ref eq Entity(), s eq "newAny")
         assertEquals(2, e.entries.size)
     }

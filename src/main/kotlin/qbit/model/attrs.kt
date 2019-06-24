@@ -7,7 +7,7 @@ import qbit.ns.Namespace
 // Interface
 
 
-sealed class Attr<out T : Any> : Entitiable {
+sealed class Attr<out T : Any> : Entitiable<EID?> {
 
     abstract val name: Key
 
@@ -29,9 +29,9 @@ sealed class ListAttr<out T : Any> : ValAttr<List<T>>()
 
 sealed class RefAttr<out T : Any> : Attr<T>()
 
-sealed class ScalarRefAttr : RefAttr<Entitiable>()
+sealed class ScalarRefAttr : RefAttr<Entitiable<EID?>>()
 
-sealed class RefListAttr : RefAttr<List<Entitiable>>()
+sealed class RefListAttr : RefAttr<List<Entitiable<EID?>>>()
 
 
 fun <T : Any> ScalarAttr(name: Key, type: DataType<T>, unique: Boolean = false): ScalarAttr<T> = ScalarAttrImpl(name, type, unique)
@@ -48,18 +48,18 @@ fun RefListAttr(name: Key, unique: Boolean = false): RefListAttr = RefListAttrIm
 @Suppress("UNCHECKED_CAST")
 infix fun <T : Any> Attr<T>.eq(v: T): AttrValue<Attr<T>, T> = when (this) {
     is ScalarAttr -> this eq v
-    is ScalarRefAttr -> (this eq (v as Entitiable)) as AttrValue<Attr<T>, T>
+    is ScalarRefAttr -> (this eq (v as Entitiable<*>)) as AttrValue<Attr<T>, T>
     is ListAttr<*> -> (this eq (v as List<T>)) as AttrValue<Attr<T>, T>
-    is RefListAttr -> (this eq (v as List<Entitiable>)) as AttrValue<Attr<T>, T>
+    is RefListAttr -> (this eq (v as List<Entitiable<*>>)) as AttrValue<Attr<T>, T>
 }
 
 infix fun <T : Any> ScalarAttr<T>.eq(v: T): ScalarAttrValue<T> = ScalarAttrValue(this, v)
 
 infix fun <T : Any> ListAttr<T>.eq(v: List<T>): AttrValue<Attr<List<T>>, List<T>> = ListAttrValue(this, v)
 
-infix fun ScalarRefAttr.eq(v: Entitiable): ScalarRefAttrValue = ScalarRefAttrValue(this, v)
+infix fun ScalarRefAttr.eq(v: Entitiable<*>): ScalarRefAttrValue = ScalarRefAttrValue(this, v)
 
-infix fun RefListAttr.eq(v: List<Entitiable>): RefListAttrValue = RefListAttrValue(this, v)
+infix fun RefListAttr.eq(v: List<Entitiable<*>>): RefListAttrValue = RefListAttrValue(this, v)
 
 
 // Implementation
@@ -73,15 +73,15 @@ internal fun RefAttr(name: String, unique: Boolean = false): Attr<*> = RefAttr(K
 
 internal fun RefListAttr(name: String, unique: Boolean = false): Attr<*> = RefListAttr(Key(name), unique)
 
-private data class ScalarAttrImpl<T : Any>(override val name: Key, override val type: DataType<T>, override val unique: Boolean = false) : ScalarAttr<T>(), Entitiable by AttrEntityImpl(name, type, unique)
+private data class ScalarAttrImpl<T : Any>(override val name: Key, override val type: DataType<T>, override val unique: Boolean = false) : ScalarAttr<T>(), Entitiable<EID?> by AttrEntityImpl(name, type, unique)
 
-private data class ScalarRefAttrImpl(override val name: Key, override val type: DataType<Entity>, override val unique: Boolean = false) : ScalarRefAttr(), Entitiable by AttrEntityImpl(name, type, unique)
+private data class ScalarRefAttrImpl(override val name: Key, override val type: DataType<Entity<*>>, override val unique: Boolean = false) : ScalarRefAttr(), Entitiable<EID?> by AttrEntityImpl(name, type, unique)
 
 // TODO: what is unique means for lists?
 private data class ListAttrImpl<T : Any>(override val name: Key, val itemsType: DataType<T>,
                                          override val unique: Boolean = false)
     :
-        ListAttr<T>(), Entitiable by AttrEntityImpl(name, itemsType, unique, true) {
+        ListAttr<T>(), Entitiable<EID?> by AttrEntityImpl(name, itemsType, unique, true) {
 
     override val type: DataType<List<T>> = this.itemsType.list()
 
@@ -89,13 +89,15 @@ private data class ListAttrImpl<T : Any>(override val name: Key, val itemsType: 
 
 private data class RefListAttrImpl(override val name: Key, override val unique: Boolean = false)
     :
-        RefListAttr(), Entitiable by AttrEntityImpl(name, QEntity, unique, true) {
+        RefListAttr(), Entitiable<EID?> by AttrEntityImpl(name, QEntity, unique, true) {
 
-    override val type: DataType<List<Entity>> = QEntity.list()
+    override val type: DataType<List<Entity<*>>> = QEntity.list()
 
 }
 
-private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val unique: Boolean = false, val list: Boolean = false) : Entitiable {
+private data class AttrEntityImpl(val name: Key, val type: DataType<*>, val unique: Boolean = false, val list: Boolean = false) : Entitiable<EID?>{
+
+    override val eid: EID? = null
 
     private val map = mapOf(EAttr.name to name.toStr(), EAttr.type to type.code, EAttr.unique to unique, EAttr.list to list)
 

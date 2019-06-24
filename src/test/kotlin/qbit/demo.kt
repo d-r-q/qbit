@@ -7,10 +7,7 @@ import qbit.Tweets.content
 import qbit.Tweets.date
 import qbit.Tweets.likes
 import qbit.Users.lastLogin
-import qbit.mapping.AttrDelegate
-import qbit.mapping.TypedEntity
-import qbit.mapping.pullAs
-import qbit.mapping.typify
+import qbit.mapping.*
 import qbit.model.*
 import qbit.ns.Namespace
 import qbit.storage.MemStorage
@@ -35,7 +32,7 @@ object Tweets {
     val likes = RefListAttr(tweetNs["likes"])
 }
 
-class User(entity: MutableEntity) : TypedEntity(entity) {
+class User<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
@@ -68,12 +65,12 @@ class Demo {
         println(nTweet[content])
         println(nTweet[likes].map { it[Users.name] })
         val likedUsers = nTweet[likes]
-        val users = likedUsers.filterIsInstance<Entity>().map { typify<User>(it) }
+        val users = likedUsers.filterIsInstance<Entity<EID>>().map { typify<EID, User<EID>>(it) }
         println(users.map { p -> "${p.name}: ${p.last_login}" })
 
         users[0].name = "@reflection_rulezz"
         conn.persist(users[0])
-        assertEquals("@reflection_rulezz", conn.db.pullAs<User>(users[0].eid!!)!!.name)
+        assertEquals("@reflection_rulezz", conn.db.pullAs<User<EID>>(users[0].eid)!!.name)
 
     }
 }

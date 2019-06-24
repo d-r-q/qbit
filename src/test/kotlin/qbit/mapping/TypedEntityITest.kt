@@ -30,35 +30,35 @@ object Nodes {
 }
 
 fun Category(name: String) = Entity(Categories.name eq name)
-class Category(entity: MutableEntity) : TypedEntity(entity) {
+class Category<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Categories.name)
 
 }
 
-fun Trx(sums: List<Long>, primaryCategory: Category, categories: List<Category>) =
+fun Trx(sums: List<Long>, primaryCategory: Category<*>, categories: List<Category<*>>) =
         Entity(Trxes.sums eq sums, Trxes.primaryCategory eq primaryCategory,
                 Trxes.categories eq categories)
 
-class Trx<E : EID?>(entity: MutableEntity) : TypedEntity(entity) {
+class Trx<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
 
     var sums: List<Long> by ListAttrDelegate(Trxes.sums)
 
-    val primaryCategory: Category by RefAttrDelegate(Trxes.primaryCategory)
+    val primaryCategory: Category<*> by RefAttrDelegate(Trxes.primaryCategory)
 
-    fun primaryCategory(cat: Category): Trx<E> {
+    fun primaryCategory(cat: Category<*>): Trx<E> {
         entity = entity.with(Trxes.primaryCategory, cat)
         return this
     }
 
-    var categories: List<Category> by RefListAttrDelegate(Trxes.categories)
+    var categories: List<Category<*>> by RefListAttrDelegate(Trxes.categories)
 
 }
 
 fun Node(data: String) = Node(Entity(Nodes.data eq data))
-class Node(entity: MutableEntitiable) : TypedEntity(entity) {
+class Node<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
 
-    var next: Node? by RefAttrDelegate(Nodes.next)
+    var next: Node<*>? by RefAttrDelegate(Nodes.next)
 
     var data: String by AttrDelegate(Nodes.data)
 
@@ -71,9 +71,9 @@ class TypedEntityITest {
         val conn = qbit(MemStorage())
         conn.persist(Categories.name, sums, primaryCategory, Trxes.categories, Nodes.next, Nodes.data)
         conn.persist(Category("cat1"), Category("cat2"), Category("cat3"))
-        val cat1 = conn.db.queryAs<Category>(attrIs(Categories.name, "cat1")).first()
-        val cat2 = conn.db.queryAs<Category>(attrIs(Categories.name, "cat2")).first()
-        val cat3 = conn.db.queryAs<Category>(attrIs(Categories.name, "cat3")).first()
+        val cat1 = conn.db.queryAs<Category<EID>>(attrIs(Categories.name, "cat1")).first()
+        val cat2 = conn.db.queryAs<Category<EID>>(attrIs(Categories.name, "cat2")).first()
+        val cat3 = conn.db.queryAs<Category<EID>>(attrIs(Categories.name, "cat3")).first()
 
         val t = Trx(listOf(10, 20), cat1, listOf(cat2))
         var trx = conn.persist(t).storedEntityAs<Trx<EID>>()
@@ -104,8 +104,8 @@ class TypedEntityITest {
         assertEquals("cat2.1", trx.categories[0].name)
         val scEid = trx.categories[0].eid
         conn.persist(trx)
-        assertEquals("cat3.1", conn.db.pullAs<Category>(pcEid!!)!!.name)
-        assertEquals("cat2.1", conn.db.pullAs<Category>(scEid!!)!!.name)
+        assertEquals("cat3.1", conn.db.pullAs<Category<EID>>(pcEid!!)!!.name)
+        assertEquals("cat2.1", conn.db.pullAs<Category<EID>>(scEid!!)!!.name)
 
         val n1 = Node("n1")
         val n2 = Node("n2")
@@ -113,7 +113,7 @@ class TypedEntityITest {
         n1.next = n2
         n2.next = n3
         n3.next = n1
-        val n1Stored = conn.persist(n1, n2, n3).createdEntities[n1]!!.typed<Node>()
+        val n1Stored = conn.persist(n1, n2, n3).createdEntities[n1]!!.typed<EID, Node<EID>>()
         assertEquals("n1", n1Stored.data)
         assertEquals("n2", n1Stored.next?.data)
         assertEquals("n3", n1Stored.next?.next?.data)

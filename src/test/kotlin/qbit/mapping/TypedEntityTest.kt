@@ -2,6 +2,9 @@ package qbit.mapping
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.mapping.GenericEntities.meta
+import qbit.mapping.GenericEntities.ref
+import qbit.mapping.GenericEntities.refs
 import qbit.model.*
 import qbit.ns.root
 
@@ -28,8 +31,18 @@ object Posts {
 
 }
 
+object GenericEntities {
+
+    val meta = ScalarAttr(root["meta"], QString)
+
+    val ref = RefAttr(root["ref"])
+
+    val refs = RefListAttr(root["refs"])
+
+}
+
 fun User(name: String) = User(Entity(Users.name eq name))
-class User(entity: MutableEntitiable) : TypedEntity(entity) {
+class User<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
@@ -39,16 +52,43 @@ class User(entity: MutableEntitiable) : TypedEntity(entity) {
 
 }
 
-fun Post(post: String, user: User) = Post(Entity(Posts.user eq user, Posts.post eq post))
-class Post(entity: MutableEntitiable) : TypedEntity(entity) {
+fun Post(post: String, user: User<*>) = Post(Entity(Posts.user eq user, Posts.post eq post))
+class Post<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
 
-    var user: User by RefAttrDelegate(Posts.user)
+    var user: User<*> by RefAttrDelegate(Posts.user)
 
-    var replyTo: User? by RefAttrDelegate(Posts.replyTo)
+    var replyTo: User<*>? by RefAttrDelegate(Posts.replyTo)
 
-    var mentions: List<User>? by RefListAttrDelegate(Posts.mentions)
+    var mentions: List<User<*>>? by RefListAttrDelegate(Posts.mentions)
 
     val post: String by AttrDelegate(Posts.post)
+
+}
+
+class GenericEntity<T, E : EID?>(val value: T?, entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
+
+    constructor(entity: MutableEntitiable<E>) : this(null, entity)
+
+    var meta: String by AttrDelegate(GenericEntities.meta)
+
+    var ref: GenericEntity<T, E> by RefAttrDelegate(GenericEntities.ref)
+
+    var refs: List<GenericEntity<T, E>> by RefListAttrDelegate(GenericEntities.refs)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GenericEntity<*, *>) return false
+
+        if (value != other.value) return false
+
+        if (entity != other.entity) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return entity.hashCode()
+    }
 
 }
 
@@ -72,6 +112,13 @@ class EntityProxyTest {
         val user = User("test")
         val post = Post("post", user)
         assertEquals("test", post.user.name)
+    }
+
+    @Test
+    fun testGetTyped() {
+        val user = User("test")
+        val post = Post("post", user)
+        assertEquals(user, post.user)
     }
 
     @Test
@@ -137,9 +184,26 @@ class EntityProxyTest {
     @Test
     fun testTypifyTypedReified() {
         val user = User("user1")
-        val typified: User = typify(user)
+        val typified: User<EID?> = typify(user)
         assertEquals(user, typified)
     }
 
-    // todo: test generified typed entity
+    @Test
+    fun testGenerifiedEntity() {
+        val ge1 = GenericEntity(1, Entity(meta eq "meta1"))
+        assertEquals("meta1", ge1.meta)
+        ge1.meta = "meta1.2"
+        assertEquals("meta1.2", ge1.meta)
+        val ge2 = GenericEntity(2, Entity(ref eq ge1))
+        assertEquals(ge1, ge2.ref)
+        ge2.ref = ge2
+        assertEquals(ge2, ge2.ref)
+
+        val ge4 = Entity(refs eq listOf(ge1, ge2, Entity(meta eq "meta4")))
+        val ge3 = GenericEntity(3, Entity(meta eq "meta3", refs eq listOf(ge1, ge4)))
+        assertEquals(GenericEntity(null, ge4), ge3.refs[1])
+
+        ge3.refs = listOf(ge2, ge1)
+        assertArrayEquals(listOf(ge2, ge1).toTypedArray(), ge3.refs.toTypedArray())
+    }
 }
