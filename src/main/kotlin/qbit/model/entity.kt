@@ -58,6 +58,10 @@ fun RoEntity<EID?>.toIdentified(eid: EID): Entity<EID> {
     return DetachedEntity(eid, this)
 }
 
+fun RoEntity<EID>.tombstone(): Tombstone {
+    return Tombstone(eid)
+}
+
 interface Entity<out E : EID?> : RoEntity<E> {
 
     fun <T : Any> with(key: Attr<T>, value: T): Entity<E> =

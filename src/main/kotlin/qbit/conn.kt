@@ -119,16 +119,6 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         return res
     }
 
-    fun delete(vararg eids: EID) {
-        delete(eids.asList())
-    }
-
-    fun delete(eids: Collection<EID>) {
-        val trx = trx()
-        trx.delete(eids)
-        trx.commit()
-    }
-
     fun trx() =
             QbitTrx(this, DbState(head, db))
 
@@ -178,10 +168,6 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         return res
     }
 
-    fun delete(eids: Collection<EID>) {
-        this.state = deleteImpl(eids)
-    }
-
     fun commit() {
         val lstate = state
         if (lstate != null) {
@@ -219,8 +205,9 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val newDb = db(conn.graph, baseState.db, newHead)
 
             val persistedEntities = es
+                    .filterNot { it is Tombstone }
                     .map { Entity(allEs[it]!!.eid, newDb) }.toList()
-            val createdEntities = allEs.filterKeys { it !is AttachedEntity }.mapValues { Entity(it.value.eid, newDb) }
+            val createdEntities = allEs.filterKeys { it !is AttachedEntity && it !is Tombstone }.mapValues { Entity(it.value.eid, newDb) }
 
             return WriteResult(db, persistedEntities, createdEntities) to DbState(newHead, newDb)
 
@@ -242,12 +229,6 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             facts += instance.with(entitiesCount, newEntitiesCnt).toFacts()
         }
         return facts
-    }
-
-    private fun deleteImpl(eids: Collection<EID>): DbState {
-        val tombstones = eids.map { Fact(it, tombstone, true) }
-        val newHead = persistFacts(tombstones)
-        return DbState(newHead, db(conn.graph, baseState.db, newHead))
     }
 
     private fun persistFacts(facts: Collection<Fact>): NodeVal<Hash> {
