@@ -1,8 +1,8 @@
-package qbit
+package qbit.model
 
 import org.junit.Assert.*
 import org.junit.Test
-import qbit.model.*
+import qbit.emptyDb
 import qbit.ns.Namespace
 import qbit.ns.root
 
@@ -31,7 +31,7 @@ class EntityTest {
         assertEquals(EID(0, 3), e2[_eid])
         assertTrue(e2[_ref] === e1)
         assertArrayEquals(arrayOf("one", "two"), e2[_list].toTypedArray())
-        val list: List<Entitiable<*>> = e2[_refList]
+        val list: List<RoEntity<*>> = e2[_refList]
         assertArrayEquals(arrayOf(e1), list.toTypedArray())
         assertEquals(5, e2.entries.size)
     }
@@ -77,7 +77,7 @@ class EntityTest {
         val ref = RefAttr(root["ref"])
         var e = AttachedEntity(EID(0), mapOf(ref to r1), emptyDb, false)
         e = e.with(ref, r2)
-        assertEquals(1, e.toFacts().size)
+        assertEquals("s2", e[ref][s])
     }
 
     @Test

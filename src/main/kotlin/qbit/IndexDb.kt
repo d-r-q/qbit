@@ -1,9 +1,9 @@
 package qbit
 
-import qbit.EAttr.list
-import qbit.EAttr.name
-import qbit.EAttr.type
-import qbit.EAttr.unique
+import qbit.Attrs.list
+import qbit.Attrs.name
+import qbit.Attrs.type
+import qbit.Attrs.unique
 import qbit.model.*
 import qbit.model.Entity
 import java.util.*
@@ -54,23 +54,25 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 interface Db {
 
-    fun pull(eid: EID): AttachedEntity?
+    val hash: Hash
+
+    fun pull(eid: EID): StoredEntity?
 
     // Todo: add check that attrs are presented in schema
-    fun query(vararg preds: QueryPred): Sequence<AttachedEntity>
+    fun query(vararg preds: QueryPred): Sequence<StoredEntity>
 
     fun attr(attr: String): Attr<Any>?
 
 }
 
-class IndexDb(internal val index: Index, val hash: Hash) : Db {
+class IndexDb(internal val index: Index, override val hash: Hash) : Db {
 
     private val schema = loadAttrs(index)
 
     private val NotFound = AttachedEntity(EID(-1), emptyMap<Attr<Any>, Any>(), this, false)
-    private val entityCache = WeakHashMap<EID, AttachedEntity>()
+    private val entityCache = WeakHashMap<EID, StoredEntity>()
 
-    override fun pull(eid: EID): AttachedEntity? {
+    override fun pull(eid: EID): StoredEntity? {
         val cached = entityCache[eid]
         if (cached === NotFound) {
             return null
@@ -90,7 +92,7 @@ class IndexDb(internal val index: Index, val hash: Hash) : Db {
         return entity
     }
 
-    override fun query(vararg preds: QueryPred): Sequence<AttachedEntity> {
+    override fun query(vararg preds: QueryPred): Sequence<StoredEntity> {
         // filters data + base sequence data
         val arrayOfFalse = { Array(preds.size) { false } }
 
@@ -149,8 +151,8 @@ class IndexDb(internal val index: Index, val hash: Hash) : Db {
                         val list = e[list.str()]?.firstOrNull() as? Boolean ?: false
                         val attr: Attr<Any> =
                                 when {
-                                    list && type == QEntity.code -> RefListAttr(name, unique)
-                                    type == QEntity.code -> RefAttr(name, unique)
+                                    list && type == QRef.code -> RefListAttr(name, unique)
+                                    type == QRef.code -> RefAttr(name, unique)
                                     list -> ListAttr(name, DataType.ofCode(type)!!, unique)
                                     else -> Attr(name, DataType.ofCode(type)!!, unique)
                                 }

@@ -30,7 +30,7 @@ object Nodes {
 }
 
 fun Category(name: String) = Entity(Categories.name eq name)
-class Category<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
+class Category<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Categories.name)
 
@@ -40,7 +40,7 @@ fun Trx(sums: List<Long>, primaryCategory: Category<*>, categories: List<Categor
         Entity(Trxes.sums eq sums, Trxes.primaryCategory eq primaryCategory,
                 Trxes.categories eq categories)
 
-class Trx<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
+class Trx<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var sums: List<Long> by ListAttrDelegate(Trxes.sums)
 
@@ -56,7 +56,7 @@ class Trx<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
 }
 
 fun Node(data: String) = Node(Entity(Nodes.data eq data))
-class Node<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
+class Node<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var next: Node<*>? by RefAttrDelegate(Nodes.next)
 

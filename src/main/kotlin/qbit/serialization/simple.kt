@@ -172,7 +172,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
             val bytes = readBytes(ins, size)
             BigInteger(bytes).toBigDecimal(scale)
         }
-        QEntity -> throw AssertionError("Should never happen")
+        QRef -> throw AssertionError("Should never happen")
         is QList<*> -> throw AssertionError("Should never happen")
     }
 }

@@ -42,7 +42,7 @@ object GenericEntities {
 }
 
 fun User(name: String) = User(Entity(Users.name eq name))
-class User<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
+class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
@@ -53,7 +53,7 @@ class User<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
 }
 
 fun Post(post: String, user: User<*>) = Post(Entity(Posts.user eq user, Posts.post eq post))
-class Post<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
+class Post<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var user: User<*> by RefAttrDelegate(Posts.user)
 
@@ -65,9 +65,9 @@ class Post<E : EID?>(entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
 
 }
 
-class GenericEntity<T, E : EID?>(val value: T?, entity: MutableEntitiable<E>) : TypedEntity<E>(entity) {
+class GenericEntity<T, E : EID?>(val value: T?, entity: Entity<E>) : TypedEntity<E>(entity) {
 
-    constructor(entity: MutableEntitiable<E>) : this(null, entity)
+    constructor(entity: Entity<E>) : this(null, entity)
 
     var meta: String by AttrDelegate(GenericEntities.meta)
 

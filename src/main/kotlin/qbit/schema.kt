@@ -3,9 +3,11 @@ package qbit
 import qbit.model.*
 import qbit.ns.Namespace
 
-object EAttr {
+val qbitNs = Namespace.of("qbit")
 
-    private val qbitAttrs = Namespace.of("qbit", "attr")
+object Attrs {
+
+    private val qbitAttrs = qbitNs("attr")
 
     val name: ScalarAttr<String> = ScalarAttr(qbitAttrs["name"], QString, unique = true)
     val type: ScalarAttr<Byte> = ScalarAttr(qbitAttrs["type"], QByte)
@@ -14,9 +16,9 @@ object EAttr {
 
 }
 
-object EInstance {
+object Instances {
 
-    private val qbitInstance = Namespace.of("qbit", "instance")
+    private val qbitInstance = qbitNs("instance")
 
     val forks: ScalarAttr<Int> = ScalarAttr(qbitInstance["forks"], QInt, false)
     val entitiesCount: ScalarAttr<Int> = ScalarAttr(qbitInstance["entities"], QInt, false)
@@ -24,4 +26,4 @@ object EInstance {
 
 }
 
-val tombstone = ScalarAttr(Namespace.of("qbit")["tombstone"], QBoolean, false)
+val tombstone = ScalarAttr(qbitNs["tombstone"], QBoolean, false)

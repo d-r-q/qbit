@@ -1,7 +1,7 @@
 package qbit
 
-import qbit.EInstance.entitiesCount
-import qbit.EInstance.forks
+import qbit.Instances.entitiesCount
+import qbit.Instances.forks
 import qbit.model.*
 import qbit.model.Entity
 import qbit.ns.Namespace
@@ -9,7 +9,6 @@ import qbit.storage.NodesStorage
 import qbit.storage.Storage
 import java.util.*
 import java.util.Collections.singleton
-import java.util.Collections.singletonList
 import kotlin.ConcurrentModificationException
 
 fun qbit(storage: Storage): LocalConn {
@@ -24,40 +23,40 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    val trx = mutableListOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.name.str()),
-            Fact(EID(iid.value, eid), EAttr.type, QString.code),
-            Fact(EID(iid.value, eid), EAttr.unique, true))
+    val trx = mutableListOf(Fact(EID(iid.value, eid), Attrs.name, Attrs.name.str()),
+            Fact(EID(iid.value, eid), Attrs.type, QString.code),
+            Fact(EID(iid.value, eid), Attrs.unique, true))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.type.str()),
-            Fact(EID(iid.value, eid), EAttr.type, QByte.code),
-            Fact(EID(iid.value, eid), EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, Attrs.type.str()),
+            Fact(EID(iid.value, eid), Attrs.type, QByte.code),
+            Fact(EID(iid.value, eid), Attrs.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EAttr.unique.str()),
-            Fact(EID(iid.value, eid), EAttr.type, QBoolean.code),
-            Fact(EID(iid.value, eid), EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, Attrs.unique.str()),
+            Fact(EID(iid.value, eid), Attrs.type, QBoolean.code),
+            Fact(EID(iid.value, eid), Attrs.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, qbit.EAttr.list.str()),
-            Fact(EID(iid.value, eid), EAttr.type, QBoolean.code),
-            Fact(EID(iid.value, eid), EAttr.unique, false))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, qbit.Attrs.list.str()),
+            Fact(EID(iid.value, eid), Attrs.type, QBoolean.code),
+            Fact(EID(iid.value, eid), Attrs.unique, false))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, forks.str()),
-            Fact(EID(iid.value, eid), EAttr.type, forks.type.code),
-            Fact(EID(iid.value, eid), EAttr.unique, forks.unique))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, forks.str()),
+            Fact(EID(iid.value, eid), Attrs.type, forks.type.code),
+            Fact(EID(iid.value, eid), Attrs.unique, forks.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, entitiesCount.str()),
-            Fact(EID(iid.value, eid), EAttr.type, entitiesCount.type.code),
-            Fact(EID(iid.value, eid), EAttr.unique, entitiesCount.unique))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, entitiesCount.str()),
+            Fact(EID(iid.value, eid), Attrs.type, entitiesCount.type.code),
+            Fact(EID(iid.value, eid), Attrs.unique, entitiesCount.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, EInstance.iid.str()),
-            Fact(EID(iid.value, eid), EAttr.type, EInstance.iid.type.code),
-            Fact(EID(iid.value, eid), EAttr.unique, EInstance.iid.unique))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, Instances.iid.str()),
+            Fact(EID(iid.value, eid), Attrs.type, Instances.iid.type.code),
+            Fact(EID(iid.value, eid), Attrs.unique, Instances.iid.unique))
     eid++
-    trx += listOf(Fact(EID(iid.value, eid), EAttr.name, tombstone.str()),
-            Fact(EID(iid.value, eid), EAttr.type, tombstone.type.code),
-            Fact(EID(iid.value, eid), EAttr.unique, tombstone.unique))
+    trx += listOf(Fact(EID(iid.value, eid), Attrs.name, tombstone.str()),
+            Fact(EID(iid.value, eid), Attrs.type, tombstone.type.code),
+            Fact(EID(iid.value, eid), Attrs.unique, tombstone.unique))
     eid++
     trx += listOf(
-            Fact(EID(iid.value, eid), EInstance.iid, 0),
+            Fact(EID(iid.value, eid), Instances.iid, 0),
             Fact(EID(iid.value, eid), forks, 0),
             Fact(EID(iid.value, eid), entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
@@ -106,14 +105,14 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
         storage.overwrite(Namespace("refs")["head"], newHead.hash.bytes)
     }
 
-    fun persist(e: Entitiable<*>): WriteResult {
+    fun persist(e: RoEntity<*>): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable<*>): WriteResult =
+    fun persist(vararg es: RoEntity<*>): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable<*>>): WriteResult {
+    fun persist(es: Collection<RoEntity<*>>): WriteResult {
         val trx = trx()
         val res = trx.persist(es)
         trx.commit()
@@ -135,25 +134,25 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
 }
 
-class WriteResult(val db: Db, val persistedEntities: List<AttachedEntity>, val createdEntities: Map<Entitiable<*>, AttachedEntity>) {
+class WriteResult(val db: Db, val persistedEntities: List<StoredEntity>, val createdEntities: Map<RoEntity<*>, StoredEntity>) {
 
     operator fun component1(): Db = db
 
-    operator fun component2(): Map<Entitiable<*>, AttachedEntity> = createdEntities
+    operator fun component2(): Map<RoEntity<*>, StoredEntity> = createdEntities
 
-    operator fun component3(): AttachedEntity = persistedEntities[0]
+    operator fun component3(): StoredEntity = persistedEntities[0]
 
-    operator fun component4(): AttachedEntity = persistedEntities[1]
+    operator fun component4(): StoredEntity = persistedEntities[1]
 
-    operator fun component5(): AttachedEntity = persistedEntities[2]
+    operator fun component5(): StoredEntity = persistedEntities[2]
 
-    operator fun component6(): AttachedEntity = persistedEntities[3]
+    operator fun component6(): StoredEntity = persistedEntities[3]
 
-    operator fun component7(): AttachedEntity = persistedEntities[4]
+    operator fun component7(): StoredEntity = persistedEntities[4]
 
-    operator fun component8(): AttachedEntity = persistedEntities[5]
+    operator fun component8(): StoredEntity = persistedEntities[5]
 
-    fun storedEntity(): AttachedEntity =
+    fun storedEntity(): StoredEntity =
             persistedEntities[0]
 
 }
@@ -166,14 +165,14 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
     private val baseState
         get() = this.state ?: this.base
 
-    fun persist(e: Entitiable<*>): WriteResult {
+    fun persist(e: RoEntity<*>): WriteResult {
         return persist(singleton(e))
     }
 
-    fun persist(vararg es: Entitiable<*>): WriteResult =
+    fun persist(vararg es: RoEntity<*>): WriteResult =
             persist(es.asList())
 
-    fun persist(es: Collection<Entitiable<*>>): WriteResult {
+    fun persist(es: Collection<RoEntity<*>>): WriteResult {
         val (res, newState) = persistImpl(es)
         this.state = newState
         return res
@@ -196,7 +195,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         // todo: delete nodes up to conn.head
     }
 
-    private fun persistImpl(es: Collection<Entitiable<*>>): Pair<WriteResult, DbState> {
+    private fun persistImpl(es: Collection<RoEntity<*>>): Pair<WriteResult, DbState> {
         if (conn.head != base.head) {
             throw ConcurrentModificationException("Another modification has been committed")
         }
@@ -208,7 +207,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val instance = db.pull(conn.instanceEid) ?: throw QBitException("Corrupted database metadata")
             val eids = EID(conn.dbUuid.iid.value, instance[entitiesCount]).nextEids()
 
-            val allEs: IdentityHashMap<Entitiable<*>, Entitiable<EID>> = unfoldEntitiesGraph(es, eids)
+            val allEs: IdentityHashMap<RoEntity<*>, RoEntity<EID>> = unfoldEntitiesGraph(es, eids)
             val facts: MutableList<Fact> = entitiesToFacts(allEs, eids, instance)
             if (facts.isEmpty()) {
                 assert { es.all { it is AttachedEntity && !it.dirty } }
@@ -232,9 +231,9 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         }
     }
 
-    private fun entitiesToFacts(allEs: IdentityHashMap<Entitiable<*>, Entitiable<EID>>, eids: Iterator<EID>, instance: AttachedEntity): MutableList<Fact> {
-        val entitiesToStore: List<Entitiable<EID>> = allEs.values.filter { it !is AttachedEntity || it.dirty }
-        val linkedEntities: List<Entitiable<EID>> = entitiesToStore.map { it.setRefs(allEs) }
+    private fun entitiesToFacts(allEs: IdentityHashMap<RoEntity<*>, RoEntity<EID>>, eids: Iterator<EID>, instance: StoredEntity): MutableList<Fact> {
+        val entitiesToStore: List<RoEntity<EID>> = allEs.values.filter { it !is AttachedEntity || it.dirty }
+        val linkedEntities: List<RoEntity<EID>> = entitiesToStore.map { it.setRefs(allEs) }
         val facts: MutableList<Fact> = linkedEntities
                 .flatMap { it.toFacts() }
                 .toMutableList()

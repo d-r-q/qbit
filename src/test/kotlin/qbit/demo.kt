@@ -32,7 +32,7 @@ object Tweets {
     val likes = RefListAttr(tweetNs["likes"])
 }
 
-class User<E : EID?>(entity: MutableEntity<E>) : TypedEntity<E>(entity) {
+class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
@@ -59,13 +59,13 @@ class Demo {
         println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
 
         val cris = Entity(Users.name eq "@cris", lastLogin eq Instant.now())
-        var nTweet: AttachedEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
+        var nTweet: StoredEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
         nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
         println(nTweet[content])
         println(nTweet[likes].map { it[Users.name] })
         val likedUsers = nTweet[likes]
-        val users = likedUsers.filterIsInstance<Entity<EID>>().map { typify<EID, User<EID>>(it) }
+        val users = likedUsers.filterIsInstance<QRoEntity<EID>>().map { typify<EID, User<EID>>(it) }
         println(users.map { p -> "${p.name}: ${p.last_login}" })
 
         users[0].name = "@reflection_rulezz"

@@ -2,9 +2,7 @@
 
 package qbit.model
 
-import qbit.Db
-import qbit.Fact
-import qbit.tombstone
+import qbit.*
 import java.util.*
 import java.util.Collections.singleton
 import java.util.Collections.singletonList
@@ -23,20 +21,23 @@ interface AttrValue<out A : Attr<T>, out T : Any> {
 }
 
 data class ScalarAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T>
-data class ScalarRefAttrValue(override val attr: ScalarRefAttr, override val value: Entitiable<*>) : AttrValue<ScalarRefAttr, Entitiable<*>>
+data class ScalarRefAttrValue(override val attr: ScalarRefAttr, override val value: RoEntity<*>) : AttrValue<ScalarRefAttr, RoEntity<*>>
 data class ListAttrValue<T : Any>(override val attr: ListAttr<T>, override val value: List<T>) : AttrValue<ListAttr<T>, List<T>>
-data class RefListAttrValue(override val attr: RefListAttr, override val value: List<Entitiable<*>>) : AttrValue<RefListAttr, List<Entitiable<*>>>
+data class RefListAttrValue(override val attr: RefListAttr, override val value: List<RoEntity<*>>) : AttrValue<RefListAttr, List<RoEntity<*>>>
 
-fun Entity(vararg entries: AttrValue<Attr<*>, *>): MutableEntitiable<EID?> {
+fun Entity(vararg entries: AttrValue<Attr<*>, *>): Entity<EID?> {
     return DetachedEntity(null, entries.map { it.toPair() }.toMap())
 }
 
-internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): AttachedEntity = AttachedEntity(eid, entries.toMap(), db, false)
+fun Tombstone(eid: EID): Tombstone = QTombstone(eid)
+
+internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = AttachedEntity(eid, entries.toMap(), db, false)
 
 // TODO: make it lazy
-internal fun Entity(eid: EID, db: Db): AttachedEntity = db.pull(eid)!!
+internal fun Entity(eid: EID, db: Db): StoredEntity = db.pull(eid)!!
 
-interface Entitiable<out E : EID?> {
+
+interface RoEntity<out E : EID?> {
 
     val eid: E
 
@@ -53,24 +54,38 @@ interface Entitiable<out E : EID?> {
 
 }
 
-fun Entitiable<EID?>.toIdentified(eid: EID): MutableEntity<EID> {
+fun RoEntity<EID?>.toIdentified(eid: EID): Entity<EID> {
     return DetachedEntity(eid, this)
 }
 
-interface MutableEntitiable<out E : EID?> : Entitiable<E> {
+interface Entity<out E : EID?> : RoEntity<E> {
 
-    fun <T : Any> with(key: Attr<T>, value: T): MutableEntitiable<E> =
+    fun <T : Any> with(key: Attr<T>, value: T): Entity<E> =
             with(key eq value)
 
-    fun with(vararg values: AttrValue<Attr<*>, *>): MutableEntitiable<E>
+    fun with(vararg values: AttrValue<Attr<*>, *>): Entity<E>
 
-    fun <T : Any> remove(key: Attr<T>): MutableEntitiable<E>
+    fun <T : Any> remove(key: Attr<T>): Entity<E>
 
 }
 
-sealed class Entity<out E : EID?>(override val eid: E) : Entitiable<E>
+interface StoredEntity : Entity<EID> {
 
-class Tombstone(eid: EID) : Entity<EID>(eid) {
+    fun peek(key: Attr<*>) :Any?
+
+    override fun <T : Any> with(key: Attr<T>, value: T): StoredEntity =
+            with(key eq value)
+
+    override fun with(vararg values: AttrValue<Attr<*>, *>): StoredEntity
+
+    override fun <T : Any> remove(key: Attr<T>): StoredEntity
+}
+
+interface Tombstone : RoEntity<EID>
+
+internal sealed class QRoEntity<out E : EID?>(override val eid: E) : RoEntity<E>
+
+internal class QTombstone(eid: EID) : QRoEntity<EID>(eid), Tombstone {
 
     override val keys: Set<Attr<Any>>
         get() = setOf(tombstone)
@@ -83,9 +98,9 @@ class Tombstone(eid: EID) : Entity<EID>(eid) {
 
 }
 
-sealed class MutableEntity<out E : EID?>(eid: E) : Entity<E>(eid), MutableEntitiable<E>
+internal sealed class QEntity<out E : EID?>(eid: E) : QRoEntity<E>(eid), Entity<E>
 
-class DetachedEntity<E : EID?>(eid: E, map: Map<Attr<*>, *>) : MutableEntity<E>(eid) {
+internal class DetachedEntity<E : EID?>(eid: E, map: Map<Attr<*>, *>) : QEntity<E>(eid) {
 
     private val delegate = MapEntity(map) { newMap -> DetachedEntity<E>(eid, newMap) }
 
@@ -93,9 +108,9 @@ class DetachedEntity<E : EID?>(eid: E, map: Map<Attr<*>, *>) : MutableEntity<E>(
 
     constructor(eid: EID) : this(eid as E, emptyMap<Attr<*>, Any>())
 
-    constructor(e: Entitiable<EID?>) : this(e.eid as E, e.entries.map { it.toPair() }.toMap())
+    constructor(e: RoEntity<EID?>) : this(e.eid as E, e.entries.map { it.toPair() }.toMap())
 
-    constructor(eid: EID, e: Entitiable<EID?>) : this(eid as E, e.entries.map { it.toPair() }.toMap())
+    constructor(eid: EID, e: RoEntity<EID?>) : this(eid as E, e.entries.map { it.toPair() }.toMap())
 
     override val keys: Set<Attr<Any>>
         get() = delegate.keys
@@ -132,10 +147,9 @@ class DetachedEntity<E : EID?>(eid: E, map: Map<Attr<*>, *>) : MutableEntity<E>(
         return result
     }
 
-
 }
 
-class AttachedEntity(eid: EID, map: Map<Attr<*>, *>, val db: Db, val dirty: Boolean) : MutableEntity<EID>(eid) {
+internal class AttachedEntity(eid: EID, map: Map<Attr<*>, *>, val db: Db, val dirty: Boolean) : QEntity<EID>(eid), StoredEntity {
 
     private val delegate = MapEntity(map) { newMap -> AttachedEntity(eid, newMap, db, true) }
 
@@ -152,6 +166,9 @@ class AttachedEntity(eid: EID, map: Map<Attr<*>, *>, val db: Db, val dirty: Bool
             value
         }
     }
+
+    override fun  peek(key: Attr<*>): Any? =
+            delegate.tryGet(key)
 
     override fun <T : Any> with(key: Attr<T>, value: T): AttachedEntity {
         if (value == this.tryGet(key)) {
@@ -170,7 +187,7 @@ class AttachedEntity(eid: EID, map: Map<Attr<*>, *>, val db: Db, val dirty: Bool
 
 }
 
-private class MapEntity<out T : MutableEntitiable<EID?>>(private val map: Map<Attr<*>, *>, private val create: (Map<Attr<*>, *>) -> T) : MutableEntitiable<EID?> {
+private class MapEntity<out T : Entity<EID?>>(private val map: Map<Attr<*>, *>, private val create: (Map<Attr<*>, *>) -> T) : Entity<EID?> {
 
     override val eid: EID? = null
 
@@ -214,21 +231,21 @@ private class MapEntity<out T : MutableEntitiable<EID?>>(private val map: Map<At
 
 }
 
-internal fun unfoldEntitiesGraph(es: Collection<Entitiable<*>>, eids: Iterator<EID>): IdentityHashMap<Entitiable<*>, Entitiable<EID>> {
-    val res = IdentityHashMap<Entitiable<*>, Entitiable<EID>>()
+internal fun unfoldEntitiesGraph(es: Collection<RoEntity<*>>, eids: Iterator<EID>): IdentityHashMap<RoEntity<*>, RoEntity<EID>> {
+    val res = IdentityHashMap<RoEntity<*>, RoEntity<EID>>()
 
-    fun body(es: Collection<Entitiable<*>>) {
+    fun body(es: Collection<RoEntity<*>>) {
         es.forEach {
             if (!res.contains(it)) {
                 @Suppress("UNCHECKED_CAST")
                 when  {
-                    it.eid != null -> res[it] = it as Entitiable<EID>
+                    it.eid != null -> res[it] = it as RoEntity<EID>
                     else -> res[it] = it.toIdentified(eids.next())
                 }
             }
             it.keys.forEach { attr ->
                 if (attr is ScalarRefAttr) {
-                    val value: Entitiable<*> = it[attr]
+                    val value: RoEntity<*> = it[attr]
                     if (res[value] == null) {
                         body(singletonList(value))
                     }
@@ -243,7 +260,7 @@ internal fun unfoldEntitiesGraph(es: Collection<Entitiable<*>>, eids: Iterator<E
     return res
 }
 
-internal fun <T : Entitiable<EID>> T.setRefs(ref2eid: IdentityHashMap<Entitiable<*>, Entitiable<EID>>): DetachedEntity<EID> =
+internal fun <T : RoEntity<EID>> T.setRefs(ref2eid: IdentityHashMap<RoEntity<*>, RoEntity<EID>>): DetachedEntity<EID> =
         this.entries
                 .filter { it is ScalarRefAttrValue || (it is RefListAttrValue) }
                 .fold(DetachedEntity(this)) { prev, av ->
@@ -252,13 +269,13 @@ internal fun <T : Entitiable<EID>> T.setRefs(ref2eid: IdentityHashMap<Entitiable
                             prev.with(av.attr eq ref2eid[prev[av.attr]]!!)
                         }
                         else -> {
-                            val entities: List<Entitiable<*>> = (av.value as List<Entitiable<*>>).map { ref2eid[it]!! }
+                            val entities: List<RoEntity<*>> = (av.value as List<RoEntity<*>>).map { ref2eid[it]!! }
                             prev.with(av.attr as RefListAttr, entities)
                         }
                     }
                 }
 
-internal fun Entitiable<EID?>.toFacts(eid: EID): Collection<Fact> =
+internal fun RoEntity<EID?>.toFacts(eid: EID): Collection<Fact> =
         this.entries.flatMap { (attr: Attr<Any>, value) ->
             when (attr) {
                 is ScalarRefAttr -> singleton(refToFacts(eid, attr, value))
@@ -268,7 +285,7 @@ internal fun Entitiable<EID?>.toFacts(eid: EID): Collection<Fact> =
             }
         }
 
-internal fun Entitiable<EID>.toFacts() =
+internal fun RoEntity<EID>.toFacts() =
         this.toFacts(eid)
 
 private fun <T : Any> attrToFacts(eid: EID, attr: Attr<T>, value: T) =
@@ -285,7 +302,7 @@ private fun refListToFacts(eid: EID, attr: RefListAttr, value: List<Any>) =
 
 private fun eidOf(a: Any): EID? =
         when {
-            a is Entitiable<*> && a.eid != null -> a.eid
+            a is RoEntity<*> && a.eid != null -> a.eid
             a is EID -> a
             else -> null
         }

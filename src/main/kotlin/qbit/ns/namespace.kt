@@ -30,6 +30,8 @@ data class Namespace(val parent: Namespace?, val name: String) {
 
     operator fun get(key: String) = Key(this, key)
 
+    operator fun invoke(subNs: String) = subNs(subNs)
+
     fun subNs(name: String) = Namespace(this, name)
 
     override fun toString(): String {

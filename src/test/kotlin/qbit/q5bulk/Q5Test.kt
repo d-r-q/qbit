@@ -48,7 +48,7 @@ class Q5Test {
         val conn = qbit(FileSystemStorage(dbDir))
 
         conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
-        val categories = HashMap<String, MutableEntitiable<*>>()
+        val categories = HashMap<String, Entity<*>>()
 
         dataFiles.forEachIndexed { idx, file ->
             when {
@@ -60,7 +60,7 @@ class Q5Test {
             var device = ""
             val fileDate = ZonedDateTime.parse(file.name.substringBefore("-") + "010000+0700", DateTimeFormatter.ofPattern("yyMMddHHmm[X]"))
             val nextDate = fileDate.plusMonths(1)
-            val trxes = ArrayList<Entitiable<EID?>>()
+            val trxes = ArrayList<RoEntity<EID?>>()
             file.forEachLine { line ->
                 val data = parse(line, categories)
                 data?.let { (trx, cat) ->
@@ -78,8 +78,8 @@ class Q5Test {
 
     }
 
-    private fun loadInSingleTrx(it: File, categories: HashMap<String, MutableEntitiable<*>>, conn: LocalConn) {
-        val trxes = ArrayList<Entitiable<EID?>>()
+    private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
+        val trxes = ArrayList<RoEntity<EID?>>()
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -97,9 +97,9 @@ class Q5Test {
                 }
     }
 
-    private fun loadInThreeTrxes(it: File, categories: HashMap<String, MutableEntitiable<*>>, conn: LocalConn) {
-        var trxes1 = ArrayList<MutableEntitiable<EID?>>()
-        var trxes2 = ArrayList<MutableEntitiable<EID?>>()
+    private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
+        var trxes1 = ArrayList<Entity<EID?>>()
+        var trxes2 = ArrayList<Entity<EID?>>()
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -137,7 +137,7 @@ class Q5Test {
         }
     }
 
-    private fun loadInTrxPerLine(it: File, categories: HashMap<String, MutableEntitiable<*>>, conn: LocalConn) {
+    private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
@@ -149,7 +149,7 @@ class Q5Test {
         }
     }
 
-    private fun parse(sourceLine: String, categories: Map<String, MutableEntitiable<*>>): Pair<MutableEntitiable<EID?>, MutableEntitiable<EID?>>? {
+    private fun parse(sourceLine: String, categories: Map<String, Entity<*>>): Pair<Entity<EID?>, Entity<EID?>>? {
         val fieldsV1 = sourceLine
                 .replace("\uFEFF", "") // Remove BOM
                 .split("\",\"".toRegex())

@@ -21,7 +21,7 @@ class TrxTest {
         } catch (e: ConcurrentModificationException) {
             // expected
         }
-        assertNotNull(conn.db.query(attrIs(EAttr.name, "/any")).firstOrNull())
-        assertNull(conn.db.query(attrIs(EAttr.name, "/should not be persisted")).firstOrNull())
+        assertNotNull(conn.db.query(attrIs(Attrs.name, "/any")).firstOrNull())
+        assertNull(conn.db.query(attrIs(Attrs.name, "/should not be persisted")).firstOrNull())
     }
 }
