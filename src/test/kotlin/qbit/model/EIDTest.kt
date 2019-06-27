@@ -2,7 +2,6 @@ package qbit.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import qbit.model.EID
 
 
 class EIDTest {
