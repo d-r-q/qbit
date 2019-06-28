@@ -19,6 +19,21 @@ sealed class Attr<out T : Any> : RoEntity<EID?> {
 
     fun str() = name.toStr()
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Attr<*>
+
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
+    }
+
 }
 
 sealed class ValAttr<out T : Any> : Attr<T>()

@@ -30,4 +30,12 @@ class ValidationTest {
                 ScalarAttr(Namespace("qbit").subNs("attr")["list"], QBoolean))
         validate(db, listOf(Fact(EID(0, 1), attr, "unique")), listOf(attr))
     }
+
+    @Test(expected = QBitException::class)
+    fun testMultipleFactsForScalarAttr() {
+        val attr = ScalarAttr(root["scalar"], QString, true)
+        val db = dbOf(attr)
+        validate(db, listOf(Fact(EID(0, 1), attr, "scalar1"),
+                Fact(EID(0, 1), attr, "scalar2")))
+    }
 }

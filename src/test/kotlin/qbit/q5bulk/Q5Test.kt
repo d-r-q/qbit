@@ -50,31 +50,33 @@ class Q5Test {
         conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
         val categories = HashMap<String, Entity<*>>()
 
-        dataFiles.forEachIndexed { idx, file ->
-            when {
-                idx % 10 == 0 -> loadInTrxPerLine(file, categories, conn)
-                idx % 2 == 0 -> loadInSingleTrx(file, categories, conn)
-                else -> loadInThreeTrxes(file, categories, conn)
-            }
-            var lines = 0
-            var device = ""
-            val fileDate = ZonedDateTime.parse(file.name.substringBefore("-") + "010000+0700", DateTimeFormatter.ofPattern("yyMMddHHmm[X]"))
-            val nextDate = fileDate.plusMonths(1)
-            val trxes = ArrayList<RoEntity<EID?>>()
-            file.forEachLine { line ->
-                val data = parse(line, categories)
-                data?.let { (trx, cat) ->
-                    if (ZonedDateTime.ofInstant(Instant.ofEpochMilli(trx[trxDateTime]), ZoneOffset.ofHours(7)) in fileDate.rangeTo(nextDate)) {
-                        trxes.add(trx)
-                        lines++
+        dataFiles
+                .filter { it.isFile }
+                .forEachIndexed { idx, file ->
+                    when {
+                        idx % 10 == 0 -> loadInTrxPerLine(file, categories, conn)
+                        idx % 2 == 0 -> loadInSingleTrx(file, categories, conn)
+                        else -> loadInThreeTrxes(file, categories, conn)
                     }
-                    device = trx[trxDevice]
-                    assertNotNull(conn.db.query(attrIs(trxDateTime, trx[trxDateTime]), attrIs(trxDevice, trx[trxDevice])).firstOrNull())
-                    assertNotNull(conn.db.query(attrIs(catName, cat[catName])).firstOrNull())
+                    var lines = 0
+                    var device = ""
+                    val fileDate = ZonedDateTime.parse(file.name.substringBefore("-") + "010000+0700", DateTimeFormatter.ofPattern("yyMMddHHmm[X]"))
+                    val nextDate = fileDate.plusMonths(1)
+                    val trxes = ArrayList<RoEntity<EID?>>()
+                    file.forEachLine { line ->
+                        val data = parse(line, categories)
+                        data?.let { (trx, cat) ->
+                            if (ZonedDateTime.ofInstant(Instant.ofEpochMilli(trx[trxDateTime]), ZoneOffset.ofHours(7)) in fileDate.rangeTo(nextDate)) {
+                                trxes.add(trx)
+                                lines++
+                            }
+                            device = trx[trxDevice]
+                            assertNotNull(conn.db.query(attrIs(trxDateTime, trx[trxDateTime]), attrIs(trxDevice, trx[trxDevice])).firstOrNull())
+                            assertNotNull(conn.db.query(attrIs(catName, cat[catName])).firstOrNull())
+                        }
+                    }
+                    assertTrue(lines <= conn.db.query(attrIn(trxDateTime, fileDate.toInstant().toEpochMilli(), nextDate.toInstant().toEpochMilli()), attrIs(trxDevice, device)).count())
                 }
-            }
-            assertTrue(lines <= conn.db.query(attrIn(trxDateTime, fileDate.toInstant().toEpochMilli(), nextDate.toInstant().toEpochMilli()), attrIs(trxDevice, device)).count())
-        }
 
     }
 

@@ -2,6 +2,8 @@ package qbit.model
 
 import org.junit.Assert.*
 import org.junit.Test
+import qbit.Fact
+import qbit.dbOf
 import qbit.emptyDb
 import qbit.ns.Namespace
 import qbit.ns.root
@@ -114,6 +116,17 @@ class EntityTest {
         var e = AttachedEntity(EID(0), mapOf(s to "any", rl to listOf(EID(1), EID(2))), emptyDb, false)
         e = e.with(rl eq listOf(Entity()), s eq "newAny")
         assertEquals(2, e.entries.size)
+    }
+
+    @Test
+    fun testFactOfUpdatedAndNotPulledRef() {
+        val ref = RefAttr(root["ref"])
+        val referred2 = Entity(EID(1, 3), emptyList(), dbOf())
+        var referring = Entity(EID(1, 2), listOf(ref to EID(1, 1)), dbOf())
+        referring = referring.with(ref eq referred2)
+        val facts = referring.toFacts()
+        assertEquals(1, facts.size)
+        assertEquals(Fact(EID(1, 2), ref.str(), EID(1, 3)), facts.first())
     }
 
 }

@@ -285,7 +285,7 @@ internal fun RoEntity<EID?>.toFacts(eid: EID): Collection<Fact> =
                 is ScalarRefAttr -> singleton(refToFacts(eid, attr, value))
                 is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>)
                 is RefListAttr -> refListToFacts(eid, attr, value as List<Any>)
-                else -> singleton(attrToFacts(eid, attr, value))
+                is ScalarAttr -> singleton(attrToFacts(eid, attr, value))
             }
         }
 

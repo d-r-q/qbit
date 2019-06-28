@@ -84,7 +84,7 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
         val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null)
-            require(attr.isList() || it.value.size == 1)
+            require(attr.isList() || it.value.size == 1) { "Corrupted ${attr.str()} of ${eid}" }
             attr to if (attr.isList()) it.value else it.value[0]
         }
         val entity = Entity(eid, attrValues, this)
@@ -116,7 +116,8 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
                             .take(filters.size)
                             .withIndex()
                             .filterNot { f -> f.value } // for filters for which the eid was not seen yet...
-                            .forEach { f -> // seek it for the eid
+                            .forEach { f ->
+                                // seek it for the eid
                                 val matches = filters[f.index].asSequence() // "enrich" iterator with takeWhile
                                         .onEach { fEid ->
                                             // remember what we saw in process of...
