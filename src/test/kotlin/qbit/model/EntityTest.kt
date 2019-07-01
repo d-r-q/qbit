@@ -83,6 +83,14 @@ class EntityTest {
     }
 
     @Test
+    fun testEmptyRefList() {
+        val ref = RefListAttr(root["ref"], false)
+        val e = AttachedEntity(EID(0), mapOf(ref to ArrayList<EID>()), emptyDb, false)
+        val a = e.tryGet(ref)
+        assertTrue(a?.isEmpty() == true)
+    }
+
+    @Test
     fun testSetStoredEntityVarargWithPartialUpdate() {
         val s1 = ScalarAttr(root["scalar1"], QString)
         val s2 = ScalarAttr(root["scalar2"], QString)

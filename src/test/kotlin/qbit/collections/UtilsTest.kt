@@ -1,5 +1,6 @@
 package qbit.collections
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.*
@@ -74,8 +75,6 @@ class UtilsTest {
         val list = arrayListOf(1, 2, 3, 4)
         val expected = arrayListOf(1, 2, 5, 6, 3, 4)
         val newList = insert(list, arrayListOf(5, 6), 2)
-        newList.forEachIndexed { index, i ->
-            assertTrue(i == expected[index])
-        }
+        assertArrayEquals(expected.toArray(), newList.toArray())
     }
 }
