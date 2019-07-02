@@ -3,6 +3,7 @@ package qbit
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import qbit.ns.Namespace
+import qbit.ns.root
 
 class NamespaceTest {
 
@@ -16,4 +17,33 @@ class NamespaceTest {
         assertEquals(n3, Namespace.of("n1", "n2", "n3"))
     }
 
+    @Test
+    fun testRootNsToStr() {
+        assertEquals("", root.toString())
+    }
+
+    @Test
+    fun testRootNsKeyToStr() {
+        assertEquals("/test", root["test"].toString())
+    }
+
+    @Test
+    fun testFirstLevelNsToStr() {
+        assertEquals(".test1", root("test1").toString())
+    }
+
+    @Test
+    fun testFirstLevelNsKeyToStr() {
+        assertEquals(".test1/key", root("test1")["key"].toString())
+    }
+
+    @Test
+    fun testSecondLevelNsToStr() {
+        assertEquals(".test1.test2", root("test1")("test2").toString())
+    }
+
+    @Test
+    fun testSecondLevelNsKeyToStr() {
+        assertEquals(".test1.test2/key", root("test1")("test2")["key"].toString())
+    }
 }

@@ -9,19 +9,27 @@ fun ns(vararg parts: String) =
 
 data class Namespace(val parent: Namespace?, val name: String) {
 
-    constructor(name: String) : this(null, name)
+    constructor(name: String) : this(root, name)
 
     companion object {
         fun of(vararg parts: String): Namespace {
             if (parts.isEmpty()) {
                 throw IllegalArgumentException("parts is empty")
             }
+            if (parts.size == 1 && parts[0] == "") {
+                return root
+            }
 
             val name = parts.last()
-            val parent = parts.take(parts.size - 1)
-                    .fold(null) { parent: Namespace?, n: String -> Namespace(parent, n) }
+            val withoutRoot = parts.dropWhile { it == "" }
+            val parent = withoutRoot.take(withoutRoot.size - 1)
+                    .fold(root) { parent: Namespace?, n: String -> Namespace(parent, n) }
             return Namespace(parent, name)
         }
+    }
+
+    init {
+        require(name != "" || parent == null)
     }
 
     val parts: List<String> =
@@ -35,9 +43,11 @@ data class Namespace(val parent: Namespace?, val name: String) {
     fun subNs(name: String) = Namespace(this, name)
 
     override fun toString(): String {
-        return "${parent ?: ":"}.$name"
+        return "${parent?.let { "$it." } ?: ""}$name"
     }
 
+    fun isSubNs(parent: Namespace) =
+            this.parent == parent
 
 }
 
