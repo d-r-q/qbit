@@ -59,14 +59,16 @@ class FileSystemStorage(private val root: File) : Storage {
     override fun keys(namespace: Namespace): Collection<Key> {
         val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isFile }
-                .map { namespace[it.name] }
+                ?.map { namespace[it.name] }
+                ?: emptyList()
     }
 
     @Throws(IOException::class)
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> {
         val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isDirectory }
-                .map { namespace.subNs(it.name) }
+                ?.map { namespace.subNs(it.name) }
+                ?: emptyList()
     }
 
     override fun hasKey(key: Key): Boolean {
