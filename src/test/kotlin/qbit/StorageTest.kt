@@ -55,9 +55,7 @@ class StorageTest {
         conn.persist(_id)
 
         val e = Entity(_id eq "1")
-        val trx = conn.trx()
-        trx.persist(e)
-        trx.commit()
+        conn.persist(e)
 
         val loaded = storage.load(Namespace("refs")["head"])
         val hash = conn.db.hash.bytes
