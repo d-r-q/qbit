@@ -1,15 +1,17 @@
 package qbit.collections
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class UtilsTest {
 
     @Test
     fun testSplitByArray() {
-        val cmp = { i1: Int, i2: Int -> i1.compareTo(i2)}
+        val cmp = { i1: Int, i2: Int -> i1.compareTo(i2) }
         val arr = listOf(4, 5, 8, 9)
         val resFirst = splitByArray(arr, listOf(10), cmp)
         assertTrue(resFirst.size == 2)
@@ -58,5 +60,21 @@ class UtilsTest {
             val (regular, irregular) = sublists.asSequence().partition { it.size == chunk }
             assertTrue(regular.size >= irregular.size || sublists.size <= 3)
         }
+    }
+
+    @Test
+    fun setTest() {
+        val list = arrayListOf(1, 2, 3)
+        val new = set(list, 123, 1)
+        assertTrue(new[1] == 123)
+        assertTrue(new.size == 3)
+    }
+
+    @Test
+    fun insertTest() {
+        val list = arrayListOf(1, 2, 3, 4)
+        val expected = arrayListOf(1, 2, 5, 6, 3, 4)
+        val newList = insert(list, arrayListOf(5, 6), 2)
+        assertArrayEquals(expected.toArray(), newList.toArray())
     }
 }

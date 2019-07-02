@@ -2,8 +2,12 @@ package qbit
 
 import org.junit.Assert
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
+import qbit.model.*
 import qbit.ns.Namespace
+import qbit.ns.root
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import qbit.storage.Storage
@@ -39,4 +43,22 @@ class StorageTest {
         assertEquals(setOf(subNs["sub-data"]), storage.keys(subNs).toSet())
     }
 
+    @Test
+    fun testSwapHead() {
+        val user = Namespace("user")
+        val _id = ScalarAttr(user["val"], QString)
+
+        val root = Files.createTempDirectory("qbit").toFile()
+        val storage = FileSystemStorage(root)
+
+        val conn = qbit(storage)
+        conn.persist(_id)
+
+        val e = Entity(_id eq "1")
+        conn.persist(e)
+
+        val loaded = storage.load(Namespace("refs")["head"])
+        val hash = conn.db.hash.bytes
+        Assert.assertArrayEquals(loaded, hash)
+    }
 }

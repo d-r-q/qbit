@@ -15,6 +15,7 @@ class LocalConnTest {
     fun testInit() {
         val db = qbit(MemStorage())
         assertNotNull(db)
+        assertTrue(db.storage.keys(Namespace("nodes")).isNotEmpty())
     }
 
     @Test

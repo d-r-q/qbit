@@ -9,6 +9,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.4.0'
     }
 }
 
@@ -32,6 +33,14 @@ compileTestKotlin {
 }
 
 apply plugin: 'maven'
+apply plugin: 'info.solidsoft.pitest'
+
+pitest {
+    targetClasses = ['qbit.*']  //by default "${project.group}.*"
+    threads = 4
+    outputFormats = ['HTML']
+    timestampedReports = false
+}
 
 test {
     testLogging {

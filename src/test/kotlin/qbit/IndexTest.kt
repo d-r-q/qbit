@@ -18,6 +18,7 @@ class IndexTest {
         val f3 = Fact(EID(3, 0), "attr3", "value3")
 
         assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
+        assertFalse(attrValuePattern("attr2", "value2").invoke(f1) == 0)
 
         val byAttr = attrPattern("attr2")
         assertEquals(-1, byAttr(f1))

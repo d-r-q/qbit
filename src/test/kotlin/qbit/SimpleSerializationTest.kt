@@ -70,6 +70,12 @@ class SimpleSerializationTest {
     }
 
     @Test
+    fun testBoolean() {
+        assertEquals(true, deserialize(ByteArrayInputStream(serialize(true)), QBoolean))
+        assertEquals(false, deserialize(ByteArrayInputStream(serialize(false)), QBoolean))
+    }
+
+    @Test
     fun testN() {
         assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), QBytes) as ByteArray))
         val randomBytes = Hash(randomBytes(HASH_LEN))
