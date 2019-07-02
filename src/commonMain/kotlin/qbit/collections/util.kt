@@ -153,3 +153,4 @@ fun <E : Any> sorted(arr: ArrayList<E>, cmp: Comparator<E>): Boolean {
     return true
 }
 
+expect fun getCurrentMillis(): Long
