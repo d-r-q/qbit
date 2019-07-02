@@ -43,7 +43,7 @@ interface RoEntity<out E : EID?> {
 
     val keys: Set<Attr<Any>>
 
-    operator fun <T : Any> get(key: Attr<T>): T = tryGet(key)!!
+    operator fun <T : Any> get(key: Attr<T>): T = tryGet(key) ?: throw QBitException("Entity $this does not contain value for ${key.str()}")
 
     fun <T : Any> tryGet(key: Attr<T>): T?
 

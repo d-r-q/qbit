@@ -37,9 +37,10 @@ apply plugin: 'info.solidsoft.pitest'
 
 pitest {
     targetClasses = ['qbit.*']  //by default "${project.group}.*"
-    threads = 4
+    threads = 12
     outputFormats = ['HTML']
     timestampedReports = false
+    mutators  = ['ALL']
 }
 
 test {

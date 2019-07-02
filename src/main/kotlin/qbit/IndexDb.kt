@@ -80,7 +80,11 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
             return cached
         }
 
-        val rawEntity = index.entityById(eid) ?: return null
+        val rawEntity = index.entityById(eid)
+        if (rawEntity == null) {
+            entityCache[eid] = NotFound
+            return null
+        }
         val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null)

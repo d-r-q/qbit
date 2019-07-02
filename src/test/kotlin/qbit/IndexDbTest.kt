@@ -1,7 +1,6 @@
 package qbit
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.*
 import org.junit.Test
 import qbit.model.*
 import qbit.ns.root
@@ -103,5 +102,26 @@ class DbTest {
         assertNotNull(indexDb.pull(eid1))
         assertNotNull(indexDb.pull(eid2))
         assertNotNull(indexDb.query(attrIs(attr, "avalue2.1")).firstOrNull())
+    }
+
+    @Test
+    fun testPullNotExistingEntity() {
+        val dbUuid = DbUuid(IID(0, 1))
+        val ref = RefAttr(root["ref"])
+        val eids = EID(0, 0).nextEids()
+
+        val e1 = Entity(eids.next(), emptyList(), emptyDb)
+        val e2 = Entity(ref eq e1)
+        val e2eid = eids.next()
+        val root = Root(Hash(byteArrayOf(0)), dbUuid, System.currentTimeMillis(), NodeData((ref.toFacts(eids.next()) + e2.toFacts(e2eid)).toTypedArray()))
+        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
+        val graph = Graph { nodes[it.hash] }
+
+        val indexDb = IndexDb(Index(graph, root), root.hash)
+        val e2Pulled = indexDb.pull(e2eid)!!
+        assertNotNull(e2Pulled)
+        assertNull(e2Pulled.tryGet(ref))
+        // todo: add check, that pull isn't called second time
+        assertNull(e2Pulled.tryGet(ref))
     }
 }
