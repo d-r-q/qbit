@@ -1,12 +1,13 @@
 package qbit
 
-import org.junit.Assert
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.junit.Assert.*
 import org.junit.Test
-import qbit.model.*
+import qbit.model.Entity
+import qbit.model.QString
+import qbit.model.ScalarAttr
+import qbit.model.eq
 import qbit.ns.Namespace
+import qbit.ns.ns
 import qbit.ns.root
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
@@ -36,10 +37,10 @@ class StorageTest {
         storage.add(rootNs["root-data"], rootBytes)
         storage.add(subNs["sub-data"], subBytes)
 
-        Assert.assertArrayEquals(rootBytes, storage.load(rootNs["root-data"]))
+        assertArrayEquals(rootBytes, storage.load(rootNs["root-data"]))
         assertEquals(setOf(rootNs["root-data"]), storage.keys(rootNs).toSet())
 
-        Assert.assertArrayEquals(subBytes, storage.load(subNs["sub-data"]))
+        assertArrayEquals(subBytes, storage.load(subNs["sub-data"]))
         assertEquals(setOf(subNs["sub-data"]), storage.keys(subNs).toSet())
     }
 
@@ -59,6 +60,24 @@ class StorageTest {
 
         val loaded = storage.load(Namespace("refs")["head"])
         val hash = conn.db.hash.bytes
-        Assert.assertArrayEquals(loaded, hash)
+        assertArrayEquals(loaded, hash)
+    }
+
+    @Test
+    fun testCopyNsConstructor() {
+        val testNs = ns("nodes")("test")
+        val _id = ScalarAttr(testNs["val"], QString)
+
+        val origin = MemStorage()
+        val conn = qbit(origin)
+        conn.persist(_id)
+
+        val e = Entity(_id eq "1")
+        conn.persist(e)
+
+        val rootFile = Files.createTempDirectory("qbit").toFile()
+        val storage = FileSystemStorage(rootFile, origin)
+        assertTrue(origin.subNamespaces(testNs.parent!!) == storage.subNamespaces(testNs.parent!!))
+        assertEquals(storage.subNamespaces(root).sortedBy { it.name }, listOf(ns("nodes"), ns("refs")).sortedBy { it.name })
     }
 }
