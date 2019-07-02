@@ -63,23 +63,4 @@ class StorageTest {
         val hash = conn.db.hash.bytes
         Assert.assertArrayEquals(loaded, hash)
     }
-
-    @Ignore
-    fun testCopyNsConstructor() {
-        val user = Namespace("nodes").subNs("test")
-        val _id = ScalarAttr(user["val"], QString)
-
-        val mem = MemStorage()
-        val conn = qbit(mem)
-        conn.persist(_id)
-
-        val e = Entity(_id eq "1")
-        conn.persist(e)
-
-        val rootFile = Files.createTempDirectory("qbit").toFile()
-        val storage = FileSystemStorage(rootFile)
-        assertTrue(mem.subNamespaces(user.parent!!) == storage.subNamespaces(user.parent!!))
-
-    }
-
 }
