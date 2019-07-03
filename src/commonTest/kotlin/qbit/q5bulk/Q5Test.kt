@@ -1,10 +1,5 @@
 package qbit.q5bulk
 
-import org.hamcrest.core.Is.`is`
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeThat
-import org.junit.Test
 import qbit.*
 import qbit.model.*
 import qbit.ns.Namespace
@@ -15,6 +10,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 val cat = Namespace.of("q5", "category")
 val trx = Namespace.of("q5", "transaction")

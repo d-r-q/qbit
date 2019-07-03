@@ -58,12 +58,13 @@ kotlin {
         }
         commonTest {
             dependencies {
-                implementation "junit:junit:4.12"
+                implementation kotlin('test-common')
+                implementation kotlin('test-annotations-common')
             }
         }
         jvmMain {
             dependencies {
-                //implementation kotlin('stdlib-jdk8')
+                implementation kotlin('stdlib-jdk8')
             }
         }
         jvmTest {

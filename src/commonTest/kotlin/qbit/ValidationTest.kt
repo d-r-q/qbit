@@ -1,17 +1,21 @@
 package qbit
 
-import org.junit.Test
 import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
+import kotlin.test.Test
+import kotlin.test.assertFailsWith
+
 
 class ValidationTest {
 
-    @Test(expected = QBitException::class)
+    @Test
     fun testUniqueConstraintViolationWithinTrx() {
-        val attr = ScalarAttr(root["unique"], QString, true)
-        val db = dbOf(attr)
-        validate(db, listOf(Fact(EID(0, 0), attr, 0), Fact(EID(0, 1), attr, 0)))
+        assertFailsWith<QBitException> {
+            val attr = ScalarAttr(root["unique"], QString, true)
+            val db = dbOf(attr)
+            validate(db, listOf(Fact(EID(0, 0), attr, 0), Fact(EID(0, 1), attr, 0)))
+        }
     }
 
     @Test
@@ -31,11 +35,13 @@ class ValidationTest {
         validate(db, listOf(Fact(EID(0, 1), attr, "unique")), listOf(attr))
     }
 
-    @Test(expected = QBitException::class)
+    @Test
     fun testMultipleFactsForScalarAttr() {
-        val attr = ScalarAttr(root["scalar"], QString, true)
-        val db = dbOf(attr)
-        validate(db, listOf(Fact(EID(0, 1), attr, "scalar1"),
-                Fact(EID(0, 1), attr, "scalar2")))
+        assertFailsWith<QBitException> {
+            val attr = ScalarAttr(root["scalar"], QString, true)
+            val db = dbOf(attr)
+            validate(db, listOf(Fact(EID(0, 1), attr, "scalar1"),
+                    Fact(EID(0, 1), attr, "scalar2")))
+        }
     }
 }

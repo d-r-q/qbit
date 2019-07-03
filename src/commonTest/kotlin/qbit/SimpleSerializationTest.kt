@@ -1,7 +1,6 @@
 package qbit
 
-import org.junit.Assert.*
-import org.junit.Test
+import qbit.collections.getCurrentMillis
 import qbit.model.*
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
@@ -11,6 +10,10 @@ import java.math.BigDecimal
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class SimpleSerializationTest {
 
@@ -113,7 +116,7 @@ class SimpleSerializationTest {
     @Test
     fun testRoot() {
         val iid = IID(1, 4)
-        val root = Root(null, DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Root(null, DbUuid(iid), getCurrentMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root)))
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)

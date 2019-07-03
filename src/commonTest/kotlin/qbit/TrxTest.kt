@@ -1,11 +1,14 @@
 package qbit
 
-import org.junit.Assert.*
-import org.junit.Test
+
 import qbit.model.QString
-import qbit.ns.root
 import qbit.model.ScalarAttr
+import qbit.ns.root
 import qbit.storage.MemStorage
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.fail
 
 
 class TrxTest {

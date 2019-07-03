@@ -1,6 +1,8 @@
 package qbit
 
 import qbit.model.*
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 fun dbOf(vararg entities: RoEntity<*>): Db {
     val eids = EID(0, 0).nextEids()
@@ -19,3 +21,40 @@ object emptyDb : Db {
     override fun attr(attr: String): Attr<Any>? = null
 
 }
+
+fun assertArrayEquals(arr1: Array<*>?, arr2: Array<*>?) {
+    arr1!!; arr2!!
+    arr1.forEachIndexed { i, it ->
+        assertTrue(it?.equals(arr2[i]) == true)
+    }
+}
+
+fun assertArrayEquals(arr1: ByteArray?, arr2: ByteArray?) {
+    arr1!!; arr2!!
+    arr1.forEachIndexed { i, it ->
+        assertEquals(it, arr2[i])
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

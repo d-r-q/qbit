@@ -1,10 +1,9 @@
 package qbit.collections
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
-import java.util.*
-import kotlin.collections.ArrayList
+import qbit.assertArrayEquals
+import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertTrue
 
 
 class UtilsTest {
@@ -75,6 +74,6 @@ class UtilsTest {
         val list = arrayListOf(1, 2, 3, 4)
         val expected = arrayListOf(1, 2, 5, 6, 3, 4)
         val newList = insert(list, arrayListOf(5, 6), 2)
-        assertArrayEquals(expected.toArray(), newList.toArray())
+        assertArrayEquals(expected.toTypedArray(), newList.toTypedArray())
     }
 }

@@ -1,12 +1,14 @@
 package qbit.mapping
 
-import org.junit.Assert.*
-import org.junit.Test
+import qbit.assertArrayEquals
 import qbit.mapping.GenericEntities.meta
 import qbit.mapping.GenericEntities.ref
 import qbit.mapping.GenericEntities.refs
 import qbit.model.*
 import qbit.ns.root
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 
 object Users {

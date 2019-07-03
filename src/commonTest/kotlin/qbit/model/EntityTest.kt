@@ -1,12 +1,15 @@
 package qbit.model
 
-import org.junit.Assert.*
-import org.junit.Test
 import qbit.Fact
+import qbit.assertArrayEquals
 import qbit.dbOf
 import qbit.emptyDb
 import qbit.ns.Namespace
 import qbit.ns.root
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @Suppress("UNCHECKED_CAST")
 class EntityTest {

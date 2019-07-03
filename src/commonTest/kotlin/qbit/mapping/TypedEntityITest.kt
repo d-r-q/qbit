@@ -1,14 +1,14 @@
 package qbit.mapping
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Test
+
 import qbit.*
 import qbit.mapping.Trxes.primaryCategory
 import qbit.mapping.Trxes.sums
 import qbit.model.*
 import qbit.ns.ns
 import qbit.storage.MemStorage
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 
 object Categories {

@@ -1,7 +1,5 @@
 package qbit
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import qbit.Tweets.author
 import qbit.Tweets.content
 import qbit.Tweets.date
@@ -14,6 +12,7 @@ import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.test.Test
 
 val HHmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 

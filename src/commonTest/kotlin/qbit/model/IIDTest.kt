@@ -1,8 +1,9 @@
 package qbit.model
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import qbit.QBitException
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class IIDTest {
 
@@ -22,14 +23,18 @@ class IIDTest {
         assertEquals(0b0011_0001, iid.fork(3).value)
     }
 
-    @Test(expected = QBitException::class)
+    @Test
     fun testOverflow() {
-        IID(0, 4).fork(16)
+        assertFailsWith<QBitException> {
+            IID(0, 4).fork(16)
+        }
     }
 
 
-    @Test(expected = QBitException::class)
+    @Test
     fun testNegative() {
-        IID(0, 4).fork(0)
+        assertFailsWith<QBitException> {
+            IID(0, 4).fork(0)
+        }
     }
 }

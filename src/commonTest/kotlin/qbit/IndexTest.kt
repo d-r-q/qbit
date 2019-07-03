@@ -1,10 +1,13 @@
 package qbit
 
-import org.junit.Assert.*
-import org.junit.Test
+import qbit.collections.getCurrentMillis
 import qbit.model.*
 import qbit.ns.root
 import qbit.serialization.SimpleSerialization
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 class IndexTest {
 
@@ -80,7 +83,7 @@ class IndexTest {
     @Test
     fun testCreateIndex() {
         val dbUuid = DbUuid(IID(0, 1))
-        val time1 = System.currentTimeMillis()
+        val time1 = getCurrentMillis()
         val eid = EID(0, 0)
 
         val _attr1 = ScalarAttr(root["attr1"], QInt)
@@ -109,7 +112,7 @@ class IndexTest {
     @Test
     fun testRangeSearch() {
         val dbUuid = DbUuid(IID(0, 1))
-        val time1 = System.currentTimeMillis()
+        val time1 = getCurrentMillis()
         val eid0 = EID(0, 0)
         val eid1 = EID(0, 1)
         val eid2 = EID(0, 2)
@@ -146,7 +149,7 @@ class IndexTest {
     @Test
     fun testLoadTombstones() {
         val dbUuid = DbUuid(IID(0, 1))
-        val time1 = System.currentTimeMillis()
+        val time1 = getCurrentMillis()
         val eid = EID(0, 0)
         val _attr1 = ScalarAttr(root["attr1"], QInt)
 
