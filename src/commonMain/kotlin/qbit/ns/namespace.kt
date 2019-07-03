@@ -1,7 +1,5 @@
 package qbit.ns
 
-import java.util.Arrays.asList
-
 val root = Namespace(null, "")
 
 fun ns(vararg parts: String) =
@@ -33,7 +31,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
     }
 
     val parts: List<String> =
-            if (parent == null) asList(name)
+            if (parent == null) listOf(name)
             else parent.parts + name
 
     operator fun get(key: String) = Key(this, key)

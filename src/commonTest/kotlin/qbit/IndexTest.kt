@@ -1,8 +1,8 @@
 package qbit
 
-import qbit.collections.getCurrentMillis
 import qbit.model.*
 import qbit.ns.root
+import qbit.platform.getCurrentMillis
 import qbit.serialization.SimpleSerialization
 import kotlin.test.Test
 import kotlin.test.assertEquals

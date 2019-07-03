@@ -1,7 +1,7 @@
 package qbit
 
-import qbit.collections.getCurrentMillis
 import qbit.model.*
+import qbit.platform.getCurrentMillis
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
 import java.io.EOFException

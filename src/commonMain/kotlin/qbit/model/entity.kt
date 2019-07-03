@@ -3,9 +3,6 @@
 package qbit.model
 
 import qbit.*
-import java.util.*
-import java.util.Collections.singleton
-import java.util.Collections.singletonList
 
 interface AttrValue<out A : Attr<T>, out T : Any> {
 
@@ -251,7 +248,7 @@ internal fun unfoldEntitiesGraph(es: Collection<RoEntity<*>>, eids: Iterator<EID
                 if (attr is ScalarRefAttr) {
                     val value: RoEntity<*> = it[attr]
                     if (res[value] == null) {
-                        body(singletonList(value))
+                        body(listOf(value))
                     }
                 } else if (attr is RefListAttr) {
                     body(it[attr])
@@ -282,10 +279,10 @@ internal fun <T : RoEntity<EID>> T.setRefs(ref2eid: IdentityHashMap<RoEntity<*>,
 internal fun RoEntity<EID?>.toFacts(eid: EID): Collection<Fact> =
         this.entries.flatMap { (attr: Attr<Any>, value) ->
             when (attr) {
-                is ScalarRefAttr -> singleton(refToFacts(eid, attr, value))
+                is ScalarRefAttr -> listOf(refToFacts(eid, attr, value))
                 is ListAttr<*> -> listToFacts(eid, attr, value as List<Any>)
                 is RefListAttr -> refListToFacts(eid, attr, value as List<Any>)
-                is ScalarAttr -> singleton(attrToFacts(eid, attr, value))
+                is ScalarAttr -> listOf(attrToFacts(eid, attr, value))
             }
         }
 

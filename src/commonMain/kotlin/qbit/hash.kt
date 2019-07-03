@@ -1,7 +1,6 @@
 package qbit
 
-import java.security.MessageDigest
-import java.util.*
+import qbit.platform.getHexStringOfInt
 
 const val HASH_LEN = 20
 
@@ -13,25 +12,25 @@ class Hash(val bytes: ByteArray) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (this::class != other?.let { it::class } ) return false
 
         other as Hash
 
-        if (!Arrays.equals(bytes, other.bytes)) return false
+        if (!bytes.contentEquals(other.bytes)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        return Arrays.hashCode(bytes)
+        return bytes.contentHashCode()
     }
 
     fun toHexString(): String {
-        return bytes.joinToString("") { Integer.toHexString(it.toInt() and 0xFF) }
+        return bytes.joinToString("") { getHexStringOfInt(it.toInt() and 0xFF) }
     }
 
     override fun toString(): String {
-        return "Hash(bytes=${Arrays.toString(bytes)})"
+        return "Hash(bytes=${bytes.contentToString()})"
     }
 
 }

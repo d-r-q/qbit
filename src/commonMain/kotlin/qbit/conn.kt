@@ -2,15 +2,11 @@ package qbit
 
 import qbit.Instances.entitiesCount
 import qbit.Instances.forks
-import qbit.collections.getCurrentMillis
 import qbit.model.*
-import qbit.model.Entity
 import qbit.ns.Namespace
+import qbit.platform.getCurrentMillis
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
-import java.util.*
-import java.util.Collections.singleton
-import kotlin.ConcurrentModificationException
 
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(1, 4)
@@ -107,7 +103,7 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
     }
 
     fun persist(e: RoEntity<*>): WriteResult {
-        return persist(singleton(e))
+        return persist(listOf(e))
     }
 
     fun persist(vararg es: RoEntity<*>): WriteResult =
@@ -157,7 +153,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
         get() = this.state ?: this.base
 
     fun persist(e: RoEntity<*>): WriteResult {
-        return persist(singleton(e))
+        return persist(listOf(e))
     }
 
     fun persist(vararg es: RoEntity<*>): WriteResult =

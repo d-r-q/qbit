@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.platform.getCurrentMillis
 import qbit.storage.NodesStorage
 
 class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
@@ -17,7 +18,7 @@ class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
             if (!storage.hasNode(head)) {
                 throw QBitException("Could not store child for node with hash=${head.hash}, because it's not exists in the storage")
             }
-            return storage.store(Leaf(null, head, dbUuid, System.currentTimeMillis(), NodeData(e)))
+            return storage.store(Leaf(null, head, dbUuid, getCurrentMillis(), NodeData(e)))
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }

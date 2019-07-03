@@ -2,6 +2,7 @@ package qbit.serialization
 
 import qbit.*
 import qbit.model.*
+import qbit.platform.getByteArrayOfString
 import java.io.EOFException
 import java.io.InputStream
 import java.math.BigDecimal
@@ -77,7 +78,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
 }
 
 private fun byteArray(str: String): ByteArray =
-        byteArray(serializeInt(str.toByteArray(Charsets.UTF_8).size), str.toByteArray(Charsets.UTF_8))
+        byteArray(serializeInt(getByteArrayOfString(str).size), getByteArrayOfString(str))
 
 private fun toBytes(c: Char): ByteArray =
         Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
@@ -90,7 +91,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
     for (part in parts) {
         when (part) {
             is ByteArray -> {
-                System.arraycopy(part, 0, res, idx, part.size)
+                part.copyInto(res, idx, 0, part.size)
                 idx += part.size
             }
             is Byte -> {
@@ -98,7 +99,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
             }
             is Char -> {
                 val bytes = coder.getOrPut(part) { toBytes(part) }
-                System.arraycopy(bytes, 0, res, idx, bytes.size)
+                bytes.copyInto(res, idx, 0, bytes.size)
                 idx += bytes.size
             }
         }
@@ -109,7 +110,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
 internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
-    is Char -> String(charArrayOf(v)).toByteArray().size
+    is Char -> getByteArrayOfString(String(charArrayOf(v))).size
     else -> throw AssertionError("Should never happen, v is $v")
 }
 
