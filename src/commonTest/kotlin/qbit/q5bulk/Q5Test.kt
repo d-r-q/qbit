@@ -3,6 +3,7 @@ package qbit.q5bulk
 import qbit.*
 import qbit.model.*
 import qbit.ns.Namespace
+import qbit.platform.*
 import qbit.storage.FileSystemStorage
 import java.io.File
 import java.text.SimpleDateFormat
@@ -42,7 +43,7 @@ class Q5Test {
         val dataFiles = dataDir.listFiles()
         val dbDir = File("/home/azhidkov/tmp/q5-db")
         if (dbDir.exists()) {
-            dbDir.deleteRecursively()
+            dbDir.deleteRecursivelyImpl()
             dbDir.mkdir()
         }
 
@@ -52,7 +53,7 @@ class Q5Test {
         val categories = HashMap<String, Entity<*>>()
 
         dataFiles
-                .filter { it.isFile }
+                .filter { it.isFile() }
                 .forEachIndexed { idx, file ->
                     when {
                         idx % 10 == 0 -> loadInTrxPerLine(file, categories, conn)
@@ -61,13 +62,13 @@ class Q5Test {
                     }
                     var lines = 0
                     var device = ""
-                    val fileDate = ZonedDateTime.parse(file.name.substringBefore("-") + "010000+0700", DateTimeFormatter.ofPattern("yyMMddHHmm[X]"))
+                    val fileDate = ZonedDateTimes.parse(file.getName().substringBefore("-") + "010000+0700", DateTimeFormatters.ofPattern("yyMMddHHmm[X]"))
                     val nextDate = fileDate.plusMonths(1)
                     val trxes = ArrayList<RoEntity<EID?>>()
-                    file.forEachLine { line ->
+                    file.forEachLineImpl { line ->
                         val data = parse(line, categories)
                         data?.let { (trx, cat) ->
-                            if (ZonedDateTime.ofInstant(Instant.ofEpochMilli(trx[trxDateTime]), ZoneOffset.ofHours(7)) in fileDate.rangeTo(nextDate)) {
+                            if (ZonedDateTimes.ofInstant(Instants.ofEpochMilli(trx[trxDateTime]), ZoneOffsets.ofHours(7)) in fileDate.rangeTo(nextDate)) {
                                 trxes.add(trx)
                                 lines++
                             }
@@ -83,7 +84,7 @@ class Q5Test {
 
     private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         val trxes = ArrayList<RoEntity<EID?>>()
-        it.forEachLine { line ->
+        it.forEachLineImpl { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 if (catName !in categories) {
@@ -103,7 +104,7 @@ class Q5Test {
     private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         var trxes1 = ArrayList<Entity<EID?>>()
         var trxes2 = ArrayList<Entity<EID?>>()
-        it.forEachLine { line ->
+        it.forEachLineImpl { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 if (catName !in categories) {
@@ -141,7 +142,7 @@ class Q5Test {
     }
 
     private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
-        it.forEachLine { line ->
+        it.forEachLineImpl { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 val (_, _, scat) = conn.persist(cat, trx)

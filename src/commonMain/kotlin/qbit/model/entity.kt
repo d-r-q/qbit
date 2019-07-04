@@ -3,6 +3,8 @@
 package qbit.model
 
 import qbit.*
+import qbit.platform.IdentityHashMap
+import qbit.platform.set
 
 interface AttrValue<out A : Attr<T>, out T : Any> {
 
@@ -237,7 +239,7 @@ internal fun unfoldEntitiesGraph(es: Collection<RoEntity<*>>, eids: Iterator<EID
 
     fun body(es: Collection<RoEntity<*>>) {
         es.forEach {
-            if (!res.contains(it)) {
+            if (!res.containsKey(it)) {
                 @Suppress("UNCHECKED_CAST")
                 when  {
                     it.eid != null -> res[it] = it as RoEntity<EID>

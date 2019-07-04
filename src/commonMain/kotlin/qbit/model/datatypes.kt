@@ -1,8 +1,8 @@
 package qbit.model
 
+import qbit.platform.Instant
+import qbit.platform.ZonedDateTime
 import java.math.BigDecimal
-import java.time.Instant
-import java.time.ZonedDateTime
 
 /**
  * Possible:

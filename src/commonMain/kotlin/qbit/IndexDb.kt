@@ -6,7 +6,6 @@ import qbit.Attrs.type
 import qbit.Attrs.unique
 import qbit.model.*
 import qbit.model.Entity
-import java.util.*
 
 interface QueryPred {
     val attrName: String

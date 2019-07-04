@@ -4,7 +4,9 @@ import qbit.Instances.entitiesCount
 import qbit.Instances.forks
 import qbit.model.*
 import qbit.ns.Namespace
+import qbit.platform.IdentityHashMap
 import qbit.platform.currentTimeMillis
+import qbit.platform.filterKeysImpl
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 
@@ -204,7 +206,7 @@ class QbitTrx internal constructor(val conn: LocalConn, private val base: DbStat
             val persistedEntities = es
                     .filterNot { it is Tombstone }
                     .map { Entity(allEs[it]!!.eid, newDb) }.toList()
-            val createdEntities = allEs.filterKeys { it !is AttachedEntity && it !is Tombstone }.mapValues { Entity(it.value.eid, newDb) }
+            val createdEntities = allEs.filterKeysImpl { it !is AttachedEntity && it !is Tombstone }.mapValues { Entity(it.value.eid, newDb) }
 
             return WriteResult(db, persistedEntities, createdEntities) to DbState(newHead, newDb)
 

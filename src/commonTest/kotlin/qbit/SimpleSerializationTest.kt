@@ -1,6 +1,8 @@
 package qbit
 
 import qbit.model.*
+import qbit.platform.ZoneIds
+import qbit.platform.ZonedDateTimes
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
@@ -157,11 +159,11 @@ class SimpleSerializationTest {
 
     @Test
     fun testZonedDateTime() {
-        val zdt = ZonedDateTime.now()
+        val zdt = ZonedDateTimes.now()
         val outZdt = deserialize(ByteArrayInputStream(serialize(zdt)))
         assertEquals(zdt, outZdt)
 
-        val azdt = zdt.withZoneSameInstant(ZoneId.of("Europe/Paris"))
+        val azdt = zdt.withZoneSameInstant(ZoneIds.of("Europe/Paris"))
         assertEquals(azdt, deserialize(ByteArrayInputStream(serialize(azdt))))
     }
 

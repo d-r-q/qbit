@@ -3,6 +3,10 @@ package qbit
 import qbit.model.*
 import qbit.ns.Namespace
 import qbit.ns.root
+import qbit.platform.Instants
+import qbit.platform.ZoneIds
+import qbit.platform.ZonedDateTime
+import qbit.platform.ZonedDateTimes
 import qbit.storage.MemStorage
 import java.math.BigDecimal
 import java.time.*
@@ -312,12 +316,12 @@ class LocalConnTest {
         val bytesListVal = listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE))
         val eidVal = EID(0)
         val eidListVal = listOf(EID(Long.MIN_VALUE), EID(Long.MAX_VALUE))
-        val instantVal = Instant.now()
-        val instantListVal = listOf(Instant.ofEpochMilli(Int.MIN_VALUE.toLong()), Instant.ofEpochMilli(0), Instant.ofEpochMilli(Int.MAX_VALUE.toLong()))
-        val dtVal = ZonedDateTime.now()
-        val dtListVal = listOf(ZonedDateTime.of(-2200, 1, 1, 0, 0, 0, 0, ZoneId.of("+01:00")),
-                ZonedDateTime.now(ZoneId.of("Europe/Moscow")),
-                ZonedDateTime.of(2200, 12, 31, 23, 59, 59, 999999999, ZoneId.of("Z")))
+        val instantVal = Instants.now()
+        val instantListVal = listOf(Instants.ofEpochMilli(Int.MIN_VALUE.toLong()), Instants.ofEpochMilli(0), Instants.ofEpochMilli(Int.MAX_VALUE.toLong()))
+        val dtVal = ZonedDateTimes.now()
+        val dtListVal = listOf(ZonedDateTimes.of(-2200, 1, 1, 0, 0, 0, 0, ZoneIds.of("+01:00")),
+                ZonedDateTimes.now(ZoneIds.of("Europe/Moscow")),
+                ZonedDateTimes.of(2200, 12, 31, 23, 59, 59, 999999999, ZoneIds.of("Z")))
         val decimalVal = BigDecimal(0)
         val decimalListVal = listOf(BigDecimal(Long.MIN_VALUE).minus(BigDecimal(1)), BigDecimal(Long.MAX_VALUE).plus(BigDecimal(1)))
 

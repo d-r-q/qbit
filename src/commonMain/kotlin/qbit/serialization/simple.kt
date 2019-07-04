@@ -2,7 +2,7 @@ package qbit.serialization
 
 import qbit.*
 import qbit.model.*
-import qbit.platform.getByteArray
+import qbit.platform.*
 import java.io.EOFException
 import java.io.InputStream
 import java.math.BigDecimal
@@ -151,12 +151,12 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
         QByte -> ins.read().toByte() as T
         QInt -> readInt(ins) as T
         QLong -> readLong(ins) as T
-        QInstant -> Instant.ofEpochMilli(readLong(ins)) as T
+        QInstant -> Instants.ofEpochMilli(readLong(ins)) as T
 
         QZonedDateTime -> {
-            val instant = Instant.ofEpochSecond(readLong(ins), readInt(ins).toLong())
+            val instant = Instants.ofEpochSecond(readLong(ins), readInt(ins).toLong())
             val zone = String(readBytes(ins, readInt(ins)), Charsets.UTF_8)
-            ZonedDateTime.ofInstant(instant, ZoneId.of(zone)) as T
+            ZonedDateTimes.ofInstant(instant, ZoneIds.of(zone)) as T
         }
 
         QBytes -> readInt(ins).let { count ->

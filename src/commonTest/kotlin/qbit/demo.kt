@@ -8,6 +8,8 @@ import qbit.Users.lastLogin
 import qbit.mapping.*
 import qbit.model.*
 import qbit.ns.Namespace
+import qbit.platform.Instants
+import qbit.platform.ZonedDateTimes
 import qbit.storage.MemStorage
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -48,17 +50,17 @@ class Demo {
         val conn = qbit(MemStorage())
         conn.persist(Users.name, lastLogin, content, author, date, likes)
 
-        val user = Entity(Users.name eq "@azhidkov", lastLogin eq Instant.now())
+        val user = Entity(Users.name eq "@azhidkov", lastLogin eq Instants.now())
         val tweet = Entity(content eq "Hello @HackDay",
                 author eq user,
-                date eq ZonedDateTime.now())
+                date eq ZonedDateTimes.now())
         val storedUser = conn.persist(tweet).createdEntities.getValue(user)
-        conn.persist(storedUser.with(lastLogin, Instant.now()))
+        conn.persist(storedUser.with(lastLogin, Instants.now()))
 
         val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
         println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
 
-        val cris = Entity(Users.name eq "@cris", lastLogin eq Instant.now())
+        val cris = Entity(Users.name eq "@cris", lastLogin eq Instants.now())
         var nTweet: StoredEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
         nTweet = conn.persist(cris, nTweet).persistedEntities[1]
 
