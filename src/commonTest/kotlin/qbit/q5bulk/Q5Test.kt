@@ -35,7 +35,10 @@ class Q5Test {
     @Test
     fun test() {
         val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")
-        if (!dataDir.exists()) return
+        if (!dataDir.exists()) {
+            println("WARNING! Test is ignored since requirement is not satisfied")
+            return
+        }
         val dataFiles = dataDir.listFiles()
         val dbDir = File("/home/azhidkov/tmp/q5-db")
         if (dbDir.exists()) {

@@ -1,7 +1,7 @@
 package qbit.platform
 
-actual fun getCurrentMillis() = System.currentTimeMillis()
+actual fun currentTimeMillis() = System.currentTimeMillis()
 
-actual fun getByteArrayOfString(string: String) = string.toByteArray()
+actual fun String.getByteArray(): ByteArray = this.toByteArray()
 
-actual fun getHexStringOfInt(int: Int): String = Integer.toHexString(int)
+actual fun Int.toHexString(): String = Integer.toHexString(this)

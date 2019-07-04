@@ -1,7 +1,7 @@
 package qbit
 
 import qbit.model.*
-import qbit.platform.getCurrentMillis
+import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import java.io.ByteArrayInputStream
 import java.io.EOFException
@@ -10,6 +10,7 @@ import java.math.BigDecimal
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -41,7 +42,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testMaxInt() {
-        assertEquals(Integer.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Integer.MAX_VALUE)), QInt))
+        assertEquals(Int.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Int.MAX_VALUE)), QInt))
     }
 
     @Test
@@ -49,10 +50,10 @@ class SimpleSerializationTest {
         val zeroRes = serializeInt(0)
         assertArrayEquals(byteArrayOf(0, 0, 0, 0), zeroRes)
 
-        val maxRes = serializeInt(Integer.MAX_VALUE)
+        val maxRes = serializeInt(Int.MAX_VALUE)
         assertArrayEquals(byteArrayOf(127, -1, -1, -1), maxRes)
 
-        val minRes = serializeInt(Integer.MIN_VALUE)
+        val minRes = serializeInt(Int.MIN_VALUE)
         assertArrayEquals(byteArrayOf(-128, 0, 0, 0), minRes)
     }
 
@@ -116,7 +117,7 @@ class SimpleSerializationTest {
     @Test
     fun testRoot() {
         val iid = IID(1, 4)
-        val root = Root(null, DbUuid(iid), getCurrentMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root)))
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
@@ -129,7 +130,7 @@ class SimpleSerializationTest {
     @Test
     fun testLeaf() {
         val iid = IID(0, 4)
-        val root = Leaf(null, NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Leaf(null, NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Leaf
         assertEquals(root.hash, res.hash)
         assertEquals(root.parent.hash, res.parent.hash)
@@ -164,9 +165,9 @@ class SimpleSerializationTest {
         assertEquals(azdt, deserialize(ByteArrayInputStream(serialize(azdt))))
     }
 
-    private fun randomBytes(count: Int = Random().nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random().nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
+    private fun randomBytes(count: Int = Random(1).nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random(1).nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
 
-    private fun randomString(count: Int = Random().nextInt(1025)) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random() })
+    private fun randomString(count: Int = Random(1).nextInt(1025)) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random() })
 
-    private fun <T> List<T>.random() = this[Random().nextInt(this.size)]
+    private fun <T> List<T>.random() = this[Random(1).nextInt(this.size)]
 }

@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.platform.getHexStringOfInt
+import qbit.platform.toHexString
 
 const val HASH_LEN = 20
 
@@ -26,7 +26,7 @@ class Hash(val bytes: ByteArray) {
     }
 
     fun toHexString(): String {
-        return bytes.joinToString("") { getHexStringOfInt(it.toInt() and 0xFF) }
+        return bytes.joinToString("") { (it.toInt() and 0xFF).toHexString() }
     }
 
     override fun toString(): String {

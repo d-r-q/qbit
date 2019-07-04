@@ -4,7 +4,7 @@ import qbit.Instances.entitiesCount
 import qbit.Instances.forks
 import qbit.model.*
 import qbit.ns.Namespace
-import qbit.platform.getCurrentMillis
+import qbit.platform.currentTimeMillis
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
 
@@ -57,7 +57,7 @@ fun qbit(storage: Storage): LocalConn {
             Fact(EID(iid.value, eid), forks, 0),
             Fact(EID(iid.value, eid), entitiesCount, eid + 1)) // + 1 - is current (instance) entity
 
-    val root = Root(null, dbUuid, getCurrentMillis(), NodeData(trx.toTypedArray()))
+    val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
     storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
     return LocalConn(dbUuid, storage, storedRoot)

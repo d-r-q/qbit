@@ -2,7 +2,7 @@ package qbit.serialization
 
 import qbit.*
 import qbit.model.*
-import qbit.platform.getByteArrayOfString
+import qbit.platform.getByteArray
 import java.io.EOFException
 import java.io.InputStream
 import java.math.BigDecimal
@@ -78,7 +78,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
 }
 
 private fun byteArray(str: String): ByteArray =
-        byteArray(serializeInt(getByteArrayOfString(str).size), getByteArrayOfString(str))
+        byteArray(serializeInt(str.getByteArray().size), str.getByteArray())
 
 private fun toBytes(c: Char): ByteArray =
         Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
@@ -110,7 +110,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
 internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
-    is Char -> getByteArrayOfString(String(charArrayOf(v))).size
+    is Char -> String(charArrayOf(v)).getByteArray().size
     else -> throw AssertionError("Should never happen, v is $v")
 }
 
