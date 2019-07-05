@@ -43,7 +43,7 @@ class Q5Test {
         val dataFiles = dataDir.listFiles()
         val dbDir = File("/home/azhidkov/tmp/q5-db")
         if (dbDir.exists()) {
-            dbDir.deleteRecursivelyImpl()
+            dbDir.deleteRecursively()
             dbDir.mkdir()
         }
 
@@ -65,7 +65,7 @@ class Q5Test {
                     val fileDate = ZonedDateTimes.parse(file.getName().substringBefore("-") + "010000+0700", DateTimeFormatters.ofPattern("yyMMddHHmm[X]"))
                     val nextDate = fileDate.plusMonths(1)
                     val trxes = ArrayList<RoEntity<EID?>>()
-                    file.forEachLineImpl { line ->
+                    file.forEachLine { line ->
                         val data = parse(line, categories)
                         data?.let { (trx, cat) ->
                             if (ZonedDateTimes.ofInstant(Instants.ofEpochMilli(trx[trxDateTime]), ZoneOffsets.ofHours(7)) in fileDate.rangeTo(nextDate)) {
@@ -84,7 +84,7 @@ class Q5Test {
 
     private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         val trxes = ArrayList<RoEntity<EID?>>()
-        it.forEachLineImpl { line ->
+        it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 if (catName !in categories) {
@@ -104,7 +104,7 @@ class Q5Test {
     private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
         var trxes1 = ArrayList<Entity<EID?>>()
         var trxes2 = ArrayList<Entity<EID?>>()
-        it.forEachLineImpl { line ->
+        it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 if (catName !in categories) {
@@ -142,7 +142,7 @@ class Q5Test {
     }
 
     private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
-        it.forEachLineImpl { line ->
+        it.forEachLine { line ->
             parse(line, categories)?.let { (trx, cat) ->
                 val catName = trx[trxCategory][catName]
                 val (_, _, scat) = conn.persist(cat, trx)

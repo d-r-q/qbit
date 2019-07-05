@@ -49,7 +49,7 @@ class Graph(private val resolve: (NodeRef) -> NodeVal<Hash>?) {
 
     fun resolveNode(n: Node<Hash>) = when (n) {
         is NodeVal<Hash> -> n
-        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolveImpl $n")
+        is NodeRef -> resolve(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 
     companion object {

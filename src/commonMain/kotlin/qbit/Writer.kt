@@ -31,7 +31,7 @@ class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
     fun appendGraph(n: Node<Hash>): NodeVal<Hash> {
         return when (n) {
             is NodeRef -> {
-                return storage.load(n) ?: throw QBitException("Could not resolveImpl node $n")
+                return storage.load(n) ?: throw QBitException("Could not resolve node $n")
             }
             is Leaf -> {
                 val parent = appendGraph(n.parent)

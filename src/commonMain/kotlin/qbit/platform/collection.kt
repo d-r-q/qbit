@@ -8,4 +8,4 @@ expect class IdentityHashMap<K, V>() {
 
 expect operator fun <K, V> IdentityHashMap<K, V>.set(key: K, value: V)
 
-expect inline fun <K, V> IdentityHashMap<out K, V>.filterKeysImpl(predicate: (K) -> Boolean): Map<K, V>
+expect inline fun <K, V> IdentityHashMap<out K, V>.filterKeys(predicate: (K) -> Boolean): Map<K, V>

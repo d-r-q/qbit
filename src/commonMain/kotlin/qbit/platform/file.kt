@@ -11,13 +11,13 @@ expect class File {
     fun isDirectory(): Boolean
     fun getName(): String
     fun getAbsolutePath(): String
-    fun listFiles(filter: FileFilter): Array<File>
 }
 
 expect interface FileFilter
 
-expect fun File.forEachLineImpl(action: (line: String) -> Unit)
-expect fun File.resolveImpl(relative: File): File
-expect fun File.resolveImpl(relative: String): File
-expect fun File.readBytesImpl(): ByteArray?
-expect fun File.deleteRecursivelyImpl(): Boolean
+expect fun File.listFiles(action: ((File) -> Boolean)): Array<File>
+expect fun File.forEachLine(action: (line: String) -> Unit)
+expect fun File.resolve(relative: File): File
+expect fun File.resolve(relative: String): File
+expect fun File.readBytes(): ByteArray?
+expect fun File.deleteRecursively(): Boolean
