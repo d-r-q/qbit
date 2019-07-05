@@ -3,14 +3,7 @@ package qbit.serialization
 import qbit.*
 import qbit.model.*
 import qbit.platform.*
-import java.io.EOFException
-import java.io.InputStream
-import java.math.BigDecimal
-import java.math.BigInteger
 import java.nio.CharBuffer
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
 
 object SimpleSerialization : Serialization {
 
@@ -66,7 +59,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is EID -> byteArray(QEID.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
-            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().nano), byteArray(a.zone.id))
+            is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().getNano()), byteArray(a.getZone().getId()))
             is BigDecimal -> {
                 val bytes = a.unscaledValue().toByteArray()
                 byteArray(QDecimal.code, serializeInt(a.scale()), serializeInt(bytes.size), bytes)

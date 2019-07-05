@@ -1,5 +1,7 @@
 package qbit.platform
 
+import kotlin.ranges.rangeTo as rangeToImpl
+
 actual typealias Instant = java.time.Instant
 
 actual object Instants {
@@ -21,19 +23,21 @@ actual object ZonedDateTimes {
 }
 
 actual typealias ZoneId = java.time.ZoneId
-
 actual object ZoneIds {
     actual fun of(zoneId: String): ZoneId = ZoneId.of(zoneId)
+
 }
 
 actual typealias DateTimeFormatter = java.time.format.DateTimeFormatter
-
 actual object DateTimeFormatters {
     actual fun ofPattern(pattern: String): DateTimeFormatter = DateTimeFormatter.ofPattern(pattern)
 }
 
 actual typealias ZoneOffset = java.time.ZoneOffset
-
 actual object ZoneOffsets {
     actual fun ofHours(hours: Int): ZoneOffset = ZoneOffset.ofHours(hours)
 }
+
+actual typealias SimpleDateFormat = java.text.SimpleDateFormat
+
+actual typealias Date = java.util.Date

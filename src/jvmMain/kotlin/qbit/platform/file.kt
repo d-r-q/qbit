@@ -1,5 +1,6 @@
 package qbit.platform
 
+import java.nio.file.Files
 import kotlin.io.resolve as resolveImpl
 import kotlin.io.readBytes as readBytesImpl
 import kotlin.io.forEachLine as forEachLineImpl
@@ -26,8 +27,15 @@ actual fun File.forEachLine(action: (line: String) -> Unit) {
 actual fun File.deleteRecursively(): Boolean {
     return this.deleteRecursivelyImpl()
 }
-actual typealias FileFilter = java.io.FileFilter
 
 actual fun File.listFiles(action: ((File) -> Boolean)): Array<File> {
     return this.listFiles { f -> action(f) }
+}
+
+actual typealias FileDescriptor = java.io.FileDescriptor
+
+actual typealias Path = java.nio.file.Path
+
+actual object Files {
+    actual fun createTempDirectory(prefix: String): Path = Files.createTempDirectory(prefix)
 }

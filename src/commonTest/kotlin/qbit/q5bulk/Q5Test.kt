@@ -5,12 +5,6 @@ import qbit.model.*
 import qbit.ns.Namespace
 import qbit.platform.*
 import qbit.storage.FileSystemStorage
-import java.io.File
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -168,8 +162,8 @@ class Q5Test {
         val date = if (fields.size > 0) fields[0] else return null
         val time = if (fields.size > 1) fields[1] else return null
         val dateTime =
-                if (v1) dateTimeFormatV1.parse("$date $time").time
-                else dateTimeFormat.parse("$date $time").time
+                if (v1) dateTimeFormatV1.parse("$date $time").getTime()
+                else dateTimeFormat.parse("$date $time").getTime()
         val sum = if (fields.size > 2) fields[2] else return null
         val cat = if (fields.size > 3) fields[3] else return null
         var catSe = categories[cat]

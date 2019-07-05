@@ -1,12 +1,13 @@
 package qbit
 
+import qbit.platform.MessageDigests
 import qbit.platform.toHexString
 
 const val HASH_LEN = 20
 
 val nullHash = Hash(ByteArray(HASH_LEN))
 
-fun hash(data: ByteArray): Hash = Hash(MessageDigest.getInstance("SHA-1").digest(data))
+fun hash(data: ByteArray): Hash = Hash(MessageDigests.getInstance("SHA-1").digest(data))
 
 class Hash(val bytes: ByteArray) {
 

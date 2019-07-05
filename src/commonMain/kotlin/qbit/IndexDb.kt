@@ -6,6 +6,8 @@ import qbit.Attrs.type
 import qbit.Attrs.unique
 import qbit.model.*
 import qbit.model.Entity
+import qbit.platform.WeakHashMap
+import qbit.platform.set
 
 interface QueryPred {
     val attrName: String

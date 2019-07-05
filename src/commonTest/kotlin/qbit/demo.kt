@@ -8,16 +8,12 @@ import qbit.Users.lastLogin
 import qbit.mapping.*
 import qbit.model.*
 import qbit.ns.Namespace
-import qbit.platform.Instants
-import qbit.platform.ZonedDateTimes
+import qbit.platform.*
 import qbit.storage.MemStorage
-import java.time.Instant
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-val HHmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+val HHmm: DateTimeFormatter = DateTimeFormatters.ofPattern("HH:mm")
 
 val tweetNs = Namespace.of("demo", "tweet")
 val userNs = Namespace.of("demo", "user")

@@ -2,8 +2,8 @@ package qbit.storage
 
 import qbit.*
 import qbit.ns.Namespace
+import qbit.platform.ByteArrayInputStream
 import qbit.serialization.SimpleSerialization
-import java.io.ByteArrayInputStream
 
 private val nodes = Namespace("nodes")
 

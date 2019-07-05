@@ -1,7 +1,7 @@
 package qbit.serialization
 
 import qbit.*
-import java.io.InputStream
+import qbit.platform.InputStream
 
 interface Serialization {
     fun serializeNode(n: NodeVal<Hash?>): ByteArray

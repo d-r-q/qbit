@@ -1,17 +1,8 @@
 package qbit
 
 import qbit.model.*
-import qbit.platform.ZoneIds
-import qbit.platform.ZonedDateTimes
-import qbit.platform.currentTimeMillis
+import qbit.platform.*
 import qbit.serialization.*
-import java.io.ByteArrayInputStream
-import java.io.EOFException
-import java.io.InputStream
-import java.math.BigDecimal
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.*
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -146,7 +137,7 @@ class SimpleSerializationTest {
     @Test
     fun testMerge() {
         val iid = IID(0, 4)
-        val root = Merge(null, NodeRef(Hash(randomBytes(HASH_LEN))), NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), System.currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
+        val root = Merge(null, NodeRef(Hash(randomBytes(HASH_LEN))), NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Merge
         assertEquals(root.parent1.hash, res.parent1.hash)
         assertEquals(root.parent2.hash, res.parent2.hash)

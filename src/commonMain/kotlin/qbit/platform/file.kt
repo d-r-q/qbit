@@ -11,9 +11,12 @@ expect class File {
     fun isDirectory(): Boolean
     fun getName(): String
     fun getAbsolutePath(): String
+    fun listFiles(): Array<File>
 }
 
-expect interface FileFilter
+expect object Files {
+    fun createTempDirectory(prefix: String): Path
+}
 
 expect fun File.listFiles(action: ((File) -> Boolean)): Array<File>
 expect fun File.forEachLine(action: (line: String) -> Unit)
@@ -21,3 +24,11 @@ expect fun File.resolve(relative: File): File
 expect fun File.resolve(relative: String): File
 expect fun File.readBytes(): ByteArray?
 expect fun File.deleteRecursively(): Boolean
+
+expect interface Path {
+    fun toFile(): File
+}
+
+expect class FileDescriptor {
+    fun sync()
+}

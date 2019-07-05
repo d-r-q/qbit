@@ -2,6 +2,7 @@ package qbit.platform
 
 expect class Instant {
     fun toEpochMilli(): Long
+    fun getNano(): Int
 }
 
 expect object Instants {
@@ -12,6 +13,10 @@ expect object Instants {
 
 expect class ZonedDateTime {
     fun withZoneSameInstant(zone: ZoneId): ZonedDateTime
+    fun toInstant(): Instant
+    fun getZone(): ZoneId
+    fun format(format: DateTimeFormatter): String
+    fun plusMonths(months: Long): ZonedDateTime
 }
 
 expect object ZonedDateTimes {
@@ -23,7 +28,9 @@ expect object ZonedDateTimes {
     fun parse(text: CharSequence, formatter: DateTimeFormatter): ZonedDateTime
 }
 
-expect abstract class ZoneId
+expect abstract class ZoneId {
+    abstract fun getId(): String
+}
 
 expect object ZoneIds {
     fun of(zoneId: String): ZoneId
@@ -35,8 +42,16 @@ expect object DateTimeFormatters {
     fun ofPattern(pattern: String): DateTimeFormatter
 }
 
-expect class ZoneOffset
+expect class ZoneOffset: ZoneId
 
 expect object ZoneOffsets {
     fun ofHours(hours: Int): ZoneOffset
+}
+
+expect class SimpleDateFormat(format: String) {
+    fun parse(source: String): Date
+}
+
+expect class Date {
+    fun getTime(): Long
 }
