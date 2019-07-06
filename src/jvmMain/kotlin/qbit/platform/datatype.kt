@@ -10,9 +10,6 @@ internal actual fun BigInteger.toBigDecimal(scale: Int): BigDecimal {
     return toBigDecimal(scale, MathContext.UNLIMITED)
 }
 
-actual inline operator fun BigDecimal.plus(other: BigDecimal): BigDecimal = this.add(other)
+actual operator fun BigDecimal.plus(other: BigDecimal): BigDecimal = this.add(other)
 
-actual inline operator fun BigDecimal.minus(other: BigDecimal): BigDecimal = this.subtract(other)
-
-val a = BigDecimal(1)
-val q = a.minus(BigDecimal(2))
+actual operator fun BigDecimal.minus(other: BigDecimal): BigDecimal = this.subtract(other)

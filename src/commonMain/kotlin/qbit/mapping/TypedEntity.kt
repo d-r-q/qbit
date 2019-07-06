@@ -4,10 +4,11 @@ package qbit.mapping
 
 import qbit.*
 import qbit.model.*
-import java.lang.reflect.ParameterizedType
+import qbit.platform.getRawType
+import qbit.platform.getRawTypeOfActualTypeArgument
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.javaType
 
 
 abstract class TypedEntity<E : EID?>(var entity: Entity<E>) : Entity<E> {
@@ -92,15 +93,12 @@ class ListAttrDelegate<out E : Any, T, L : List<T>?>(private val attr: ListAttr<
 class RefListAttrDelegate<T : TypedEntity<*>, L : List<T>?>(private val attr: RefListAttr) : ReadWriteProperty<TypedEntity<*>, L> {
 
     override fun getValue(thisRef: TypedEntity<*>, property: KProperty<*>): L {
-        var klass = (property.returnType.javaType as ParameterizedType).actualTypeArguments[0]
-        if (klass is ParameterizedType) {
-            klass = klass.rawType
-        }
+        val klass = getRawTypeOfActualTypeArgument(property)
         val value: List<RoEntity<*>>? = thisRef.entity.tryGet(attr)
         val lst = value?.map {
             when (it) {
                 is TypedEntity -> it as T
-                else -> typify(it, klass as Class<*>) as T
+                else -> typify(it, klass) as T
             }
         } as L
         if (lst != null) {
@@ -122,12 +120,9 @@ class RefListAttrDelegate<T : TypedEntity<*>, L : List<T>?>(private val attr: Re
 class RefAttrDelegate<T : TypedEntity<*>?>(private val attr: ScalarRefAttr) : ReadWriteProperty<TypedEntity<*>, T> {
 
     override fun getValue(thisRef: TypedEntity<*>, property: KProperty<*>): T {
-        var klass = property.returnType.javaType
-        if (klass is ParameterizedType) {
-            klass = klass.rawType
-        }
+        val klass = getRawType(property)
         return thisRef.entity.tryGet(attr)?.let {
-            val typed = typify(it, klass as Class<*>)
+            val typed = typify(it, klass)
             thisRef.entity = thisRef.entity.with(attr, typed as RoEntity<EID?>) as Entity<Nothing>
             typed
         } as T
@@ -144,19 +139,17 @@ class RefAttrDelegate<T : TypedEntity<*>?>(private val attr: ScalarRefAttr) : Re
 }
 
 inline fun <E : EID?, reified T : TypedEntity<E>> typify(entity: RoEntity<E>): T {
-    return typify(entity, T::class.java)
+    return typify(entity, T::class)
 }
 
-fun <E : EID?, T : TypedEntity<E>> typify(entity: RoEntity<E>, klass: Class<*>): T {
-    if (entity.javaClass.isAssignableFrom(klass)) {
+fun <E : EID?, T : TypedEntity<E>> typify(entity: RoEntity<E>, klass: KClass<*>): T {
+    if (klass.isInstance(entity)) {
         return entity as T
     }
-    val constr = klass.kotlin.constructors.first {
-        var argClass = (klass.kotlin.constructors as List).first().parameters[0].type.javaType
-        if (argClass is ParameterizedType) {
-            argClass = argClass.rawType
-        }
-        (argClass as? Class<*>)?.isAssignableFrom(entity.javaClass) == true
+
+    val constr = klass.constructors.first {
+        val argClass = getRawType((klass.constructors as List).first().parameters[0])
+        argClass.isInstance(entity)
     }
     return constr.call(entity) as T
 }
@@ -171,4 +164,4 @@ inline fun <reified T : TypedEntity<EID>> WriteResult.storedEntityAs() =
         typify<EID, T>(this.storedEntity() as RoEntity<EID>)
 
 inline fun <reified E : EID?, reified T : TypedEntity<E>> RoEntity<E>.typed(): T =
-        typify(this, T::class.java)
+        typify(this, T::class)

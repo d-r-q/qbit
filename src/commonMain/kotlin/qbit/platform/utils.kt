@@ -13,3 +13,7 @@ expect abstract class MessageDigest {
 expect object MessageDigests {
     fun getInstance(algorithm: String): MessageDigest
 }
+
+expect fun ByteArray.toUtf8String(): String
+
+expect fun assert(boolean: Boolean)

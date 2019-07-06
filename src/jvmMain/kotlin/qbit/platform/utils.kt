@@ -13,3 +13,11 @@ actual object MessageDigests {
         return MessageDigest.getInstance(algorithm)
     }
 }
+
+actual fun ByteArray.toUtf8String(): String {
+    return String(this, Charsets.UTF_8)
+}
+
+actual fun assert(boolean: Boolean) {
+    kotlin.assert(boolean)
+}

@@ -11,7 +11,7 @@ buildscript {
 }
 
 plugins {
-    id 'kotlin-multiplatform' version '1.3.21'
+    id 'kotlin-multiplatform' version '1.3.31'
 }
 
 group 'org.qbit'

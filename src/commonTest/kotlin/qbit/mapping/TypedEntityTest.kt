@@ -180,7 +180,7 @@ class EntityProxyTest {
     @Test
     fun testTypifyTyped() {
         val user = User("user1")
-        assertEquals(user, typify(user, User::class.java))
+        assertEquals(user, typify(user, User::class))
     }
 
     @Test

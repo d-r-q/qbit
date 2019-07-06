@@ -12,6 +12,6 @@ expect class BigInteger(array: ByteArray) {
 
 internal expect fun BigInteger.toBigDecimal(scale: Int = 0): BigDecimal
 
-expect inline operator fun BigDecimal.plus(other: BigDecimal): BigDecimal
+expect operator fun BigDecimal.plus(other: BigDecimal): BigDecimal
 
-expect inline operator fun BigDecimal.minus(other: BigDecimal): BigDecimal
+expect operator fun BigDecimal.minus(other: BigDecimal): BigDecimal

@@ -1,8 +1,9 @@
 package qbit
 
+import qbit.platform.assert as assertImpl
 
 val enabled = try {
-    assert(false)
+    assertImpl(false)
     false
 } catch (e: AssertionError) {
     true
@@ -10,7 +11,7 @@ val enabled = try {
 
 inline fun assert(body: () -> Boolean) {
     if (enabled) {
-        assert(body())
+        assertImpl(body())
     }
 
 }

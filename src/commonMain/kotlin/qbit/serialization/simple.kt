@@ -3,7 +3,6 @@ package qbit.serialization
 import qbit.*
 import qbit.model.*
 import qbit.platform.*
-import java.nio.CharBuffer
 
 object SimpleSerialization : Serialization {
 
@@ -74,7 +73,8 @@ private fun byteArray(str: String): ByteArray =
         byteArray(serializeInt(str.getByteArray().size), str.getByteArray())
 
 private fun toBytes(c: Char): ByteArray =
-        Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
+//        Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
+        String(charArrayOf(c)).getByteArray()
 
 private val coder = HashMap<Char, ByteArray>()
 
@@ -148,7 +148,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
 
         QZonedDateTime -> {
             val instant = Instants.ofEpochSecond(readLong(ins), readInt(ins).toLong())
-            val zone = String(readBytes(ins, readInt(ins)), Charsets.UTF_8)
+            val zone = readBytes(ins, readInt(ins)).toUtf8String()
             ZonedDateTimes.ofInstant(instant, ZoneIds.of(zone)) as T
         }
 
@@ -157,7 +157,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
         }
 
         QString -> readInt(ins).let { count ->
-            String(readBytes(ins, count), Charsets.UTF_8) as T
+            readBytes(ins, count).toUtf8String() as T
         }
         QEID -> EID(readLong(ins)) as T
         QDecimal -> {
