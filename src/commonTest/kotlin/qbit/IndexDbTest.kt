@@ -1,16 +1,18 @@
 package qbit
 
-import org.junit.Assert.*
-import org.junit.Test
 import qbit.model.*
 import qbit.ns.root
+import qbit.platform.currentTimeMillis
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class DbTest {
 
     @Test
     fun testSearchByAttrRangeAndAttrValue() {
         val dbUuid = DbUuid(IID(0, 1))
-        val time1 = System.currentTimeMillis()
+        val time1 = currentTimeMillis()
         val eid2 = EID(0, 4)
         val eids = EID(0, 0).nextEids()
 
@@ -33,7 +35,7 @@ class DbTest {
     @Test
     fun testFetchEidsDeduplication() {
         val dbUuid = DbUuid(IID(0, 1))
-        val time1 = System.currentTimeMillis()
+        val time1 = currentTimeMillis()
         val eids = EID(0, 0).nextEids()
 
         val _cat = ListAttr(root["cat"], QString)
@@ -55,19 +57,19 @@ class DbTest {
 
         val e1 = Entity(attr eq "avalue1")
         val eid1 = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, System.currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
+        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
         var indexDb = IndexDb(Index(graph, root), root.hash)
 
         val e2 = Entity(attr eq "avalue2")
         val eid2 = eids.next()
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, System.currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
         nodes[n1.hash] = n1
 
         val e3 = Entity(attr eq "avalue3")
         val eid3 = eids.next()
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, System.currentTimeMillis(), NodeData((e3.toFacts(eid3)).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((e3.toFacts(eid3)).toTypedArray()))
         nodes[n2.hash] = n2
 
         indexDb = db(graph, indexDb, n2)
@@ -84,18 +86,18 @@ class DbTest {
 
         val e1 = Entity(attr eq "avalue1")
         val eid1 = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, System.currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
+        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
         var indexDb = IndexDb(Index(graph, root), root.hash)
 
         val e2 = Entity(attr eq "avalue2")
         val eid2 = eids.next()
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, System.currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
         nodes[n1.hash] = n1
 
         val e3 = Entity(attr eq "avalue2.1")
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, System.currentTimeMillis(), NodeData((e3.toFacts(eid2)).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((e3.toFacts(eid2)).toTypedArray()))
         nodes[n2.hash] = n2
 
         indexDb = db(graph, indexDb, n2)
@@ -113,7 +115,7 @@ class DbTest {
         val e1 = Entity(eids.next(), emptyList(), emptyDb)
         val e2 = Entity(ref eq e1)
         val e2eid = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, System.currentTimeMillis(), NodeData((ref.toFacts(eids.next()) + e2.toFacts(e2eid)).toTypedArray()))
+        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((ref.toFacts(eids.next()) + e2.toFacts(e2eid)).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
 

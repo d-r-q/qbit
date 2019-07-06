@@ -1,9 +1,9 @@
 package qbit
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import qbit.ns.Namespace
 import qbit.ns.root
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class NamespaceTest {
 
