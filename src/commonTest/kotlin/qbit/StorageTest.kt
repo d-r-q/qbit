@@ -1,7 +1,6 @@
 package qbit
 
-import org.junit.Assert.*
-import org.junit.Test
+
 import qbit.model.Entity
 import qbit.model.QString
 import qbit.model.ScalarAttr
@@ -9,10 +8,13 @@ import qbit.model.eq
 import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
+import qbit.platform.Files
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import qbit.storage.Storage
-import java.nio.file.Files
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StorageTest {
 

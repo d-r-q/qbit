@@ -3,7 +3,9 @@ package qbit.storage
 import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.QBitException
-import java.util.concurrent.ConcurrentHashMap
+import qbit.platform.ConcurrentHashMap
+import qbit.platform.asSequence
+import qbit.platform.getOrPut
 
 class MemStorage : Storage {
 
@@ -25,10 +27,10 @@ class MemStorage : Storage {
 
     override fun load(key: Key): ByteArray? = data[key.ns]?.get(key)
 
-    override fun keys(namespace: Namespace): Collection<Key> = data[namespace]?.keys ?: setOf()
+    override fun keys(namespace: Namespace): Collection<Key> = (data[namespace]?.keys as? Collection<Key>) ?: setOf()
 
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> =
-            data.keys().asSequence()
+            data.keys.asSequence()
                     .filter { it.isSubNs(namespace) }
                     .toList()
 
