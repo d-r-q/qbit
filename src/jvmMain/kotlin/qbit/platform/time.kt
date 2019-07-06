@@ -1,7 +1,5 @@
 package qbit.platform
 
-import kotlin.ranges.rangeTo as rangeToImpl
-
 actual typealias Instant = java.time.Instant
 
 actual object Instants {

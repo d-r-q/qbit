@@ -1,7 +1,6 @@
 package qbit.platform
 
 import kotlin.io.use as useImpl
-import java.io.FileInputStream
 
 actual typealias Closable = java.io.Closeable
 

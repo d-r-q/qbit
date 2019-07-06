@@ -28,7 +28,7 @@ actual fun File.deleteRecursively(): Boolean {
     return this.deleteRecursivelyImpl()
 }
 
-actual fun File.listFiles(action: ((File) -> Boolean)): Array<File> {
+actual fun File.listFiles(action: ((File) -> Boolean)): Array<File>? {
     return this.listFiles { f -> action(f) }
 }
 

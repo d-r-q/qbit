@@ -1,6 +1,5 @@
 package qbit
 
-
 import qbit.model.QString
 import qbit.model.ScalarAttr
 import qbit.ns.root

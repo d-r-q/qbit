@@ -73,7 +73,6 @@ private fun byteArray(str: String): ByteArray =
         byteArray(serializeInt(str.getByteArray().size), str.getByteArray())
 
 private fun toBytes(c: Char): ByteArray =
-//        Charsets.UTF_8.encode(CharBuffer.wrap(charArrayOf(c))).array()
         String(charArrayOf(c)).getByteArray()
 
 private val coder = HashMap<Char, ByteArray>()

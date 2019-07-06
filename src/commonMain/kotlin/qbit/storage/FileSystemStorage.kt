@@ -3,9 +3,7 @@ package qbit.storage
 import qbit.ns.Namespace
 import qbit.ns.Key
 import qbit.QBitException
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import qbit.platform.*
 
 class FileSystemStorage(private val root: File) : Storage {
 
@@ -21,12 +19,11 @@ class FileSystemStorage(private val root: File) : Storage {
         copyNs(qbit.ns.root)
     }
 
-    @Throws(IOException::class)
     override fun add(key: Key, value: ByteArray) {
         val dir = root.resolve(key.ns.toFile())
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
-                throw IOException("Could not create directory for namespace: ${dir.absolutePath}")
+                throw IOException("Could not create directory for namespace: ${dir.getAbsolutePath()}")
             }
         }
         val file = File(dir, key.name)
@@ -46,7 +43,6 @@ class FileSystemStorage(private val root: File) : Storage {
         writeAndSync(file, value)
     }
 
-    @Throws(IOException::class)
     override fun load(key: Key): ByteArray? {
         val file = root.resolve(key.ns.toFile().resolve(key.name))
         if (!file.exists()) {
@@ -55,19 +51,17 @@ class FileSystemStorage(private val root: File) : Storage {
         return file.readBytes()
     }
 
-    @Throws(IOException::class)
     override fun keys(namespace: Namespace): Collection<Key> {
         val dir = root.resolve(namespace.toFile())
-        return dir.listFiles { f -> f.isFile }
-                ?.map { namespace[it.name] }
+        return dir.listFiles { f -> f.isFile() }
+                ?.map { namespace[it.getName()] }
                 ?: emptyList()
     }
 
-    @Throws(IOException::class)
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> {
         val dir = root.resolve(namespace.toFile())
-        return dir.listFiles { f -> f.isDirectory }
-                ?.map { namespace.subNs(it.name) }
+        return dir.listFiles { f -> f.isDirectory() }
+                ?.map { namespace.subNs(it.getName()) }
                 ?: emptyList()
     }
 
@@ -82,7 +76,7 @@ class FileSystemStorage(private val root: File) : Storage {
         fos.use {
             fos.write(data)
             fos.flush()
-            fos.fd.sync()
+            fos.getFD().sync()
         }
     }
 
