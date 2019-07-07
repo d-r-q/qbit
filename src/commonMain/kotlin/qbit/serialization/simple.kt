@@ -1,5 +1,9 @@
 package qbit.serialization
 
+import kotlinx.io.charsets.Charset
+import kotlinx.io.charsets.decode
+import kotlinx.io.charsets.encode
+import kotlinx.io.core.*
 import qbit.*
 import qbit.model.*
 import qbit.platform.*
@@ -18,7 +22,7 @@ object SimpleSerialization : Serialization {
 
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
-    override fun deserializeNode(ins: InputStream): NodeVal<Hash?> {
+    override fun deserializeNode(ins: Input): NodeVal<Hash?> {
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
         val iid = deserialize(ins, QInt) as Int
@@ -69,11 +73,12 @@ internal fun serialize(vararg anys: Any): ByteArray {
     return byteArray(*bytes.toTypedArray())
 }
 
+@ExperimentalIoApi
 private fun byteArray(str: String): ByteArray =
-        byteArray(serializeInt(str.getByteArray().size), str.getByteArray())
+        byteArray(serializeInt(str.encodeToUtf8().size), str.encodeToUtf8())
 
-private fun toBytes(c: Char): ByteArray =
-        String(charArrayOf(c)).getByteArray()
+private fun encodeToUtf8(c: Char): ByteArray =
+        String(charArrayOf(c)).encodeToUtf8()
 
 private val coder = HashMap<Char, ByteArray>()
 
@@ -90,7 +95,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
                 res[idx++] = part
             }
             is Char -> {
-                val bytes = coder.getOrPut(part) { toBytes(part) }
+                val bytes = coder.getOrPut(part) { encodeToUtf8(part) }
                 bytes.copyInto(res, idx, 0, bytes.size)
                 idx += bytes.size
             }
@@ -102,7 +107,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
 internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
-    is Char -> String(charArrayOf(v)).getByteArray().size
+    is Char -> String(charArrayOf(v)).encodeToUtf8().size
     else -> throw AssertionError("Should never happen, v is $v")
 }
 
@@ -118,37 +123,39 @@ internal fun byteOf(idx: Int, i: Long) = i.shr(8 * idx).and(0xFF).toByte()
 
 // Deserialization
 
-internal fun <T : Any> deserialize(ins: InputStream, mark: DataType<T>): Any {
-    val byte = ins.read()
+@ExperimentalIoApi
+internal fun <T : Any> deserialize(ins: Input, mark: DataType<T>): Any {
+    val byte: Byte = ins.readByte()
     when {
-        byte == -1 -> throw EOFException("Unexpected end of input")
-        byte.toByte() != mark.code -> throw DeserializationException("Code is $byte while $mark expected")
-        DataType.ofCode(byte.toByte()) == null -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
+        byte == (-1).toByte() -> throw EOFException("Unexpected end of input")
+        byte != mark.code -> throw DeserializationException("Code is $byte while $mark expected")
+        DataType.ofCode(byte) == null -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
     return readMark(ins, mark)
 }
 
-internal fun deserialize(ins: InputStream): Any {
-    val mark: DataType<Any> = when (val byte = ins.read()) {
-        -1 -> throw DeserializationException(cause = EOFException())
-        else -> (DataType.ofCode(byte.toByte())) ?: throw DeserializationException("Unknown mark: ${byte.toChar()}")
+@ExperimentalIoApi
+internal fun deserialize(ins: Input): Any {
+    val mark: DataType<Any> = when (val byte = ins.readByte()) {
+        (-1).toByte() -> throw DeserializationException(cause = EOFException("Unexpected end of input"))
+        else -> (DataType.ofCode(byte)) ?: throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
     return readMark(ins, mark)
 }
 
+@ExperimentalIoApi
 @Suppress("UNCHECKED_CAST")
-private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any {
+private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
     return when (expectedMark) {
-        QBoolean -> (ins.read().toByte() == 1.toByte()) as T
-        QByte -> ins.read().toByte() as T
+        QBoolean -> (ins.readByte() == 1.toByte()) as T
+        QByte -> ins.readByte() as T
         QInt -> readInt(ins) as T
         QLong -> readLong(ins) as T
         QInstant -> Instants.ofEpochMilli(readLong(ins)) as T
 
         QZonedDateTime -> {
             val instant = Instants.ofEpochSecond(readLong(ins), readInt(ins).toLong())
-            val zone = readBytes(ins, readInt(ins)).toUtf8String()
-            ZonedDateTimes.ofInstant(instant, ZoneIds.of(zone)) as T
+            ZonedDateTimes.ofInstant(instant, ZoneIds.of(readBytes(ins, readInt(ins)).decodeUtf8())) as T
         }
 
         QBytes -> readInt(ins).let { count ->
@@ -156,7 +163,7 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
         }
 
         QString -> readInt(ins).let { count ->
-            readBytes(ins, count).toUtf8String() as T
+            readBytes(ins, count).decodeUtf8() as T
         }
         QEID -> EID(readLong(ins)) as T
         QDecimal -> {
@@ -170,9 +177,9 @@ private fun <T : Any> readMark(ins: InputStream, expectedMark: DataType<T>): Any
     }
 }
 
-internal fun readBytes(ins: InputStream, count: Int): ByteArray {
+internal fun readBytes(ins: Input, count: Int): ByteArray {
     val buff = ByteArray(count)
-    val len = ins.read(buff)
+    val len = ins.readAvailable(buff)
     if (len < count) {
         throw DeserializationException(cause = EOFException("There are not enough bytes in stream"))
     } else {
@@ -180,24 +187,38 @@ internal fun readBytes(ins: InputStream, count: Int): ByteArray {
     }
 }
 
-internal fun readInt(ins: InputStream): Int = readNumber(ins, 4) { buff ->
+internal fun readInt(ins: Input): Int = readNumber(ins, 4) { buff ->
     buff[0].toInt().and(0xFF).shl(8 * 3) or buff[1].toInt().and(0xFF).shl(8 * 2) or
             buff[2].toInt().and(0xFF).shl(8) or buff[3].toInt().and(0xFF)
 }
 
-internal fun readLong(ins: InputStream): Long = readNumber(ins, 8) { buff ->
+internal fun readLong(ins: Input): Long = readNumber(ins, 8) { buff ->
     buff[0].toLong().and(0xFF).shl(8 * 7) or buff[1].toLong().and(0xFF).shl(8 * 6) or
             buff[2].toLong().and(0xFF).shl(8 * 5) or buff[3].toLong().and(0xFF).shl(8 * 4) or
             buff[4].toLong().and(0xFF).shl(8 * 3) or buff[5].toLong().and(0xFF).shl(8 * 2) or
             buff[6].toLong().and(0xFF).shl(8) or buff[7].toLong().and(0xFF)
 }
 
-internal fun <T> readNumber(ins: InputStream, size: Int, parse: (ByteArray) -> T): T {
+internal fun <T> readNumber(ins: Input, size: Int, parse: (ByteArray) -> T): T {
     val buff = ByteArray(size)
-    val len = ins.read(buff)
+    val len = ins.readAvailable(buff)
     if (len < size) {
         throw EOFException("There are not enough bytes in stream")
     } else {
         return parse(buff)
     }
+}
+
+@ExperimentalIoApi
+private fun String.encodeToUtf8(): ByteArray {
+    // single char may be encoded by up to 4 bytes in UTF-8
+    val buffer = ByteArray(this.length * 4)
+    val encoded: ByteReadPacket = Charset.forName("UTF-8").newEncoder().encode(this)
+    val len = encoded.readAvailable(buffer)
+    return buffer.copyInto(ByteArray(len), 0, 0, len)
+}
+
+@ExperimentalIoApi
+private fun ByteArray.decodeUtf8(): String {
+    return Charset.forName("UTF-8").newDecoder().decode(this.asInput())
 }

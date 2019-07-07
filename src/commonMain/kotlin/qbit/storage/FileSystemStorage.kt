@@ -1,5 +1,8 @@
 package qbit.storage
 
+import kotlinx.io.core.use
+import kotlinx.io.core.writeFully
+import kotlinx.io.errors.IOException
 import qbit.ns.Namespace
 import qbit.ns.Key
 import qbit.QBitException
@@ -72,11 +75,11 @@ class FileSystemStorage(private val root: File) : Storage {
     private fun Namespace.toFile(): File = (this.parent?.toFile() ?: File("")).resolve(this.name)
 
     private fun writeAndSync(file: File, data: ByteArray) {
-        val fos = FileOutputStream(file)
-        fos.use {
-            fos.write(data)
-            fos.flush()
-            fos.getFD().sync()
+        val fo = fileOutput(file)
+        fo.use {
+            fo.writeFully(data)
+            fo.flush()
+            fo.fd.sync()
         }
     }
 

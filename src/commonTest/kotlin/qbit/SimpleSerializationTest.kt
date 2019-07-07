@@ -1,5 +1,7 @@
 package qbit
 
+import kotlinx.io.core.EOFException
+import kotlinx.io.core.Input
 import qbit.model.*
 import qbit.platform.*
 import qbit.serialization.*
@@ -8,6 +10,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
+
+val random = Random(1)
 
 class SimpleSerializationTest {
 
@@ -35,7 +39,7 @@ class SimpleSerializationTest {
 
     @Test
     fun testMaxInt() {
-        assertEquals(Int.MAX_VALUE, deserialize(ByteArrayInputStream(serialize(Int.MAX_VALUE)), QInt))
+        assertEquals(Int.MAX_VALUE, deserialize(serialize(Int.MAX_VALUE).asInput(), QInt))
     }
 
     @Test
@@ -60,27 +64,27 @@ class SimpleSerializationTest {
         testValues(decimalValues, { serialize(it) }, { deserialize(it, QDecimal) as BigDecimal })
     }
 
-    private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (InputStream) -> T) {
+    private fun <T> testValues(values: List<T>, s: (T) -> ByteArray, r: (Input) -> T) {
         for (v in values) {
-            assertEquals(v, r(ByteArrayInputStream(s(v))))
+            assertEquals(v, r(s(v).asInput()))
         }
     }
 
     @Test
     fun testBoolean() {
-        assertEquals(true, deserialize(ByteArrayInputStream(serialize(true)), QBoolean))
-        assertEquals(false, deserialize(ByteArrayInputStream(serialize(false)), QBoolean))
+        assertEquals(true, deserialize(serialize(true).asInput(), QBoolean))
+        assertEquals(false, deserialize(serialize(false).asInput(), QBoolean))
     }
 
     @Test
     fun testN() {
-        assertEquals(nullHash, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(nullHash))), QBytes) as ByteArray))
+        assertEquals(nullHash, Hash(deserialize(serialize(NodeRef(nullHash)).asInput(), QBytes) as ByteArray))
         val randomBytes = Hash(randomBytes(HASH_LEN))
-        assertEquals(randomBytes, Hash(deserialize(ByteArrayInputStream(serialize(NodeRef(randomBytes))), QBytes) as ByteArray))
+        assertEquals(randomBytes, Hash(deserialize(serialize(NodeRef(randomBytes)).asInput(), QBytes) as ByteArray))
 
         val fewBytes = Hash(randomBytes(HASH_LEN - 1))
         try {
-            deserialize(ByteArrayInputStream(byteArray(QBytes.code, serializeInt(HASH_LEN), fewBytes.bytes)), QBytes)
+            deserialize(byteArray(QBytes.code, serializeInt(HASH_LEN), fewBytes.bytes).asInput(), QBytes)
             fail("eof error expected")
         } catch (e: DeserializationException) {
             assertTrue(e.cause is EOFException)
@@ -90,11 +94,11 @@ class SimpleSerializationTest {
     @Test
     fun testByteArray() {
         val random = randomBytes()
-        assertArrayEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QBytes) as ByteArray)
+        assertArrayEquals(random, deserialize(serialize(random).asInput(), QBytes) as ByteArray)
 
         val twoBytes = byteArrayOf(QBytes.code, 0, 0, 0, 3, 0, 0)
         try {
-            deserialize(ByteArrayInputStream(twoBytes), QBytes)
+            deserialize(twoBytes.asInput(), QBytes)
             fail("eof error expected")
         } catch (e : DeserializationException) {
             assertTrue(e.cause is EOFException)
@@ -104,14 +108,20 @@ class SimpleSerializationTest {
     @Test
     fun testString() {
         val random = randomString()
-        assertEquals(random, deserialize(ByteArrayInputStream(serialize(random)), QString))
+        assertEquals(random, deserialize(serialize(random).asInput(), QString))
+    }
+
+    @Test
+    fun testHighUnicodeString() {
+        val hieroglyphs = "ライン 线 שו"
+        assertEquals(hieroglyphs, deserialize(serialize(hieroglyphs).asInput(), QString))
     }
 
     @Test
     fun testRoot() {
         val iid = IID(1, 4)
         val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root)))
+        val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput())
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
@@ -124,7 +134,7 @@ class SimpleSerializationTest {
     fun testLeaf() {
         val iid = IID(0, 4)
         val root = Leaf(null, NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Leaf
+        val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Leaf
         assertEquals(root.hash, res.hash)
         assertEquals(root.parent.hash, res.parent.hash)
         assertEquals(root.source, res.source)
@@ -138,7 +148,7 @@ class SimpleSerializationTest {
     fun testMerge() {
         val iid = IID(0, 4)
         val root = Merge(null, NodeRef(Hash(randomBytes(HASH_LEN))), NodeRef(Hash(randomBytes(HASH_LEN))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(EID(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(ByteArrayInputStream(SimpleSerialization.serializeNode(root))) as Merge
+        val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Merge
         assertEquals(root.parent1.hash, res.parent1.hash)
         assertEquals(root.parent2.hash, res.parent2.hash)
         assertEquals(root.source, res.source)
@@ -151,16 +161,16 @@ class SimpleSerializationTest {
     @Test
     fun testZonedDateTime() {
         val zdt = ZonedDateTimes.now()
-        val outZdt = deserialize(ByteArrayInputStream(serialize(zdt)))
+        val outZdt = deserialize(serialize(zdt).asInput())
         assertEquals(zdt, outZdt)
 
         val azdt = zdt.withZoneSameInstant(ZoneIds.of("Europe/Paris"))
-        assertEquals(azdt, deserialize(ByteArrayInputStream(serialize(azdt))))
+        assertEquals(azdt, deserialize(serialize(azdt).asInput()))
     }
 
-    private fun randomBytes(count: Int = Random(1).nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(Random(1).nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
+    private fun randomBytes(count: Int = random.nextInt(1025)) = ByteArray(count) { Byte.MIN_VALUE.plus(random.nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
 
-    private fun randomString(count: Int = Random(1).nextInt(1025)) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random() })
+    private fun randomString(count: Int = random.nextInt(1025)) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random() })
 
-    private fun <T> List<T>.random() = this[Random(1).nextInt(this.size)]
+    private fun <T> List<T>.random() = this[random.nextInt(this.size)]
 }

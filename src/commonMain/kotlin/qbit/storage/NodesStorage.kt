@@ -2,7 +2,7 @@ package qbit.storage
 
 import qbit.*
 import qbit.ns.Namespace
-import qbit.platform.ByteArrayInputStream
+import qbit.platform.asInput
 import qbit.serialization.SimpleSerialization
 
 private val nodes = Namespace("nodes")
@@ -28,7 +28,7 @@ class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal<Hash>? {
             if (hash != ref.hash) {
                 throw QBitException("Corrupted node. Node hash is ${ref.hash}, but data hash is $hash")
             }
-            return toHashedNode(SimpleSerialization.deserializeNode(ByteArrayInputStream(value)) , hash)
+            return toHashedNode(SimpleSerialization.deserializeNode(value.asInput()) , hash)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }
