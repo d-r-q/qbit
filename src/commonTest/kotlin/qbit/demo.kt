@@ -20,7 +20,7 @@ val userNs = Namespace.of("demo", "user")
 
 object Users {
     val name = ScalarAttr(userNs["name"], QString, unique = true)
-    val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
+    val lastLogin = ScalarAttr(userNs["lastLogin"], QInstant)
 }
 
 object Tweets {
@@ -34,7 +34,7 @@ class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
     var name: String by AttrDelegate(Users.name)
 
-    val last_login: Instant by AttrDelegate(lastLogin)
+    val lastLogin: Instant by AttrDelegate(Users.lastLogin)
 
 }
 
@@ -43,9 +43,12 @@ class Demo {
     @Test
     fun main() {
 
+        // open connection
         val conn = qbit(MemStorage())
+        // create schema
         conn.persist(Users.name, lastLogin, content, author, date, likes)
 
+        // store data
         val user = Entity(Users.name eq "@azhidkov", lastLogin eq Instants.now())
         val tweet = Entity(content eq "Hello @HackDay",
                 author eq user,
@@ -53,18 +56,21 @@ class Demo {
         val storedUser = conn.persist(tweet).createdEntities.getValue(user)
         conn.persist(storedUser.with(lastLogin, Instants.now()))
 
-        val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
-        println("${sTweet[date].format(HHmm)} | ${sTweet[author][Users.name]}: ${sTweet[content]}")
+        // query data
+        val storedTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
+        println("${storedTweet[date].format(HHmm)} | ${storedTweet[author][Users.name]}: ${storedTweet[content]}")
 
+        // updateData
         val cris = Entity(Users.name eq "@cris", lastLogin eq Instants.now())
-        var nTweet: StoredEntity = sTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
-        nTweet = conn.persist(cris, nTweet).persistedEntities[1]
+        var updatedTweet: StoredEntity = storedTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
+        updatedTweet = conn.persist(cris, updatedTweet).persistedEntities[1]
 
-        println(nTweet[content])
-        println(nTweet[likes].map { it[Users.name] })
-        val likedUsers = nTweet[likes]
-        val users = likedUsers.filterIsInstance<QRoEntity<EID>>().map { typify<EID, User<EID>>(it) }
-        println(users.map { p -> "${p.name}: ${p.last_login}" })
+        println(updatedTweet[content])
+        println(updatedTweet[likes].map { it[Users.name] })
+
+        // Typed api
+        val users = updatedTweet.getAs<EID, User<EID>>(likes)
+        println(users.map { p -> "${p.name}: ${p.lastLogin}" })
 
         users[0].name = "@reflection_rulezz"
         conn.persist(users[0])

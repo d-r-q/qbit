@@ -165,3 +165,9 @@ inline fun <reified T : TypedEntity<EID>> WriteResult.storedEntityAs() =
 
 inline fun <reified E : EID?, reified T : TypedEntity<E>> RoEntity<E>.typed(): T =
         typify(this, T::class)
+
+inline fun <reified E : EID?, reified T : TypedEntity<E>> RoEntity<E>.getAs(attr: RefAttr<T>): T =
+        typify(this[attr], T::class)
+
+inline fun <reified E : EID?, reified T : TypedEntity<E>> RoEntity<E>.getAs(attr: RefListAttr): List<T> =
+        this[attr].map { typify(it, T::class) } as List<T>

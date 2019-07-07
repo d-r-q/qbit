@@ -1,7 +1,7 @@
 # qbit
 ![Build Status](https://travis-ci.com/d-r-q/qbit.svg?branch=master)
 
-qbit is embeddable distributed DB with lazy replication and flexible write conflicts resolution toolset. Heavily inspired by [Datomic](https://www.datomic.com/)
+qbit is a ACID [kotlin-]multiplatform embeddable distributed DB with lazy replication and flexible write conflicts resolution toolset. Heavily inspired by [Datomic](https://www.datomic.com/)
 
 ## Vision
 
@@ -12,13 +12,13 @@ qbit - it's storage and replication technology. qbit implements:
  4) CRDT on DB level;
  5) Encryption of user data with user provided password, so it's is protected from access by third-parties including cloud provider.
  
-qbit stores data locally and uses entity-relation information model, so for developers it's means that there are no usual persistence points of pain:
- 1) There are no more monstrous queries for round-trips optimizations, since there is no more round-trips;
+qbit stores data locally and uses entity graph information model, so for developers it's means that there are no usual persistence points of pain:
+ 1) There are no more monstrous queries for round-trips minimization, since there is no more round-trips;
  2) There are no more object-relational mappers, since there is no more object-relational mismatch.
  
 ## Mission
 
-Protect user's privacy. And make development fun again.
+Make internet decentralized again. And make development fun again.
 
 ## Status
  * Datastore
@@ -33,6 +33,8 @@ Protect user's privacy. And make development fun again.
    * :white_check_mark: ~Unique constraints~
    * :white_check_mark: ~Programmatic range queries~
    * :white_check_mark: ~Pull entites via reference attributes~
+   * :white_check_mark: ~Typed entities~
+   * :white_check_mark: ~Local ACID transactions~
    * Programmatic joins
    * Query language (Datalog and/or something SQL-like)
    
@@ -48,26 +50,62 @@ Protect user's privacy. And make development fun again.
 ## Sample code
 
 ```kotlin
-    val tweetNs = Namespace.of("demo", "tweet")
-    val userNs = Namespace.of("demo", "user")
 
+// schema
+val tweetNs = Namespace.of("demo", "tweet")
+val userNs = Namespace.of("demo", "user")
+
+object Users {
     val name = ScalarAttr(userNs["name"], QString, unique = true)
-    val lastLogin = ScalarAttr(userNs["last_login"], QInstant)
+    val lastLogin = ScalarAttr(userNs["lastLogin"], QInstant)
+}
 
+object Tweets {
     val content = ScalarAttr(tweetNs["content"], QString)
     val author = RefAttr(tweetNs["author"])
     val date = ScalarAttr(tweetNs["date"], QZonedDateTime)
+    val likes = RefListAttr(tweetNs["likes"])
+}
 
-    val conn = qbit(MemStorage())
-    conn.persist(name, lastLogin, content, author, date)
+// Typed wrapper
+class User<E : EID?>(entity: Entity<E>) : TypedEntity<E>(entity) {
 
-    val user = Entity(name eq "@azhidkov", lastLogin eq Instant.now())
-    val tweet = Entity(content eq "Hello @HackDay",
-            author eq user,
-            date eq ZonedDateTime.now())
-    val storedUser = conn.persist(tweet).createdEntities[user]
-    conn.persist(storedUser.set(lastLogin, Instant.now()))
+    var name: String by AttrDelegate(Users.name)
 
-    val sTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
-    println("${sTweet[date].format(HHmm)} | ${sTweet[author][name]}: ${sTweet[content]}")
+    val lastLogin: Instant by AttrDelegate(Users.lastLogin)
+
+}
+
+// open connection
+val conn = qbit(MemStorage())
+// create schema
+conn.persist(Users.name, lastLogin, content, author, date, likes)
+
+// store data
+val user = Entity(Users.name eq "@azhidkov", lastLogin eq Instants.now())
+val tweet = Entity(content eq "Hello @HackDay",
+        author eq user,
+        date eq ZonedDateTimes.now())
+val storedUser = conn.persist(tweet).createdEntities.getValue(user)
+conn.persist(storedUser.with(lastLogin, Instants.now()))
+
+// query data
+val storedTweet = conn.db.query(attrIs(content, "Hello @HackDay")).first()
+println("${storedTweet[date].format(HHmm)} | ${storedTweet[author][Users.name]}: ${storedTweet[content]}")
+
+// updateData
+val cris = Entity(Users.name eq "@cris", lastLogin eq Instants.now())
+var updatedTweet: StoredEntity = storedTweet.with(content eq "Array with works", likes eq listOf(storedUser, cris))
+updatedTweet = conn.persist(cris, updatedTweet).persistedEntities[1]
+
+println(updatedTweet[content])
+println(updatedTweet[likes].map { it[Users.name] })
+
+// Typed api
+val users = updatedTweet.getAs<EID, User<EID>>(likes)
+println(users.map { p -> "${p.name}: ${p.lastLogin}" })
+
+users[0].name = "@reflection_rulezz"
+conn.persist(users[0])
+assertEquals("@reflection_rulezz", conn.db.pullAs<User<EID>>(users[0].eid)!!.name)
 ```
