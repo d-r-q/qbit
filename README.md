@@ -101,7 +101,7 @@ val tweet = Entity(content eq "Hello @HackDay",
         date eq ZonedDateTimes.now())
 
 // updateData
-val storedUser = conn.persist(tweet).storedEntity()
+val storedUser = conn.persist(tweet).createdEntities.getValue(user)
 conn.persist(storedUser.with(lastLogin, Instants.now()))
 
 // query data
