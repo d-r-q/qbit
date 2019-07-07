@@ -20,7 +20,7 @@ qbit stores data locally and uses entity graph information model, so for develop
 
 Make internet decentralized again. And make development fun again.
 
-## Status
+## Roadmap
  * Datastore
    * :white_check_mark: ~Fetch entity by id~
    * :white_check_mark: ~FileSystem storage~
@@ -48,7 +48,7 @@ Make internet decentralized again. And make development fun again.
  * Cloud platform
    * qbit DBMS
    
-# Platforms
+## Platforms
 
  * Supported
    * JVM >= 8
