@@ -1,2 +1,15 @@
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "kotlin-multiplatform") {
+                ext.kotlinVersion = "1.3.41"
+                useVersion kotlinVersion
+                useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+            }
+        }
+    }
+}
 rootProject.name = 'qbit'
+
+enableFeaturePreview('GRADLE_METADATA')
 
