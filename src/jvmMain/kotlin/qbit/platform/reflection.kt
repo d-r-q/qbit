@@ -4,7 +4,6 @@ import java.lang.reflect.ParameterizedType
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty
-import kotlin.reflect.KType
 import kotlin.reflect.jvm.javaType
 
 actual fun getRawType(obj: KProperty<*>): KClass<*> {

@@ -1,6 +1,5 @@
 package qbit
 
-
 import qbit.model.Entity
 import qbit.model.QString
 import qbit.model.ScalarAttr
@@ -14,7 +13,6 @@ import qbit.storage.MemStorage
 import qbit.storage.Storage
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class StorageTest {
 
@@ -25,6 +23,7 @@ class StorageTest {
 
     @Test
     fun testFilesStorage() {
+        // actually it compiles
         val root = Files.createTempDirectory("qbit").toFile()
         val storage = FileSystemStorage(root)
         testStorage(storage)
@@ -77,9 +76,11 @@ class StorageTest {
         val e = Entity(_id eq "1")
         conn.persist(e)
 
+
+        // actually it compiles
         val rootFile = Files.createTempDirectory("qbit").toFile()
         val storage = FileSystemStorage(rootFile, origin)
-        assertTrue(origin.subNamespaces(testNs.parent!!) == storage.subNamespaces(testNs.parent!!))
+        assertEquals(origin.subNamespaces(testNs.parent!!), storage.subNamespaces(testNs.parent!!))
         assertEquals(storage.subNamespaces(root).sortedBy { it.name }, listOf(ns("nodes"), ns("refs")).sortedBy { it.name })
     }
 }
