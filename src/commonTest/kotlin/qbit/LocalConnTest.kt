@@ -379,6 +379,25 @@ class LocalConnTest {
         conn.persist(e1, e2)
     }
 
+    @Ignore
+    @Test
+    fun testPersistEmptyEntity() {
+        val conn = qbit(MemStorage())
+        val e = conn.persist(Entity()).storedEntity()
+        assertNotNull(e)
+        assertNotNull(e.eid)
+    }
+
+    @Ignore
+    @Test
+    fun testPersistEmptyList() {
+        val scalar = ScalarAttr(root["sclr"], QInt)
+        val lst = ListAttr(root["lst"], QInt)
+        val conn = qbit(MemStorage())
+        val e = conn.persist(lst, scalar, Entity(scalar eq 1, lst eq emptyList())).persistedEntities[2]
+        assertEquals(emptyList(), e[lst])
+    }
+
 }
 
 

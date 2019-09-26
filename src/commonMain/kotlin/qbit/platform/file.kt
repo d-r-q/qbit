@@ -1,5 +1,7 @@
 package qbit.platform
 
+import kotlinx.io.core.Output
+
 expect class File {
     constructor(parent: File, child: String)
     constructor(parent: String)
@@ -30,3 +32,12 @@ expect interface Path
 expect class FileDescriptor {
     fun sync()
 }
+
+expect fun fileOutput(file: File): FileOutput
+
+interface FileOutput : Output {
+
+    val fd: FileDescriptor
+
+}
+
