@@ -350,6 +350,35 @@ class LocalConnTest {
         assertEquals(decimalVal, stored[decimal])
         assertEquals(decimalListVal, stored[decimalList])
     }
+
+    @Ignore
+    @Test
+    fun testUpdateByDetached() {
+        val id = ScalarAttr(root["id"], QLong)
+        val conn = qbit(MemStorage())
+        conn.persist(id)
+        val e = Entity(id eq 1)
+        val se = conn.persist(e).storedEntity()
+        val detached = DetachedEntity<EID>(se.eid, e)
+        val wr = conn.persist(detached)
+        assertEquals(0, wr.createdEntities.size, "No new entities expected, when persisting detached entity with existing eid")
+    }
+
+    @Ignore
+    @Test
+    fun testPersistTwoCandidatesWithSameUniqueValue() {
+        val id = ScalarAttr(root["id"], QLong)
+        val value = ScalarAttr(root["val"], QString)
+        val conn = qbit(MemStorage())
+        conn.persist(id, value).storedEntity()
+        var e = Entity(id eq 1, value eq "val1")
+        e = conn.persist(e).storedEntity()
+        val e1 = e.with(value eq "val2")
+        val e2 = e.with(value eq "val3")
+        // what is expected behaviour in this case? merge? get first? get last?
+        conn.persist(e1, e2)
+    }
+
 }
 
 

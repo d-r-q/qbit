@@ -6,10 +6,7 @@ import qbit.dbOf
 import qbit.emptyDb
 import qbit.ns.Namespace
 import qbit.ns.root
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 @Suppress("UNCHECKED_CAST")
 class EntityTest {
@@ -132,4 +129,23 @@ class EntityTest {
         assertEquals(Fact(EID(1, 2), ref.str(), EID(1, 3)), facts.first())
     }
 
+    @Ignore
+    @Test
+    fun testAttachedTryGetEID() {
+        fail("implement me")
+    }
+
+    @Ignore
+    @Test
+    fun testAttachedTryGetEntity() {
+        fail("implement me")
+    }
+
+    @Ignore
+    @Test
+    fun eqIsTypeSave() {
+        val attr = ScalarAttr(root["attr"], QInt)
+        val e = Entity(attr eq "")
+        fail("attr eq \"\" should not compile")
+    }
 }

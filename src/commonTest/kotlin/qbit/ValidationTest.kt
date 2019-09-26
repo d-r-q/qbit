@@ -44,4 +44,5 @@ class ValidationTest {
                     Fact(EID(0, 1), attr, "scalar2")))
         }
     }
+
 }
