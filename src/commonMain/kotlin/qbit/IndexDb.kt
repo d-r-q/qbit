@@ -75,7 +75,9 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
     private val schema = loadAttrs(index)
 
     private val NotFound = mapOf<String, List<Any>>()
+
     private val entityCache = WeakHashMap<EID, Map<String, List<Any>>>()
+    private val dcCache = WeakHashMap<Map<String, List<Any>>, Any>()
 
     override fun pull(eid: EID): Map<String, List<Any>>? {
         val cached = entityCache[eid]
@@ -95,7 +97,18 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
     }
 
     override fun <R : Any> pullT(eid: EID, type: KClass<R>): R? {
-        return reconstruct(type, pull(eid)!!.toFacts(eid), this)
+        val entity = pull(eid) ?: return null
+        val cached = dcCache[entity]
+        if (cached === NotFound) {
+            return null
+        } else if (cached != null) {
+            @Suppress("UNCHECKED_CAST")
+            return cached as R
+        }
+
+        val dc = reconstruct(type, entity.toFacts(eid), this)
+        dcCache[entity] = dc
+        return dc
     }
 
     private fun Map<String, List<Any>>.toFacts(eid: EID) = this.entries.flatMap { a ->

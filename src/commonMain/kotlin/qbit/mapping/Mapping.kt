@@ -2,7 +2,10 @@ package qbit.mapping
 
 import qbit.Db
 import qbit.Fact
+import qbit.QBitException
 import qbit.model.*
+import qbit.platform.IdentityHashMap
+import qbit.platform.set
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
@@ -15,40 +18,55 @@ val types = mapOf(String::class to QString, Long::class to QLong, Byte::class to
 
 data class Query<R : Any>(val type: KClass<R>, val links: Map<String, Query<*>?>)
 
-fun destruct(e: Any, db: Db, eids: Iterator<EID>): List<Fact> {
-    val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
-    val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class }
-    val id = ids.firstOrNull()
-    id ?: throw IllegalArgumentException("Entity $e does not contains id: Long property")
-    val eid = id.call(e).let {
-        when (it) {
-            null -> eids.next()
-            is Long -> EID(it)
-            is EID -> it
-            else -> throw AssertionError("Unexpected id: $it")
+
+fun destruct(e: Any, schema: (String) -> Attr2?, eids: Iterator<EID>): List<Fact> {
+    val res = IdentityHashMap<Any, List<Fact>>()
+
+    fun body(e: Any): List<Fact> {
+        if (res.containsKey(e)) {
+            return res[e]!!
         }
-    }
-    return attrs.flatMap {
-        val attr: Attr2 = db.attr(e::class.attrName(it))!!
-        when (it.returnType.classifier) {
-            in scalarTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
-            in collectionTypes -> {
-                (it.call(e) as List<*>).flatMap { v ->
-                    when (v!!::class) {
-                        in scalarTypes -> listOf(Fact(eid, attr.name, v))
-                        else -> {
-                            val fs = destruct(v, db, eids)
-                            fs + Fact(eid, attr.name, v.id ?: fs[0].eid)
+        val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
+        val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class }
+        val id = ids.firstOrNull()
+        id ?: throw IllegalArgumentException("Entity $e does not contains id: Long property")
+        val eid = id.call(e).let {
+            when (it) {
+                null -> eids.next()
+                is Long -> EID(it)
+                is EID -> it
+                else -> throw AssertionError("Unexpected id: $it")
+            }
+        }
+        val facts: List<Fact> = attrs.flatMap {
+            val attr: Attr2 = schema(e::class.attrName(it))
+                    ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
+            when (it.returnType.classifier) {
+                in scalarTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
+                in collectionTypes -> {
+                    (it.call(e) as List<*>).flatMap { v ->
+                        when (v!!::class) {
+                            in scalarTypes -> listOf(Fact(eid, attr.name, v))
+                            else -> {
+                                val fs = body(v)
+                                fs + Fact(eid, attr.name, v.id ?: fs[0].eid)
+                            }
                         }
                     }
                 }
-            }
-            else -> {
-                val fs = destruct(it.call(e)!!, db, eids)
-                fs + Fact(eid, attr.name, it.call(e)!!.id ?: fs[0].eid)
+                else -> {
+                    val fs = body(it.call(e)!!)
+                    fs + Fact(eid, attr.name, it.call(e)!!.id ?: fs[0].eid)
+                }
             }
         }
+        res[e] = facts
+        return facts
     }
+
+    body(e)
+
+    return res.values.flatten()
 }
 
 val Any.id: Long?

@@ -1,11 +1,17 @@
 package qbit.model
 
 import qbit.Attrs
+import qbit.Fact
 import qbit.ns.Key
 
 // Interface
 
 data class Attr2(val id: EID?, val name: String, val type: Byte, val unique: Boolean, val list: Boolean)
+
+fun Attr2.toFacts(): List<Fact> = listOf(Fact(this.id!!, Attrs.name.name, this.name),
+        Fact(this.id, Attrs.type.name, this.type),
+        Fact(this.id, Attrs.unique.name, this.unique),
+        Fact(this.id, Attrs.list.name, this.list))
 
 sealed class Attr<out T : Any> : RoEntity<EID?> {
 

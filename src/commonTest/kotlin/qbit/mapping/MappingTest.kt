@@ -7,6 +7,7 @@ import kotlin.reflect.KProperty0
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 data class Addr(val id: Long?, val addr: String)
 
@@ -32,7 +33,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb, eids) }), nullHash)
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }), nullHash)
 
         val user = User(
                 login = "login",
@@ -42,7 +43,7 @@ class MappingTest {
                 addrs = listOf(Addr(null, "lstAddr"))
         )
 
-        val facts = destruct(user, db, eids)
+        val facts = destruct(user, db::attr, eids)
         val db2 = IndexDb(db.index.addFacts(facts), nullHash)
         val u = reconstruct(User::class, facts.filter { it.eid.eid == 6}, db2)
         assertEquals("login", u.login)
@@ -61,6 +62,34 @@ class MappingTest {
         }
     }
 
+    @Test
+    fun test2() {
+
+        val eids = EID(0, 0).nextEids()
+
+        val testSchema = schema {
+            entity(User::class) {
+                unique(it::login)
+            }
+            entity(Addr::class)
+        }
+
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }), nullHash)
+
+        val addr = Addr(null, "addr")
+        val user = User(
+                login = "login",
+                strs = listOf("str1", "str2"),
+                addr = addr,
+                optAddr = addr,
+                addrs = listOf(addr)
+        )
+        val facts = destruct(user, db::attr, eids)
+        val db2 = IndexDb(db.index.addFacts(facts), nullHash)
+        val fullUser = reconstruct(Query(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
+        assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
+    }
 
 }
 

@@ -13,10 +13,10 @@ fun dbOf(eids: Iterator<EID> = EID(0, 0).nextEids(), vararg entities: RoEntity<*
 object emptyDb : Db {
 
     private val attrs = mapOf(
-            Attr2::class.attrName(Attr2::name) to Attr2(null, Attr2::class.attrName(Attr2::name), QString.code, unique = true, list = false),
-            Attr2::class.attrName(Attr2::type) to Attr2(null, Attr2::class.attrName(Attr2::type), QByte.code, unique = true, list = false),
-            Attr2::class.attrName(Attr2::unique) to Attr2(null, Attr2::class.attrName(Attr2::unique), QBoolean.code, unique = false, list = false),
-            Attr2::class.attrName(Attr2::list) to Attr2(null, Attr2::class.attrName(Attr2::list), QBoolean.code, unique = false, list = false)
+            Attr2::class.attrName(Attr2::name) to Attrs.name,
+            Attr2::class.attrName(Attr2::type) to Attrs.type,
+            Attr2::class.attrName(Attr2::unique) to Attrs.unique,
+            Attr2::class.attrName(Attr2::list) to Attrs.list
     )
 
     override val hash: Hash = nullHash
