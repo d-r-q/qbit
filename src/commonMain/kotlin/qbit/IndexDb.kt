@@ -5,8 +5,8 @@ import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
 import qbit.mapping.reconstruct
-import qbit.model.*
-import qbit.model.Entity
+import qbit.model.Attr2
+import qbit.model.EID
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import kotlin.reflect.KClass
@@ -17,14 +17,14 @@ interface QueryPred {
     fun compareTo(another: Any): Int
 }
 
-fun hasAttr(attr: Attr<*>): QueryPred =
-        AttrPred(attr.str())
+fun hasAttr(attr: Attr2): QueryPred =
+        AttrPred(attr.name)
 
-fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
-        AttrValuePred(attr.str(), value)
+fun <T : Any> attrIs(attr: Attr2, value: T): QueryPred =
+        AttrValuePred(attr.name, value)
 
-fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
-        AttrRangePred(attr.str(), from, to)
+fun <T : Any> attrIn(attr: Attr2, from: T, to: T): QueryPred =
+        AttrRangePred(attr.name, from, to)
 
 internal data class AttrPred(override val attrName: String) : QueryPred {
 
@@ -59,14 +59,14 @@ interface Db {
 
     val hash: Hash
 
-    fun pull(eid: EID): StoredEntity?
+    fun pull(eid: EID): Map<String, List<Any>>?
 
     fun <R : Any> pullT(eid: EID, type: KClass<R>): R?
 
     // Todo: add check that attrs are presented in schema
-    fun query(vararg preds: QueryPred): Sequence<StoredEntity>
+    fun query(vararg preds: QueryPred): Sequence<Map<String, List<Any>>>
 
-    fun attr(attr: String): Attr<Any>?
+    fun attr(attr: String): Attr2?
 
 }
 
@@ -74,10 +74,10 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
 
     private val schema = loadAttrs(index)
 
-    private val NotFound = AttachedEntity(EID(-1), emptyMap<Attr<Any>, Any>(), this, false)
-    private val entityCache = WeakHashMap<EID, StoredEntity>()
+    private val NotFound = mapOf<String, List<Any>>()
+    private val entityCache = WeakHashMap<EID, Map<String, List<Any>>>()
 
-    override fun pull(eid: EID): StoredEntity? {
+    override fun pull(eid: EID): Map<String, List<Any>>? {
         val cached = entityCache[eid]
         if (cached === NotFound) {
             return null
@@ -90,22 +90,21 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
             entityCache[eid] = NotFound
             return null
         }
-        val attrValues = rawEntity.entries.map {
-            val attr = schema[it.key]
-            require(attr != null)
-            require(attr.isList() || it.value.size == 1) { "Corrupted ${attr.str()} of ${eid}" }
-            attr to if (attr.isList()) it.value else it.value[0]
-        }
-        val entity = Entity(eid, attrValues, this)
-        entityCache[eid] = entity
-        return entity
+        entityCache[eid] = rawEntity
+        return rawEntity
     }
 
     override fun <R : Any> pullT(eid: EID, type: KClass<R>): R? {
-        return reconstruct(type, pull(eid)!!.toFacts(), this)
+        return reconstruct(type, pull(eid)!!.toFacts(eid), this)
     }
 
-    override fun query(vararg preds: QueryPred): Sequence<StoredEntity> {
+    private fun Map<String, List<Any>>.toFacts(eid: EID) = this.entries.flatMap { a ->
+        a.value.map { i ->
+            Fact(eid, a.key, i)
+        }
+    }
+
+    override fun query(vararg preds: QueryPred): Sequence<Map<String, List<Any>>> {
         // filters data + base sequence data
         val arrayOfFalse = { Array(preds.size) { false } }
 
@@ -149,27 +148,21 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
                 .map { pull(it)!! }
     }
 
-    override fun attr(attr: String): Attr<Any>? = schema[attr]
+    override fun attr(attr: String): Attr2? = schema[attr]
 
     companion object {
 
-        private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
+        private fun loadAttrs(index: Index): Map<String, Attr2> {
             val attrEidss = index.eidsByPred(hasAttr(name))
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEidss
                     .map {
                         val e: Map<String, List<Any>> = index.entityById(it)!!
-                        val name = e.getValue(name.str())[0] as String
-                        val type = e.getValue(type.str())[0] as Byte
-                        val unique = e[unique.str()]?.firstOrNull() as? Boolean ?: false
-                        val list = e[list.str()]?.firstOrNull() as? Boolean ?: false
-                        val attr: Attr<Any> =
-                                when {
-                                    list && type == QRef.code -> RefListAttr(name, unique)
-                                    type == QRef.code -> RefAttr(name, unique)
-                                    list -> ListAttr(name, DataType.ofCode(type)!!, unique)
-                                    else -> Attr(name, DataType.ofCode(type)!!, unique)
-                                }
+                        val name = e.getValue(name.name)[0] as String
+                        val type = e.getValue(type.name)[0] as Byte
+                        val unique = e[unique.name]?.firstOrNull() as? Boolean ?: false
+                        val list = e[list.name]?.firstOrNull() as? Boolean ?: false
+                        val attr = Attr2(it, name, type, unique, list)
                         (name to attr)
                     }
             return attrFacts.toMap()

@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.mapping.attrName
 import qbit.model.*
 import qbit.ns.Namespace
 
@@ -7,12 +8,10 @@ val qbitNs = Namespace.of("qbit")
 
 object Attrs {
 
-    private val qbitAttrs = qbitNs("attr")
-
-    val name: ScalarAttr<String> = ScalarAttr(qbitAttrs["name"], QString, unique = true)
-    val type: ScalarAttr<Byte> = ScalarAttr(qbitAttrs["type"], QByte)
-    val unique: ScalarAttr<Boolean> = ScalarAttr(qbitAttrs["unique"], QBoolean)
-    val list: ScalarAttr<Boolean> = ScalarAttr(qbitAttrs["list"], QBoolean)
+    val name = Attr2(null, Attr2::class.attrName(Attr2::name), QString.code, unique = true, list = false)
+    val type = Attr2(null, Attr2::class.attrName(Attr2::type), QByte.code, unique = true, list = false)
+    val unique = Attr2(null, Attr2::class.attrName(Attr2::unique), QBoolean.code, unique = false, list = false)
+    val list = Attr2(null, Attr2::class.attrName(Attr2::list), QBoolean.code, unique = false, list = false)
 
 }
 
@@ -26,4 +25,4 @@ object Instances {
 
 }
 
-val tombstone = ScalarAttr(qbitNs["tombstone"], QBoolean, false)
+val tombstone = Attr2(null, qbitNs["tombstone"].toStr(), QBoolean.code, false, false)

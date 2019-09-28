@@ -4,40 +4,48 @@ import qbit.Db
 import qbit.Fact
 import qbit.model.*
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
-val scalarTypes = setOf(String::class, Long::class)
+val scalarTypes = setOf(String::class, Long::class, Byte::class, Boolean::class)
 
 val collectionTypes = setOf(List::class)
 
-val types = mapOf(String::class to QString, Long::class to QLong)
+val types = mapOf(String::class to QString, Long::class to QLong, Byte::class to QByte, Boolean::class to QBoolean)
 
 data class Query<R : Any>(val type: KClass<R>, val links: Map<String, Query<*>?>)
 
 fun destruct(e: Any, db: Db, eids: Iterator<EID>): List<Fact> {
     val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
-    val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
+    val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class }
     val id = ids.firstOrNull()
     id ?: throw IllegalArgumentException("Entity $e does not contains id: Long property")
-    val eid = id.call(e)?.let { EID(it as Long) } ?: eids.next()
+    val eid = id.call(e).let {
+        when (it) {
+            null -> eids.next()
+            is Long -> EID(it)
+            is EID -> it
+            else -> throw AssertionError("Unexpected id: $it")
+        }
+    }
     return attrs.flatMap {
-        val attr: Attr<*> = db.attr(e::class.attrName(it))!!
+        val attr: Attr2 = db.attr(e::class.attrName(it))!!
         when (it.returnType.classifier) {
-            in scalarTypes -> listOf(Fact(eid, attr, it.call(e)!!))
+            in scalarTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
             in collectionTypes -> {
                 (it.call(e) as List<*>).flatMap { v ->
                     when (v!!::class) {
-                        in scalarTypes -> listOf(Fact(eid, attr, v))
+                        in scalarTypes -> listOf(Fact(eid, attr.name, v))
                         else -> {
                             val fs = destruct(v, db, eids)
-                            fs + Fact(eid, attr, v.id ?: fs[0].eid)
+                            fs + Fact(eid, attr.name, v.id ?: fs[0].eid)
                         }
                     }
                 }
             }
             else -> {
                 val fs = destruct(it.call(e)!!, db, eids)
-                fs + Fact(eid, attr, it.call(e)!!.id ?: fs[0].eid)
+                fs + Fact(eid, attr.name, it.call(e)!!.id ?: fs[0].eid)
             }
         }
     }
@@ -86,27 +94,27 @@ fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
 }
 
 fun KClass<*>.attrName(prop: KProperty1<*, *>) =
-        "." + this.qualifiedName!! + "/" + prop.attrName
+        "." + this.qualifiedName!! + "/" + prop.name
 
-val KProperty1<*, *>.attrName
-    get() = this.name
+fun KClass<*>.attrName(prop: KProperty0<*>) =
+        "." + this.qualifiedName!! + "/" + prop.name
 
-fun schemaFor(type: KClass<*>): Collection<Attr<*>> {
+fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr2> {
     val getters = type.members.filterIsInstance<KProperty1<*, *>>()
     val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
     val id = ids.firstOrNull()
     id ?: throw IllegalArgumentException("Type $type does not contains id: Long property")
     return attrs.map {
         when (it.returnType.classifier) {
-            in scalarTypes -> Attr(type.attrName(it), types[it.returnType.classifier as KClass<*>]!!)
+            in scalarTypes -> Attr2(null, type.attrName(it), types[it.returnType.classifier as KClass<*>]!!.code, type.attrName(it) in unique, false)
             in collectionTypes -> {
                 when (val valueType = it.returnType.arguments[0].type!!.classifier as KClass<*>) {
-                    in scalarTypes -> ListAttr(type.attrName(it), types[valueType]!!)
-                    else -> RefListAttr(type.attrName(it))
+                    in scalarTypes -> Attr2(null, type.attrName(it), types[valueType]!!.code, type.attrName(it) in unique, true)
+                    else -> Attr2(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
                 }
             }
             else -> {
-                RefAttr(type.attrName(it))
+                Attr2(null, type.attrName(it), QRef.code, type.attrName(it) in unique, false)
             }
         }
     }

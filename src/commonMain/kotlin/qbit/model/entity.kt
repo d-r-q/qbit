@@ -32,10 +32,6 @@ fun Tombstone(eid: EID): Tombstone = QTombstone(eid)
 
 internal fun Entity(eid: EID, entries: Collection<Pair<Attr<*>, Any>>, db: Db): StoredEntity = AttachedEntity(eid, entries.toMap(), db, false)
 
-// TODO: make it lazy
-internal fun Entity(eid: EID, db: Db): StoredEntity = db.pull(eid)!!
-
-
 interface RoEntity<out E : EID?> {
 
     val eid: E
@@ -55,10 +51,6 @@ interface RoEntity<out E : EID?> {
 
 fun RoEntity<EID?>.toIdentified(eid: EID): Entity<EID> {
     return DetachedEntity(eid, this)
-}
-
-fun RoEntity<EID>.tombstone(): Tombstone {
-    return Tombstone(eid)
 }
 
 interface Entity<out E : EID?> : RoEntity<E> {
@@ -91,12 +83,11 @@ internal sealed class QRoEntity<out E : EID?>(override val eid: E) : RoEntity<E>
 internal class QTombstone(eid: EID) : QRoEntity<EID>(eid), Tombstone {
 
     override val keys: Set<Attr<Any>>
-        get() = setOf(tombstone)
+        get() = TODO()
 
     override fun <T : Any> tryGet(key: Attr<T>): T? =
             when (key) {
-                tombstone -> true as T
-                else -> null
+                else -> TODO()
             }
 
 }

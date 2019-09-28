@@ -11,7 +11,7 @@ private fun loadFacts(graph: Graph, head: NodeVal<Hash>): List<RawEntity> {
     val tombstones = HashSet<EID>()
     var n: NodeVal<Hash>? = head
     while (n != null) {
-        val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.str() }
+        val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.name }
         tombstones += removed.map { it.eid }.toSet()
         toAdd
                 .filterNot { tombstones.contains(it.eid) || entities.containsKey(it.eid) }
@@ -85,7 +85,7 @@ class Index(
         val newIndex = ArrayList(index)
 
         for (e in entities) {
-            val prev = if (e.second[0].attr != tombstone.str()) {
+            val prev = if (e.second[0].attr != tombstone.name) {
                 newEntities.put(e.first, e)
             } else {
                 newEntities.remove(e.first)
