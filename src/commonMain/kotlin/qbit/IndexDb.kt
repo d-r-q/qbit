@@ -4,10 +4,12 @@ import qbit.Attrs.list
 import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
+import qbit.mapping.reconstruct
 import qbit.model.*
 import qbit.model.Entity
 import qbit.platform.WeakHashMap
 import qbit.platform.set
+import kotlin.reflect.KClass
 
 interface QueryPred {
     val attrName: String
@@ -59,6 +61,8 @@ interface Db {
 
     fun pull(eid: EID): StoredEntity?
 
+    fun <R : Any> pullT(eid: EID, type: KClass<R>): R?
+
     // Todo: add check that attrs are presented in schema
     fun query(vararg preds: QueryPred): Sequence<StoredEntity>
 
@@ -95,6 +99,10 @@ class IndexDb(internal val index: Index, override val hash: Hash) : Db {
         val entity = Entity(eid, attrValues, this)
         entityCache[eid] = entity
         return entity
+    }
+
+    override fun <R : Any> pullT(eid: EID, type: KClass<R>): R? {
+        return reconstruct(type, pull(eid)!!.toFacts(), this)
     }
 
     override fun query(vararg preds: QueryPred): Sequence<StoredEntity> {
