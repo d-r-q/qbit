@@ -12,7 +12,7 @@ class ValidationTest {
     @Test
     fun testUniqueConstraintViolationWithinTrx() {
         assertFailsWith<QBitException> {
-            val attr = ScalarAttr(root["unique"], QString, true)
+            val attr = Attr<String>("unique", true)
             val db = dbOf(EID(0, 0).nextEids(), attr)
             validate(db, listOf(Fact(EID(0, 0), attr, 0), Fact(EID(0, 1), attr, 0)))
         }
@@ -20,25 +20,22 @@ class ValidationTest {
 
     @Test
     fun testUnqiureAttrRestoring() {
-        val attr = ScalarAttr(root["unique"], QString, true)
+        val attr = Attr<String>("unique", true)
         val db = dbOf(EID(0, 0).nextEids(), attr, Entity(attr eq "unique"))
         validate(db, listOf(Fact(EID(0, 1), attr, "unique")))
     }
 
     @Test
     fun testCreateAndUseAttr() {
-        val attr = ScalarAttr(root["unique"], QString, true)
-        val db = dbOf(EID(0, 0).nextEids(), ScalarAttr(Namespace("qbit").subNs("attr")["name"], QString),
-                ScalarAttr(Namespace("qbit").subNs("attr")["type"], QByte),
-                ScalarAttr(Namespace("qbit").subNs("attr")["unique"], QBoolean),
-                ScalarAttr(Namespace("qbit").subNs("attr")["list"], QBoolean))
+        val attr = Attr<String>("unique", true)
+        val db = dbOf(EID(0, 0).nextEids(), *bootstrapSchema.values.toTypedArray())
         validate(db, listOf(Fact(EID(0, 1), attr, "unique")), listOf(attr))
     }
 
     @Test
     fun testMultipleFactsForScalarAttr() {
         assertFailsWith<QBitException> {
-            val attr = ScalarAttr(root["scalar"], QString, true)
+            val attr = Attr<String>("scalar", true)
             val db = dbOf(EID(0, 0).nextEids(), attr)
             validate(db, listOf(Fact(EID(0, 1), attr, "scalar1"),
                     Fact(EID(0, 1), attr, "scalar2")))

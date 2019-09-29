@@ -10,16 +10,73 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
-val scalarTypes = setOf(String::class, Long::class, Byte::class, Boolean::class)
+val scalarTypes = setOf(String::class, Long::class, Byte::class, Boolean::class, EID::class)
 
 val collectionTypes = setOf(List::class)
 
-val types = mapOf(String::class to QString, Long::class to QLong, Byte::class to QByte, Boolean::class to QBoolean)
+val types: Map<KClass<*>, DataType<*>> = mapOf(
+        String::class to QString,
+        Byte::class to QByte,
+        Int::class to QInt,
+        Long::class to QLong,
+        Boolean::class to QBoolean
+)
 
 data class Query<R : Any>(val type: KClass<R>, val links: Map<String, Query<*>?>)
 
+fun identifyEntityGraph(root: Any, eids: Iterator<EID>): Any {
+    val idProp = root::class.members
+            .firstOrNull {
+                it is KProperty1<*, *> && it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class
+            }
+            ?: throw IllegalArgumentException("Entity $root does not contains id: Long property")
 
-fun destruct(e: Any, schema: (String) -> Attr2?, eids: Iterator<EID>): List<Fact> {
+    var id = idProp.call(root)
+    var needUpdate = id == null
+    id = id ?: eids.next()
+    if (idProp.returnType.classifier == Long::class) {
+        id = (id as EID).value()
+    }
+
+    val attrs = root::class.constructors.first().parameters
+            .map {
+                val prop = root::class.members.firstOrNull { m -> m.name == it.name }!!
+                if (prop == idProp) {
+                    return@map it to id
+                }
+                val value = prop.call(root)
+                when (it.type.classifier) {
+                    null -> it to value
+                    in scalarTypes -> it to value
+                    in collectionTypes -> {
+                        val list = value as List<Any>?
+                        if (list == null || list.isEmpty() || list[0]::class in scalarTypes) {
+                            return@map it to value
+                        }
+                        val newList = list.map { item ->
+                            val newItem = identifyEntityGraph(item, eids)
+                            needUpdate = needUpdate || item !== newItem
+                            newItem
+                        }
+                        it to newList
+                    }
+                    else -> {
+                        val newValue = identifyEntityGraph(value!!, eids)
+                        needUpdate = needUpdate || value !== newValue
+                        it to newValue
+                    }
+                }
+            }
+            .toMap()
+
+    return if (needUpdate) {
+        root::class.constructors.first().callBy(attrs)
+    } else {
+        root
+    }
+}
+
+fun destruct(e: Any, schema: (String) -> Attr2<*>?, eids: Iterator<EID>): List<Fact> {
     val res = IdentityHashMap<Any, List<Fact>>()
 
     fun body(e: Any): List<Fact> {
@@ -27,19 +84,10 @@ fun destruct(e: Any, schema: (String) -> Attr2?, eids: Iterator<EID>): List<Fact
             return res[e]!!
         }
         val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
-        val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class }
-        val id = ids.firstOrNull()
-        id ?: throw IllegalArgumentException("Entity $e does not contains id: Long property")
-        val eid = id.call(e).let {
-            when (it) {
-                null -> eids.next()
-                is Long -> EID(it)
-                is EID -> it
-                else -> throw AssertionError("Unexpected id: $it")
-            }
-        }
+        val (_, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == EID::class }
+        val eid = EID(e.id) // ids existance has been checked while identification
         val facts: List<Fact> = attrs.flatMap {
-            val attr: Attr2 = schema(e::class.attrName(it))
+            val attr: Attr2<*> = schema(e::class.attrName(it))
                     ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
             when (it.returnType.classifier) {
                 in scalarTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
@@ -49,14 +97,14 @@ fun destruct(e: Any, schema: (String) -> Attr2?, eids: Iterator<EID>): List<Fact
                             in scalarTypes -> listOf(Fact(eid, attr.name, v))
                             else -> {
                                 val fs = body(v)
-                                fs + Fact(eid, attr.name, v.id ?: fs[0].eid)
+                                fs + Fact(eid, attr.name, EID(v.id))
                             }
                         }
                     }
                 }
                 else -> {
                     val fs = body(it.call(e)!!)
-                    fs + Fact(eid, attr.name, it.call(e)!!.id ?: fs[0].eid)
+                    fs + Fact(eid, attr.name, EID(it.call(e)!!.id))
                 }
             }
         }
@@ -64,16 +112,36 @@ fun destruct(e: Any, schema: (String) -> Attr2?, eids: Iterator<EID>): List<Fact
         return facts
     }
 
-    body(e)
+    body(identifyEntityGraph(e, eids))
 
     return res.values.flatten()
 }
 
-val Any.id: Long?
-    get() = this::class.members
-            .filterIsInstance<KProperty1<Any, Long>>()
-            .first { it.name == "id" }
-            .get(this)
+val Any.id: Long
+    get() {
+        val id = this::class.members
+                .filterIsInstance<KProperty1<Any, *>>()
+                .firstOrNull { it.name == "id" }
+                ?.get(this)
+        return when (id) {
+            is Long -> id
+            is EID -> id.value()
+            else -> throw QBitException("Unsupported id type: $id")
+        }
+    }
+
+val Any.eid: EID
+    get() {
+        val id = this::class.members
+                .filterIsInstance<KProperty1<Any, *>>()
+                .firstOrNull { it.name == "id" }
+                ?.get(this)
+        return when (id) {
+            is Long -> EID(id)
+            is EID -> id
+            else -> throw QBitException("Unsupported id type: $id")
+        }
+    }
 
 fun <R : Any> reconstruct(type: KClass<R>, facts: Collection<Fact>, db: Db): R {
     return reconstruct(Query(type, mapOf()), facts, db)
@@ -111,13 +179,13 @@ fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
     return constr.callBy((attrParams + idParam).toMap())
 }
 
-fun KClass<*>.attrName(prop: KProperty1<*, *>) =
+fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
         "." + this.qualifiedName!! + "/" + prop.name
 
-fun KClass<*>.attrName(prop: KProperty0<*>) =
+fun KClass<*>.attrName(prop: KProperty0<*>): String =
         "." + this.qualifiedName!! + "/" + prop.name
 
-fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr2> {
+fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr2<*>> {
     val getters = type.members.filterIsInstance<KProperty1<*, *>>()
     val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
     val id = ids.firstOrNull()
@@ -128,7 +196,7 @@ fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr2> {
             in collectionTypes -> {
                 when (val valueType = it.returnType.arguments[0].type!!.classifier as KClass<*>) {
                     in scalarTypes -> Attr2(null, type.attrName(it), types[valueType]!!.code, type.attrName(it) in unique, true)
-                    else -> Attr2(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
+                    else -> Attr2<Any>(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
                 }
             }
             else -> {

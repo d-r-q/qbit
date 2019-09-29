@@ -4,10 +4,7 @@ import qbit.*
 import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 data class Addr(val id: Long?, val addr: String)
 
@@ -33,7 +30,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }), nullHash)
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
 
         val user = User(
                 login = "login",
@@ -44,7 +41,7 @@ class MappingTest {
         )
 
         val facts = destruct(user, db::attr, eids)
-        val db2 = IndexDb(db.index.addFacts(facts), nullHash)
+        val db2 = IndexDb(db.index.addFacts(facts))
         val u = reconstruct(User::class, facts.filter { it.eid.eid == 6}, db2)
         assertEquals("login", u.login)
         assertEquals(listOf("str1", "str2"), u.strs)
@@ -74,7 +71,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }), nullHash)
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
 
         val addr = Addr(null, "addr")
         val user = User(
@@ -85,15 +82,42 @@ class MappingTest {
                 addrs = listOf(addr)
         )
         val facts = destruct(user, db::attr, eids)
-        val db2 = IndexDb(db.index.addFacts(facts), nullHash)
+        val db2 = IndexDb(db.index.addFacts(facts))
         val fullUser = reconstruct(Query(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
         assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
         assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
     }
 
+    @Ignore
+    @Test
+    fun `test multiple states of entity in entity graph is prohibited`() {
+        val eids = EID(0, 0).nextEids()
+
+        val testSchema = schema {
+            entity(User::class)
+            entity(Addr::class)
+        }
+
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
+
+        val addr = Addr(1, "addr")
+        val user = User(
+                login = "login",
+                strs = listOf("str1", "str2"),
+                addr = addr,
+                optAddr = addr,
+                addrs = listOf(addr)
+        )
+        val userWithAddr = user.copy(addr = user.addr.copy(addr = "newAddr"))
+
+        assertThrows<QBitException> {
+            destruct(userWithAddr, db::attr, eids)
+        }
+    }
+
 }
 
-private fun schema(body: SchemaBuilder.() -> Unit): List<Attr2> {
+fun schema(body: SchemaBuilder.() -> Unit): List<Attr2<*>> {
     val scb = SchemaBuilder()
     scb.body()
     return scb.attrs
@@ -101,7 +125,7 @@ private fun schema(body: SchemaBuilder.() -> Unit): List<Attr2> {
 
 class SchemaBuilder {
 
-    internal val attrs: MutableList<Attr2> = ArrayList()
+    internal val attrs: MutableList<Attr2<*>> = ArrayList()
 
     fun <T : Any> entity(type: KClass<T>, body: EntityBuilder.(T) -> Unit = {}) {
         val eb = EntityBuilder(type)
@@ -129,6 +153,7 @@ fun <T : Any> default(type: KClass<T>): T =
                 Boolean::class -> false as T
                 String::class -> "" as T
                 Byte::class -> 0.toByte() as T
+                Int::class -> 0 as T
                 Long::class -> 0L as T
                 List::class -> listOf<Any>() as T
                 else -> {

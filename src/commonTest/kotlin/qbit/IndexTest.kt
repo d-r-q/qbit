@@ -1,18 +1,16 @@
 package qbit
 
+import qbit.Users.extId
 import qbit.model.*
-import qbit.ns.root
 import qbit.platform.currentTimeMillis
 import qbit.serialization.SimpleSerialization
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import qbit.Users.name as userName
 
 class IndexTest {
-
-    private val _uid = ScalarAttr(root["uid"], QInt)
-    private val _foo = ScalarAttr(root["foo"], QString)
 
     @Test
     fun testVaet() {
@@ -42,25 +40,25 @@ class IndexTest {
     @Test
     fun testEntitiesByAttrVal() {
         val idx = Index()
-                .addFacts(listOf(f(0, _uid, 0),
-                        f(1, _uid, 1),
-                        f(0, _uid, 1),
-                        f(0, _foo, "baz"),
-                        f(1, _foo, "bar"),
-                        f(2, _foo, "bar")
+                .addFacts(listOf(f(0, extId, 0),
+                        f(1, extId, 1),
+                        f(0, extId, 1),
+                        f(0, userName, "baz"),
+                        f(1, userName, "bar"),
+                        f(2, userName, "bar")
                 ))
 
-        var lst = idx.eidsByPred(AttrValuePred("/uid", 1))
+        var lst = idx.eidsByPred(AttrValuePred(extId.name, 1))
         assertEquals(2, lst.count())
         assertEquals(0, lst.sorted().toList()[0].eid)
         assertEquals(1, lst.sorted().toList()[1].eid)
 
-        lst = idx.eidsByPred(AttrValuePred("/foo", "bar"))
+        lst = idx.eidsByPred(AttrValuePred(userName.name, "bar"))
         assertEquals(2, lst.count())
         assertEquals(1, lst.sorted().toList()[0].eid)
         assertEquals(2, lst.sorted().toList()[1].eid)
 
-        val bazEntities = idx.eidsByPred(attrIs(_foo, "baz")).toList()
+        val bazEntities = idx.eidsByPred(attrIs(userName, "baz")).toList()
 
         assertEquals(1, bazEntities.size)
         assertEquals(0, bazEntities[0].eid)
@@ -69,15 +67,15 @@ class IndexTest {
     @Test
     fun testEntitiesByAttr() {
         val idx = Index()
-                .addFacts(listOf(f(0, _uid, 0),
-                        f(1, _uid, 1),
-                        f(0, _foo, "bar"),
-                        f(1, _foo, "bar"),
-                        f(2, _foo, "baz")
+                .addFacts(listOf(f(0, extId, 0),
+                        f(1, extId, 1),
+                        f(0, userName, "bar"),
+                        f(1, userName, "bar"),
+                        f(2, userName, "baz")
                 ))
 
-        assertEquals(2, idx.eidsByPred(AttrPred("/uid")).count())
-        assertEquals(3, idx.eidsByPred(AttrPred("/foo")).count())
+        assertEquals(2, idx.eidsByPred(AttrPred(extId.name)).count())
+        assertEquals(3, idx.eidsByPred(AttrPred(userName.name)).count())
     }
 
     @Test
@@ -86,15 +84,17 @@ class IndexTest {
         val time1 = currentTimeMillis()
         val eid = EID(0, 0)
 
-        val _attr1 = ScalarAttr(root["attr1"], QInt)
-        val _attr2 = ScalarAttr(root["attr2"], QInt)
-        val _attr3 = ScalarAttr(root["attr3"], QInt)
+        val _attr1 = "/attr1"
+        val _attr2 = "/attr2"
+        val _attr3 = "/attr3"
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
-        val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
+        val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1,
+                NodeData(arrayOf(
                 Fact(eid, _attr1, 1),
                 Fact(eid, _attr2, 0))))
-        val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2, NodeData(arrayOf(
+        val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2,
+                NodeData(arrayOf(
                 Fact(eid, _attr1, 2),
                 Fact(eid, _attr2, 1),
                 Fact(eid, _attr3, 0))))
@@ -121,7 +121,7 @@ class IndexTest {
         val eids = generateSequence(eid0) { eid -> eid.next(1) }
                 .iterator()
 
-        val _date = ScalarAttr(root["date"], QLong)
+        val _date = Attr<Long>("date")
 
         val e1 = Entity(_date eq 1L)
         val e2 = Entity(_date eq 2L)
@@ -151,7 +151,7 @@ class IndexTest {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = currentTimeMillis()
         val eid = EID(0, 0)
-        val _attr1 = ScalarAttr(root["attr1"], QInt)
+        val _attr1 = Attr<Int>("attr1")
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
@@ -171,6 +171,6 @@ class IndexTest {
         }
     }
 
-    private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Fact(EID(0, eid), attr, value)
+    private fun <T : Any> f(eid: Int, attr: Attr2<T>, value: T) = Fact(EID(0, eid), attr.name, value)
 
 }

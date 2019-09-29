@@ -57,6 +57,10 @@ sealed class DataType<out T : Any> {
 
     fun isList(): Boolean = (code.toInt().and(32)) > 0
 
+    fun ref(): Boolean = this == QRef || this is QList<*> && this.itemsType == QRef
+
+    fun value(): Boolean = !ref()
+
 }
 
 data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {

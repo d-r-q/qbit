@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.Instances.entitiesCount
+/*
 import qbit.Instances.forks
 import qbit.model.*
 import qbit.ns.Namespace
@@ -9,6 +9,7 @@ import qbit.platform.currentTimeMillis
 import qbit.platform.filterKeys
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
+import qbit.trx.Conn
 
 fun qbit(storage: Storage): LocalConn {
     val iid = IID(1, 4)
@@ -22,9 +23,7 @@ fun qbit(storage: Storage): LocalConn {
     }
 
     var eid = 0
-    val trx = mutableListOf(Fact(EID(iid.value, eid), Attrs.name, Attrs.name.str()),
-            Fact(EID(iid.value, eid), Attrs.type, QString.code),
-            Fact(EID(iid.value, eid), Attrs.unique, true))
+    val trx = mutableListOf(Attrs.name.toFacts())
     eid++
     trx += listOf(Fact(EID(iid.value, eid), Attrs.name, Attrs.type.str()),
             Fact(EID(iid.value, eid), Attrs.type, QByte.code),
@@ -81,13 +80,15 @@ class LocalConn(override val dbUuid: DbUuid, val storage: Storage, override var 
 
     var db = IndexDb(Index(graph, head), head.hash)
 
-    /**
+    */
+/**
      * Instance descriptor eid
      * Instance descriptor: {
      *   forks - count of forks created by this instance,
      *   entities - count of entities created by this instance
      * }
-     */
+     *//*
+
     internal val instanceEid =
             db.query(hasAttr(entitiesCount))
                     .first { it.eid.iid == dbUuid.iid.value }
@@ -240,7 +241,7 @@ internal class DbState(val head: NodeVal<Hash>, val db: IndexDb)
 
 internal fun db(graph: Graph, oldDb: IndexDb, newHead: NodeVal<Hash>): IndexDb {
     return if (newHead is Merge) {
-        IndexDb(Index(graph, newHead), newHead.hash)
+        IndexDb(Index(graph, newHead))
     } else {
         fun nodesTo(n: NodeVal<Hash>, target: Hash): List<NodeVal<Hash>> {
             return when {
@@ -258,7 +259,8 @@ internal fun db(graph: Graph, oldDb: IndexDb, newHead: NodeVal<Hash>): IndexDb {
             val entities = n.data.trx.toList()
                     .groupBy { it.eid }
                     .map { it.key to it.value }
-            IndexDb(db.index.add(entities), n.hash)
+            IndexDb(db.index.add(entities))
         }
     }
 }
+*/
