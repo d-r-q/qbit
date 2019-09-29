@@ -8,10 +8,17 @@ import qbit.ns.Key
 
 // Interface
 
-data class Attr2<out T : Any>(val id: EID?, val name: String, val type: Byte, val unique: Boolean, val list: Boolean)
+data class Attr2<out T : Any>(val id: Gid?, val name: String, val type: Byte, val unique: Boolean, val list: Boolean) {
 
-inline fun <reified T : Any> Attr(name: String, unique: Boolean = true) = Attr2<T>(
-        null,
+    fun id(id: Gid) = copy(id = id)
+
+}
+
+inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr2<T> =
+        Attr(null, name, unique)
+
+inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true) = Attr2<T>(
+        id,
         name,
         types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class}"),
         unique,

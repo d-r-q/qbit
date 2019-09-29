@@ -1,11 +1,6 @@
 package qbit.model
 
-import qbit.Fact
-import qbit.assertArrayEquals
-import qbit.dbOf
 import qbit.emptyDb
-import qbit.ns.Namespace
-import qbit.ns.root
 import kotlin.test.*
 
 @Suppress("UNCHECKED_CAST")
@@ -149,4 +144,18 @@ class EntityTest {
 //        val e = Entity(entries)
 //        fail("attr eq \"\" should not compile")
 //    }
+
+    @Test
+    fun `Factorization of reference attribute returns Fact(_, _, value = gid)`() {
+        val e1 = Entity(Gid(0, 0), emptyList(), emptyDb)
+        val e2 = Entity(Attr<Any>("ref") eq e1)
+        val value = e2.toFacts(Gid(0, 1)).first().value
+        assertTrue(value is Gid, "Gid expected, but got $value")
+    }
+
+    @Test
+    fun `Creation of Attr for Any class has QRef type`() {
+        assertEquals(QRef.code, Attr<Any>("any").type)
+    }
+
 }

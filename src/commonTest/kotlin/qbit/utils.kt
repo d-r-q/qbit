@@ -1,32 +1,29 @@
 package qbit
 
 import qbit.mapping.destruct
-import qbit.model.Attr2
-import qbit.model.EID
-import qbit.model.RoEntity
-import qbit.model.toFacts
+import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-fun dbOf(eids: Iterator<EID> = EID(0, 0).nextEids(), vararg entities: Any): Db {
+fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextEids(), vararg entities: Any): Db {
     val facts = entities.flatMap { destruct(it, bootstrapSchema::get, eids) }
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }
 
-fun dbOf(eids: Iterator<EID> = EID(0, 0).nextEids(), vararg entities: RoEntity<*>): Db {
+fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextEids(), vararg entities: RoEntity): Db {
     val facts = entities.flatMap { it.toFacts(eids.next()) }
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }
 
 object emptyDb : Db {
 
-    override fun pull(eid: EID): Map<String, List<Any>>? = null
+    override fun pull(eid: Gid): Entity? = null
 
-    override fun <R : Any> pullT(eid: EID, type: KClass<R>): R? = null
+    override fun <R : Any> pullT(eid: Gid, type: KClass<R>): R? = null
 
 
-    override fun query(vararg preds: QueryPred): Sequence<Map<String, List<Any>>> = emptySequence()
+    override fun query(vararg preds: QueryPred): Sequence<Entity> = emptySequence()
 
     override fun attr(attr: String): Attr2<*>? = bootstrapSchema[attr]
 

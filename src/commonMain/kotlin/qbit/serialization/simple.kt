@@ -30,7 +30,7 @@ object SimpleSerialization : Serialization {
         val timestamp = deserialize(ins, QLong) as Long
         val factsCount = deserialize(ins, QInt) as Int
         val facts = (1..factsCount).asSequence().map {
-            val eid = deserialize(ins, QEID) as EID
+            val eid = deserialize(ins, QGid) as Gid
             val attr = deserialize(ins, QString) as String
             val value = deserialize(ins)
             Fact(eid, attr, value)
@@ -59,7 +59,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is String -> byteArray(QString.code, byteArray(a))
             is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
             is Fact -> serialize(a.eid, a.attr, a.value)
-            is EID -> byteArray(QEID.code, serializeLong(a.value()))
+            is Gid -> byteArray(QGid.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))
             is ZonedDateTime -> byteArray(QZonedDateTime.code, serializeLong(a.toInstant().toEpochMilli() / 1000), serializeInt(a.toInstant().getNano()), byteArray(a.getZone().getId()))
@@ -165,7 +165,7 @@ private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
         QString -> readInt(ins).let { count ->
             readBytes(ins, count).decodeUtf8() as T
         }
-        QEID -> EID(readLong(ins)) as T
+        QGid -> Gid(readLong(ins)) as T
         QDecimal -> {
             val scale = readInt(ins)
             val size = readInt(ins)

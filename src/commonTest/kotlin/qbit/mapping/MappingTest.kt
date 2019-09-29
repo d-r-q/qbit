@@ -21,7 +21,7 @@ class MappingTest {
 
     @Test
     fun test() {
-        val eids = EID(0, 0).nextEids()
+        val eids = Gid(0, 0).nextEids()
 
         val testSchema = schema {
             entity(User::class) {
@@ -62,7 +62,7 @@ class MappingTest {
     @Test
     fun test2() {
 
-        val eids = EID(0, 0).nextEids()
+        val eids = Gid(0, 0).nextEids()
 
         val testSchema = schema {
             entity(User::class) {
@@ -91,7 +91,7 @@ class MappingTest {
     @Ignore
     @Test
     fun `test multiple states of entity in entity graph is prohibited`() {
-        val eids = EID(0, 0).nextEids()
+        val eids = Gid(0, 0).nextEids()
 
         val testSchema = schema {
             entity(User::class)
@@ -113,6 +113,11 @@ class MappingTest {
         assertThrows<QBitException> {
             destruct(userWithAddr, db::attr, eids)
         }
+    }
+
+    @Test
+    fun `Type of Any(class) is QRef`() {
+        assertEquals(QRef, types[Any::class])
     }
 
 }

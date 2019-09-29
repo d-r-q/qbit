@@ -14,9 +14,9 @@ class IndexTest {
 
     @Test
     fun testVaet() {
-        val f1 = Fact(EID(1, 0), "attr1", "value1")
-        val f2 = Fact(EID(2, 0), "attr2", "value2")
-        val f3 = Fact(EID(3, 0), "attr3", "value3")
+        val f1 = Fact(Gid(1, 0), "attr1", "value1")
+        val f2 = Fact(Gid(2, 0), "attr2", "value2")
+        val f3 = Fact(Gid(3, 0), "attr3", "value3")
 
         assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
         assertFalse(attrValuePattern("attr2", "value2").invoke(f1) == 0)
@@ -31,7 +31,7 @@ class IndexTest {
         assertEquals(0, byValue(f2))
         assertEquals(1, byValue(f3))
 
-        val byEid = eidPattern(EID(2, 0))
+        val byEid = eidPattern(Gid(2, 0))
         assertEquals(-1, byEid(f1))
         assertEquals(0, byEid(f2))
         assertEquals(1, byEid(f3))
@@ -82,7 +82,7 @@ class IndexTest {
     fun testCreateIndex() {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = currentTimeMillis()
-        val eid = EID(0, 0)
+        val eid = Gid(0, 0)
 
         val _attr1 = "/attr1"
         val _attr2 = "/attr2"
@@ -113,10 +113,10 @@ class IndexTest {
     fun testRangeSearch() {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = currentTimeMillis()
-        val eid0 = EID(0, 0)
-        val eid1 = EID(0, 1)
-        val eid2 = EID(0, 2)
-        val eid3 = EID(0, 3)
+        val eid0 = Gid(0, 0)
+        val eid1 = Gid(0, 1)
+        val eid2 = Gid(0, 2)
+        val eid3 = Gid(0, 3)
 
         val eids = generateSequence(eid0) { eid -> eid.next(1) }
                 .iterator()
@@ -150,7 +150,7 @@ class IndexTest {
     fun testLoadTombstones() {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = currentTimeMillis()
-        val eid = EID(0, 0)
+        val eid = Gid(0, 0)
         val _attr1 = Attr<Int>("attr1")
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
@@ -171,6 +171,6 @@ class IndexTest {
         }
     }
 
-    private fun <T : Any> f(eid: Int, attr: Attr2<T>, value: T) = Fact(EID(0, eid), attr.name, value)
+    private fun <T : Any> f(eid: Int, attr: Attr2<T>, value: T) = Fact(Gid(0, eid), attr.name, value)
 
 }

@@ -34,7 +34,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     private val factsBuffer = ArrayList<Fact>()
 
-    val eids = EID(inst.iid, inst.nextEid).nextEids()
+    val eids = Gid(inst.iid, inst.nextEid).nextEids()
 
     override val db
         get() = (this.curDb ?: this.base)
@@ -139,7 +139,7 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
     }
 
     override fun trx(): Trx {
-        return QbitTrx2(db.pullT(EID(dbUuid.iid, 0))!!, trxLog, db, this)
+        return QbitTrx2(db.pullT(Gid(dbUuid.iid, 0))!!, trxLog, db, this)
     }
 
     override fun update(trxLog: TrxLog, newLog: TrxLog) {
@@ -147,32 +147,33 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
             throw QBitException("Concurrent transaction isn't supported yet")
         }
         this.trxLog = newLog
-        db = db(NodeRef(newLog.hash))
+        db = indexTrxLog(db, graph, NodeRef(newLog.hash), trxLog.hash)
     }
 
-    internal fun db(newHead: Node<Hash>): IndexDb {
-        return if (newHead is Merge) {
-            IndexDb(Index(graph, newHead))
-        } else {
-            fun nodesTo(n: NodeVal<Hash>, target: Hash): List<NodeVal<Hash>> {
-                return when {
-                    n.hash == target -> emptyList()
-                    n is Leaf -> nodesTo(graph.resolveNode(n.parent), target) + n
-                    n is Merge -> throw UnsupportedOperationException("Merges not yet supported")
-                    else -> {
-                        check(n is Root)
-                        throw AssertionError("Should never happen")
-                    }
+}
+
+internal fun indexTrxLog(base: IndexDb, graph: Graph, from: Node<Hash>, upTo: Hash): IndexDb {
+    return if (from is Merge) {
+        IndexDb(Index(graph, from))
+    } else {
+        fun nodesBetween(from: NodeVal<Hash>, to: Hash): List<NodeVal<Hash>> {
+            return when {
+                from.hash == to -> emptyList()
+                from is Leaf -> nodesBetween(graph.resolveNode(from.parent), to) + from
+                from is Merge -> throw UnsupportedOperationException("Merges not yet supported")
+                else -> {
+                    check(from is Root)
+                    throw AssertionError("Should never happen")
                 }
             }
+        }
 
-            val nodes = nodesTo(graph.resolveNode(newHead), trxLog.hash)
-            return nodes.fold(db) { db, n ->
-                val entities = n.data.trx.toList()
-                        .groupBy { it.eid }
-                        .map { it.key to it.value }
-                IndexDb(db.index.add(entities))
-            }
+        val nodes = nodesBetween(graph.resolveNode(from), upTo)
+        return nodes.fold(base) { db, n ->
+            val entities = n.data.trx.toList()
+                    .groupBy { it.eid }
+                    .map { it.key to it.value }
+            IndexDb(db.index.add(entities))
         }
     }
 }

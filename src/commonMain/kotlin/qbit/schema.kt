@@ -16,18 +16,18 @@ val qbitNs = Namespace.of("qbit")
 
 object Attrs {
 
-    val name = Attr2<String>(EID(1, 0), Attr2::class.attrName(Attr2<String>::name), QString.code, unique = true, list = false)
-    val type = Attr2<Byte>(EID(1, 1), Attr2::class.attrName(Attr2<Byte>::type), QByte.code, unique = true, list = false)
-    val unique = Attr2<Boolean>(EID(1, 2), Attr2::class.attrName(Attr2<Boolean>::unique), QBoolean.code, unique = false, list = false)
-    val list = Attr2<Boolean>(EID(1, 3), Attr2::class.attrName(Attr2<Boolean>::list), QBoolean.code, unique = false, list = false)
+    val name = Attr2<String>(Gid(1, 0), Attr2::class.attrName(Attr2<String>::name), QString.code, unique = true, list = false)
+    val type = Attr2<Byte>(Gid(1, 1), Attr2::class.attrName(Attr2<Byte>::type), QByte.code, unique = true, list = false)
+    val unique = Attr2<Boolean>(Gid(1, 2), Attr2::class.attrName(Attr2<Boolean>::unique), QBoolean.code, unique = false, list = false)
+    val list = Attr2<Boolean>(Gid(1, 3), Attr2::class.attrName(Attr2<Boolean>::list), QBoolean.code, unique = false, list = false)
 
 }
 
 object Instances {
 
-    val forks = Attr2<Int>(EID(1, 4), Instance::class.attrName(Instance::forks), QInt.code, unique = false, list = false)
-    val nextEid = Attr2<Int>(EID(1, 5), Instance::class.attrName(Instance::nextEid), QInt.code, unique = false, list = false)
-    val iid = Attr2<Int>(EID(1, 6), Instance::class.attrName(Instance::iid), QInt.code, unique = true, list = false)
+    val forks = Attr2<Int>(Gid(1, 4), Instance::class.attrName(Instance::forks), QInt.code, unique = false, list = false)
+    val nextEid = Attr2<Int>(Gid(1, 5), Instance::class.attrName(Instance::nextEid), QInt.code, unique = false, list = false)
+    val iid = Attr2<Int>(Gid(1, 6), Instance::class.attrName(Instance::iid), QInt.code, unique = true, list = false)
 
 }
 

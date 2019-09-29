@@ -5,8 +5,9 @@ import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
 import qbit.mapping.reconstruct
-import qbit.model.Attr2
-import qbit.model.EID
+import qbit.model.*
+import qbit.model.DetachedEntity
+import qbit.model.toFacts
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import kotlin.reflect.KClass
@@ -57,12 +58,12 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 interface Db {
 
-    fun pull(eid: EID): Map<String, List<Any>>?
+    fun pull(eid: Gid): Entity?
 
-    fun <R : Any> pullT(eid: EID, type: KClass<R>): R?
+    fun <R : Any> pullT(eid: Gid, type: KClass<R>): R?
 
     // Todo: add check that attrs are presented in schema
-    fun query(vararg preds: QueryPred): Sequence<Map<String, List<Any>>>
+    fun query(vararg preds: QueryPred): Sequence<Entity>
 
     fun attr(attr: String): Attr2<*>?
 
@@ -70,26 +71,26 @@ interface Db {
 
 }
 
-inline fun <reified R : Any> Db.pullT(eid: EID): R? {
+inline fun <reified R : Any> Db.pullT(eid: Gid): R? {
     return this.pullT(eid, R::class)
 }
 
 class IndexDb(internal val index: Index) : Db {
     private val schema = loadAttrs(index)
 
-    private val NotFound = mapOf<String, List<Any>>()
+    private val notFound = DetachedEntity()
 
-    private val entityCache = WeakHashMap<EID, Map<String, List<Any>>>()
+    private val entityCache = WeakHashMap<Gid, Entity>()
 
-    private val dcCache = WeakHashMap<Map<String, List<Any>>, Any>()
+    private val dcCache = WeakHashMap<Entity, Any>()
 
     override fun with(facts: List<Fact>): Db? {
         return IndexDb(index.addFacts(facts))
     }
 
-    override fun pull(eid: EID): Map<String, List<Any>>? {
+    override fun pull(eid: Gid): Entity? {
         val cached = entityCache[eid]
-        if (cached === NotFound) {
+        if (cached === notFound) {
             return null
         } else if (cached != null) {
             return cached
@@ -97,17 +98,24 @@ class IndexDb(internal val index: Index) : Db {
 
         val rawEntity = index.entityById(eid)
         if (rawEntity == null) {
-            entityCache[eid] = NotFound
+            entityCache[eid] = notFound
             return null
         }
-        entityCache[eid] = rawEntity
-        return rawEntity
+        val attrValues = rawEntity.entries.map {
+            val attr = schema[it.key]
+            require(attr != null) { "There is no attribute with name ${it.key}" }
+            require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $eid" }
+            attr to if (attr.list) it.value else it.value[0]
+        }
+        val entity = Entity(eid, attrValues, this)
+        entityCache[eid] = entity
+        return entity
     }
 
-    override fun <R : Any> pullT(eid: EID, type: KClass<R>): R? {
+    override fun <R : Any> pullT(eid: Gid, type: KClass<R>): R? {
         val entity = pull(eid) ?: return null
         val cached = dcCache[entity]
-        if (cached === NotFound) {
+        if (cached === notFound) {
             return null
         } else if (cached != null) {
             @Suppress("UNCHECKED_CAST")
@@ -119,21 +127,15 @@ class IndexDb(internal val index: Index) : Db {
         return dc
     }
 
-    private fun Map<String, List<Any>>.toFacts(eid: EID) = this.entries.flatMap { a ->
-        a.value.map { i ->
-            Fact(eid, a.key, i)
-        }
-    }
-
-    override fun query(vararg preds: QueryPred): Sequence<Map<String, List<Any>>> {
+    override fun query(vararg preds: QueryPred): Sequence<Entity> {
         // filters data + base sequence data
         val arrayOfFalse = { Array(preds.size) { false } }
 
         val base = index.eidsByPred(preds[0])
-        val filters: List<Iterator<EID>> = preds.drop(1).map { index.eidsByPred(it).iterator() }
+        val filters: List<Iterator<Gid>> = preds.drop(1).map { index.eidsByPred(it).iterator() }
 
         // eids, that were fetched from filtering sequences while candidates checking
-        val seenEids = hashMapOf<EID, Array<Boolean>>()
+        val seenEids = hashMapOf<Gid, Array<Boolean>>()
 
         return base // iterate candidates and check that candidate matches filters
                 .filter { cEid ->
@@ -174,9 +176,9 @@ class IndexDb(internal val index: Index) : Db {
     companion object {
 
         private fun loadAttrs(index: Index): Map<String, Attr2<*>> {
-            val attrEidss = index.eidsByPred(hasAttr(name))
+            val attrEids = index.eidsByPred(hasAttr(name))
             @Suppress("UNCHECKED_CAST")
-            val attrFacts = attrEidss
+            val attrFacts = attrEids
                     .map {
                         val e: Map<String, List<Any>> = index.entityById(it)!!
                         val name = e.getValue(name.name)[0] as String

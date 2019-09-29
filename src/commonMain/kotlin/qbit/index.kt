@@ -2,13 +2,13 @@ package qbit
 
 import qbit.collections.firstMatchIdx
 import qbit.collections.subList
-import qbit.model.EID
+import qbit.model.Gid
 
-typealias RawEntity = Pair<EID, List<Fact>>
+typealias RawEntity = Pair<Gid, List<Fact>>
 
 private fun loadFacts(graph: Graph, head: NodeVal<Hash>): List<RawEntity> {
-    val entities = HashMap<EID, List<Fact>>()
-    val tombstones = HashSet<EID>()
+    val entities = HashMap<Gid, List<Fact>>()
+    val tombstones = HashSet<Gid>()
     var n: NodeVal<Hash>? = head
     while (n != null) {
         val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.name }
@@ -36,7 +36,7 @@ fun Index(graph: Graph, head: NodeVal<Hash>): Index {
 fun Index(entities: List<RawEntity>): Index =
         Index().add(entities)
 
-fun eidPattern(eid: EID) = { other: Fact -> other.eid.compareTo(eid) }
+fun eidPattern(eid: Gid) = { other: Fact -> other.eid.compareTo(eid) }
 
 fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
 
@@ -69,7 +69,7 @@ fun compareValues(v1: Any, v2: Any): Int {
 }
 
 class Index(
-        val entities: Map<EID, RawEntity> = HashMap(),
+        val entities: Map<Gid, RawEntity> = HashMap(),
         private val index: List<Fact> = ArrayList()
 ) {
 
@@ -103,14 +103,14 @@ class Index(
         return add(listOf(e))
     }
 
-    fun entityById(eid: EID): Map<String, List<Any>>? =
+    fun entityById(eid: Gid): Map<String, List<Any>>? =
             entities[eid]?.second
                     ?.groupBy { it.attr }
                     ?.mapValues {
                         it.value.map { f -> f.value }
                     }
 
-    fun eidsByPred(pred: QueryPred): Sequence<EID> {
+    fun eidsByPred(pred: QueryPred): Sequence<Gid> {
         val fromIdx = index.firstMatchIdx {
             if (it.attr == pred.attrName) {
                 pred.compareTo(it.value)

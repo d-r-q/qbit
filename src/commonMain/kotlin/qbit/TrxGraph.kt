@@ -1,14 +1,14 @@
 package qbit
 
 import qbit.model.Attr2
-import qbit.model.EID
+import qbit.model.Gid
 import qbit.model.IID
 
 data class DbUuid(val iid: IID)
 
-fun Fact(eid: EID, attr: Attr2<*>, value: Any) = Fact(eid, attr.name, value)
+fun Fact(eid: Gid, attr: Attr2<*>, value: Any) = Fact(eid, attr.name, value)
 
-data class Fact(val eid: EID, val attr: String, val value: Any)
+data class Fact(val eid: Gid, val attr: String, val value: Any)
 
 class NodeData(val trx: Array<out Fact>)
 
