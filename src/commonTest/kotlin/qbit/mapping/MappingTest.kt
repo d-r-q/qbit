@@ -21,7 +21,7 @@ class MappingTest {
 
     @Test
     fun test() {
-        val eids = Gid(0, 0).nextEids()
+        val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
             entity(User::class) {
@@ -62,7 +62,7 @@ class MappingTest {
     @Test
     fun test2() {
 
-        val eids = Gid(0, 0).nextEids()
+        val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
             entity(User::class) {
@@ -91,7 +91,7 @@ class MappingTest {
     @Ignore
     @Test
     fun `test multiple states of entity in entity graph is prohibited`() {
-        val eids = Gid(0, 0).nextEids()
+        val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
             entity(User::class)
@@ -120,6 +120,15 @@ class MappingTest {
         assertEquals(QRef, types[Any::class])
     }
 
+    @Ignore
+    @Test
+    fun `Pulling entity of wrong type should fail with explanation`() {
+        val eids = Gid(0, 0).nextGids()
+        val addrFacts = destruct(Attr<String>("addr"), bootstrapSchema::get, eids)
+        assertFailsWith<QBitException> {
+            reconstruct(User::class, addrFacts, emptyDb)
+        }
+    }
 }
 
 fun schema(body: SchemaBuilder.() -> Unit): List<Attr2<*>> {

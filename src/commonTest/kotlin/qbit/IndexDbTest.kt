@@ -3,7 +3,8 @@ package qbit
 import qbit.Users.extId
 import qbit.Users.name
 import qbit.Users.nicks
-import qbit.mapping.eid
+import qbit.mapping.destruct
+import qbit.mapping.gid
 import qbit.model.*
 import qbit.platform.currentTimeMillis
 import qbit.trx.indexTrxLog
@@ -19,29 +20,34 @@ class DbTest {
         val dbUuid = DbUuid(IID(0, 1))
         val time1 = currentTimeMillis()
 
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts() + pChen.toFacts() + mStonebreaker.toFacts() + eBrewer.toFacts()).toTypedArray()))
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts() + pChen.toFacts() + mStonebreaker.toFacts() + eBrewer.toFacts()).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(Gid(0, 102)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.eid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(Gid(2, 1)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.eid }.toList().toTypedArray())
     }
 
     @Test
     fun `Entity with multiple values of list attribute should be returned from query only once`() {
         val dbUuid = DbUuid(IID(0, 1))
 
-        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(eCodd.eid), db.query(attrIn(nicks, "n", "u")).map { it.eid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(eCodd.gid), db.query(attrIn(nicks, "n", "u")).map { it.eid }.toList().toTypedArray())
     }
 
     @Test
     fun `Indexer can index multiple transactions`() {
         val dbUuid = DbUuid(IID(0, 1))
 
-        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
+        val gids = eBrewer.gid.nextGids()
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                testSchema.flatMap { destruct(it, bootstrapSchema::get, gids) } +
+                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
         val index = Index(graph, root)
@@ -55,9 +61,9 @@ class DbTest {
         nodes[n2.hash] = n2
 
         db = indexTrxLog(db, graph, n2, root.hash)
-        assertNotNull(db.pull(eCodd.eid))
-        assertNotNull(db.pull(pChen.eid))
-        assertNotNull(db.pull(mStonebreaker.eid))
+        assertNotNull(db.pull(eCodd.gid))
+        assertNotNull(db.pull(pChen.gid))
+        assertNotNull(db.pull(mStonebreaker.gid))
     }
 
     @Test
@@ -84,7 +90,7 @@ class DbTest {
     @Test
     fun `StoredEntity returns null, when asked to pull entity via not set attribute`() {
         val dbUuid = DbUuid(IID(0, 1))
-        val eids = Gid(0, 0).nextEids()
+        val eids = Gid(0, 0).nextGids()
         val ref = Attr<Any>(eids.next(), "ref")
 
         val e1 = Entity(eids.next(), emptyList(), emptyDb)

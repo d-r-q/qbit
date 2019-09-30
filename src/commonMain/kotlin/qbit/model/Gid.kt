@@ -39,7 +39,7 @@ class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
     fun next(step: Int = 1): Gid =
             Gid(this.iid, this.eid + step)
 
-    fun nextEids(): Iterator<Gid> =
+    fun nextGids(): Iterator<Gid> =
             generateSequence(this) { eid -> eid.next() }
                     .iterator()
 }

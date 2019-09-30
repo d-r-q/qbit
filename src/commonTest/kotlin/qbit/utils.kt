@@ -6,12 +6,12 @@ import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextEids(), vararg entities: Any): Db {
+fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
     val facts = entities.flatMap { destruct(it, bootstrapSchema::get, eids) }
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }
 
-fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextEids(), vararg entities: RoEntity): Db {
+fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: RoEntity): Db {
     val facts = entities.flatMap { it.toFacts(eids.next()) }
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }

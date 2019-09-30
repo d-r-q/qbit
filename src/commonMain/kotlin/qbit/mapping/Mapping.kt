@@ -89,7 +89,7 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
     }
 }
 
-fun destruct(e: Any, schema: (String) -> Attr2<*>?, eids: Iterator<Gid>): List<Fact> {
+fun destruct(e: Any, schema: (String) -> Attr2<*>?, gids: Iterator<Gid>): List<Fact> {
     val res = IdentityHashMap<Any, List<Fact>>()
     val idMap = IdentityHashMap<Any, Any>()
 
@@ -98,7 +98,7 @@ fun destruct(e: Any, schema: (String) -> Attr2<*>?, eids: Iterator<Gid>): List<F
             return res[e]!!
         }
         val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
-        val (_, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
+        val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
         val eid = Gid(e.id) // ids existence has been checked while identification
         val facts: List<Fact> = attrs.flatMap {
             val attr: Attr2<*> = schema(e::class.attrName(it))
@@ -128,7 +128,7 @@ fun destruct(e: Any, schema: (String) -> Attr2<*>?, eids: Iterator<Gid>): List<F
         return facts
     }
 
-    body(identifyEntityGraph(e, eids, idMap))
+    body(identifyEntityGraph(e, gids, idMap))
 
     return res.values.flatten()
 }
@@ -146,7 +146,7 @@ val Any.id: Long
         }
     }
 
-val Any.eid: Gid
+val Any.gid: Gid
     get() {
         val id = this::class.members
                 .filterIsInstance<KProperty1<Any, *>>()
@@ -169,7 +169,7 @@ fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
     val constr = query.type.constructors.first()
     val attrParams =
             attrFacts.map { f ->
-                val param = constr.parameters.find { it.name == f.value[0].attr.substringAfter("/") }!!
+                val param = constr.parameters.find { it.name == f.value[0].attr.substringAfter("/") } ?: return@map null
                 when (param.type.classifier) {
                     in valueTypes -> param to f.value[0].value
                     List::class -> {
@@ -191,7 +191,14 @@ fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
                     }
                 }
             }
-    val idParam = (constr.parameters.find { it.name == "id" }!! to facts.first().eid.value())
+                    .filterNotNull()
+    val idProp = constr.parameters.find { it.name == "id" }!!
+    val id = if (idProp.type.classifier == Gid::class) {
+        facts.first().eid
+    } else {
+        facts.first().eid.value()
+    }
+    val idParam = (idProp to id)
     return constr.callBy((attrParams + idParam).toMap())
 }
 

@@ -22,7 +22,7 @@ val testSchema = schema {
     }
 }
 
-private val eids = Gid(2, 0).nextEids()
+private val eids = Gid(2, 0).nextGids()
 val schemaMap: Map<String, Attr2<*>> = testSchema
         .map { it.name to it.id(eids.next()) }
         .toMap()
@@ -35,7 +35,7 @@ object Users {
 
 }
 
-val eCodd = User( 101, 1, "Edgar Codd", listOf("mathematician", "tabulator"))
-val pChen = User(102, 2, "Peter Chen", listOf("unificator"))
-val mStonebreaker = User(103, 3, "Michael Stonebreaker", listOf("The DBMS researcher"))
-val eBrewer = User(104, 4, "Eric Brewer", listOf("Big Data"))
+val eCodd = User( Gid(2, 0).value(), 1, "Edgar Codd", listOf("mathematician", "tabulator"))
+val pChen = User(Gid(2, 1).value(), 2, "Peter Chen", listOf("unificator"))
+val mStonebreaker = User(Gid(2, 2).value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"))
+val eBrewer = User(Gid(2, 3).value(), 4, "Eric Brewer", listOf("Big Data"))

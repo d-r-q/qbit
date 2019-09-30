@@ -1,15 +1,10 @@
 package qbit
 
-import qbit.model.eq
 import qbit.ns.Namespace
-import qbit.ns.ns
-import qbit.ns.root
 import qbit.platform.Files
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import qbit.storage.Storage
-import qbit.trx.qbit
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

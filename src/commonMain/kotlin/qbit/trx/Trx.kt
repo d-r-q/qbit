@@ -34,7 +34,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     private val factsBuffer = ArrayList<Fact>()
 
-    val eids = Gid(inst.iid, inst.nextEid).nextEids()
+    val eids = Gid(inst.iid, inst.nextEid).nextGids()
 
     override val db
         get() = (this.curDb ?: this.base)
@@ -48,9 +48,14 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     override fun commit() {
         val newLog = trxLog.append(factsBuffer + destruct(inst.copy(nextEid = eids.next().eid), curDb!!::attr, EmptyIterator))
-        base = curDb!!
-        factsBuffer.clear()
-        conn.update(trxLog, newLog)
+        try {
+            conn.update(trxLog, newLog)
+            base = curDb!!
+            factsBuffer.clear()
+        } catch (e: Throwable) {
+            // todo clean up
+            throw e
+        }
     }
 
     override fun rollback() {
@@ -95,7 +100,7 @@ internal class QbitTrxLog(val head: NodeVal<Hash>, val writer: Writer) : TrxLog 
 
 }
 
-data class Instance(val iid: Int, val forks: Int, val nextEid: Int)
+data class Instance(val id: Gid, val iid: Int, val forks: Int, val nextEid: Int)
 
 object EmptyIterator : Iterator<Nothing> {
 
@@ -124,6 +129,8 @@ internal interface InternalConn : Conn {
 
 }
 
+private const val instanceEid = 8
+
 internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : InternalConn {
 
     private val nodesStorage = NodesStorage(storage)
@@ -139,12 +146,12 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
     }
 
     override fun trx(): Trx {
-        return QbitTrx2(db.pullT(Gid(dbUuid.iid, 0))!!, trxLog, db, this)
+        return QbitTrx2(db.pullT(Gid(dbUuid.iid, instanceEid))!!, trxLog, db, this)
     }
 
     override fun update(trxLog: TrxLog, newLog: TrxLog) {
         if (this.trxLog != trxLog) {
-            throw QBitException("Concurrent transaction isn't supported yet")
+            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
         }
         this.trxLog = newLog
         db = indexTrxLog(db, graph, NodeRef(newLog.hash), trxLog.hash)
@@ -191,7 +198,7 @@ fun qbit(storage: Storage): Conn {
 
     val trx = listOf(name, type, unique, list, Instances.iid, forks, nextEid)
             .flatMap { it.toFacts() }
-            .plus(destruct(Instance(1, 0, 7), bootstrapSchema::get, EmptyIterator))
+            .plus(destruct(Instance(Gid(1, instanceEid), 1, 0, 8), bootstrapSchema::get, EmptyIterator))
 
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)

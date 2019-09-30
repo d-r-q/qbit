@@ -31,7 +31,7 @@ object Instances {
 
 }
 
-val tombstone = Attr2<Boolean>(null, qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
+val tombstone = Attr2<Boolean>(Gid(1, 6), qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
 
 val bootstrapSchema = mapOf(name.name to name,
         type.name to type,
