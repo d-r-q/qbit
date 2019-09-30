@@ -1,5 +1,6 @@
 buildscript {
     ext.kotlinIoVersion = "0.1.10"
+    ext.ktor_version = '1.2.4'
     repositories {
         mavenCentral()
         jcenter()
@@ -54,6 +55,8 @@ kotlin {
                 implementation kotlin("stdlib")
                 implementation kotlin("reflect")
                 implementation "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
+                implementation("io.ktor:ktor-client-core:$ktor_version")
+                implementation "io.ktor:ktor-client-okhttp:$ktor_version"
             }
         }
         commonTest {
