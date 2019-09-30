@@ -67,7 +67,7 @@ interface Db {
 
     fun attr(attr: String): Attr2<*>?
 
-    fun with(facts: List<Fact>): Db?
+    fun with(facts: List<Fact>): Db
 
 }
 
@@ -84,7 +84,7 @@ class IndexDb(internal val index: Index) : Db {
 
     private val dcCache = WeakHashMap<Entity, Any>()
 
-    override fun with(facts: List<Fact>): Db? {
+    override fun with(facts: List<Fact>): Db {
         return IndexDb(index.addFacts(facts))
     }
 

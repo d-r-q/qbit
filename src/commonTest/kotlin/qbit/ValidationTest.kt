@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.Users.extId
 import qbit.model.*
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -8,19 +9,17 @@ import kotlin.test.assertFailsWith
 class ValidationTest {
 
     @Test
-    fun testUniqueConstraintViolationWithinTrx() {
+    fun `Addition of unique attribute value with different gid should lead to QbitException`() {
         assertFailsWith<QBitException> {
-            val attr = Attr<String>("unique", true)
-            val db = dbOf(Gid(0, 0).nextEids(), attr)
-            validate(db, listOf(Fact(Gid(0, 0), attr, 0), Fact(Gid(0, 1), attr, 0)))
+            val db = dbOf(Gid(0, 0).nextEids(), *(bootstrapSchema.values + testSchema).toTypedArray()).with(eCodd.toFacts())
+            validate(db, listOf(Fact(Gid(pChen.id!!), extId, eCodd.externalId)))
         }
     }
 
     @Test
-    fun testUnqiureAttrRestoring() {
-        val attr = Attr<String>("unique", true)
-        val db = dbOf(Gid(0, 0).nextEids(), attr, Entity(attr eq "unique"))
-        validate(db, listOf(Fact(Gid(0, 1), attr, "unique")))
+    fun `Subsequent storing of unique value for the same entity should not be treated as uniqueness violation`() {
+        val db = dbOf(Gid(0, 0).nextEids(), *(bootstrapSchema.values + testSchema).toTypedArray()).with(eCodd.toFacts())
+        validate(db, listOf(Fact(Gid(eCodd.id!!), extId, eCodd.externalId)))
     }
 
     @Test

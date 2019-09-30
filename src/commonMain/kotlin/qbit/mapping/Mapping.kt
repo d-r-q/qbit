@@ -142,7 +142,7 @@ val Any.id: Long
         return when (id) {
             is Long -> id
             is Gid -> id.value()
-            else -> throw QBitException("Unsupported id type: $id")
+            else -> throw QBitException("Unsupported id type: $id of entity $this")
         }
     }
 

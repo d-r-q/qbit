@@ -27,7 +27,7 @@ object emptyDb : Db {
 
     override fun attr(attr: String): Attr2<*>? = bootstrapSchema[attr]
 
-    override fun with(facts: List<Fact>): Db? {
+    override fun with(facts: List<Fact>): Db {
         return IndexDb(Index().addFacts(facts))
     }
 
