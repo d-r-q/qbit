@@ -22,6 +22,7 @@ object emptyDb : Db {
 
     override fun <R : Any> pullT(eid: Gid, type: KClass<R>): R? = null
 
+    override fun queryGids(vararg preds: QueryPred): Sequence<Gid> = emptySequence()
 
     override fun query(vararg preds: QueryPred): Sequence<Entity> = emptySequence()
 

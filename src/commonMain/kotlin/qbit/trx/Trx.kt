@@ -14,6 +14,7 @@ import qbit.platform.IdentityHashMap
 import qbit.platform.currentTimeMillis
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
+import qbit.Instances.iid as instIid
 
 
 interface Trx {
@@ -41,6 +42,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R> {
         val facts = destruct(entityGraphRoot, db::attr, eids)
+        validate(db, facts)
         factsBuffer.addAll(facts)
         curDb = db.with(facts)
         return QbitWriteResult(Any() as R, curDb!!, IdentityHashMap<Any, Any>())
@@ -117,9 +119,13 @@ interface Conn {
 
     val dbUuid: DbUuid
 
+    fun db(): Db
+
     fun db(body: (Db) -> Unit)
 
     fun trx(): Trx
+
+    fun persist(e: Any): Db
 
 }
 
@@ -128,8 +134,6 @@ internal interface InternalConn : Conn {
     fun update(trxLog: TrxLog, newLog: TrxLog)
 
 }
-
-private const val instanceEid = 8
 
 internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : InternalConn {
 
@@ -141,12 +145,22 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
 
     private var db = IndexDb(Index(graph, head))
 
+    override fun db() = db
+
     override fun db(body: (Db) -> Unit) {
         body(db)
     }
 
     override fun trx(): Trx {
-        return QbitTrx2(db.pullT(Gid(dbUuid.iid, instanceEid))!!, trxLog, db, this)
+        return QbitTrx2(db.pullT(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
+    }
+
+    override fun persist(e: Any): Db {
+        with (trx()) {
+            persist(e)
+            commit()
+        }
+        return db
     }
 
     override fun update(trxLog: TrxLog, newLog: TrxLog) {
@@ -194,11 +208,15 @@ fun qbit(storage: Storage): Conn {
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
         return QbitConn(dbUuid, storage, head)
+    } else {
+        return bootstrap(dbUuid, storage)
     }
+}
 
-    val trx = listOf(name, type, unique, list, Instances.iid, forks, nextEid)
+fun bootstrap(dbUuid: DbUuid, storage: Storage): Conn {
+    val trx = listOf(name, type, unique, list, instIid, forks, nextEid, tombstone)
             .flatMap { it.toFacts() }
-            .plus(destruct(Instance(Gid(1, instanceEid), 1, 0, 8), bootstrapSchema::get, EmptyIterator))
+            .plus(destruct(Instance(Gid(IID(1, 4), theInstanceEid), 1, 0, firstInstanceEid), bootstrapSchema::get, EmptyIterator))
 
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)

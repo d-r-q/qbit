@@ -69,11 +69,19 @@ interface Db {
 
     fun with(facts: List<Fact>): Db
 
+    fun queryGids(vararg preds: QueryPred): Sequence<Gid>
 }
 
 inline fun <reified R : Any> Db.pullT(eid: Gid): R? {
     return this.pullT(eid, R::class)
 }
+
+inline fun <reified R : Any> Db.pullT(eid: Long): R? {
+    return this.pullT(Gid(eid), R::class)
+}
+
+inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred): Sequence<R> =
+        this.queryGids(*preds).map { this.pullT<R>(it)!! }
 
 class IndexDb(internal val index: Index) : Db {
     private val schema = loadAttrs(index)
@@ -128,6 +136,14 @@ class IndexDb(internal val index: Index) : Db {
     }
 
     override fun query(vararg preds: QueryPred): Sequence<Entity> {
+        return queryGids(*preds).map { pull(it)!! }
+    }
+
+    override fun queryGids(vararg preds: QueryPred): Sequence<Gid> {
+        if (preds.isEmpty()) {
+            return index.entities.keys.asSequence()
+        }
+
         // filters data + base sequence data
         val arrayOfFalse = { Array(preds.size) { false } }
 
@@ -168,7 +184,6 @@ class IndexDb(internal val index: Index) : Db {
                     filtersSeenEid[filtersSeenEid.size - 1] = true // mark, that eid was seen for base sequence
                     filtersSeenEid.all { it }
                 }
-                .map { pull(it)!! }
     }
 
     override fun attr(attr: String): Attr2<*>? = schema[attr]

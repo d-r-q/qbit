@@ -1,48 +1,40 @@
 package qbit
 
-import qbit.model.*
 import qbit.ns.Namespace
-import qbit.ns.root
-import qbit.platform.*
 import qbit.storage.MemStorage
+import qbit.trx.qbit
 import kotlin.test.*
 
 class LocalConnTest {
 
-//    @Test
-//    fun testInit() {
-//        val db = qbit(MemStorage())
-//        assertNotNull(db)
-//        assertTrue(db.storage.keys(Namespace("nodes")).isNotEmpty())
-//    }
-//
-//    @Test
-//    fun testUpdate() {
-//        val conn = qbit(MemStorage())
-//        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
-//        conn.persist(_attr)
-//        val e = Entity(_attr eq "value")
-//        var se = conn.persist(e).storedEntity()
-//        se = se.with(_attr, "value2")
-//        conn.persist(se)
-//        val pulledE2 = conn.db.pull(se.eid)
-//        assertEquals("value2", pulledE2!![_attr])
-//    }
-//
-//    @Test
-//    fun testUnique() {
-//        val conn = qbit(MemStorage())
-//        val _uid = ScalarAttr(Namespace("user")["uid"], QLong, true)
-//        conn.persist(_uid)
-//        conn.persist(Entity(_uid eq 0L))
-//        try {
-//            conn.persist(Entity(_uid eq 0L))
-//            fail("QBitException expected")
-//        } catch (e: QBitException) {
-//            assertTrue(e.message?.contains("Duplicate") ?: false)
-//        }
-//    }
-//
+    @Test
+    fun testInit() {
+        val storage = MemStorage()
+        val db = qbit(storage)
+        assertNotNull(db)
+        assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
+    }
+
+    @Test
+    fun testUpdate() {
+        val conn = setupTestData()
+        conn.persist(eCodd.copy(name = "Im updated"))
+        conn.db() {
+            assertEquals("Im updated", it.pullT<User>(eCodd.id!!)!!.name)
+        }
+    }
+
+    @Test
+    fun testUnique() {
+        val conn = setupTestData()
+        try {
+            conn.persist(User(null, eCodd.externalId, "", emptyList()))
+            fail("QBitException expected")
+        } catch (e: QBitException) {
+            assertTrue(e.message?.contains("Duplicate") ?: false)
+        }
+    }
+
 //    @Test
 //    fun testDelete() {
 //        val conn = qbit(MemStorage())
