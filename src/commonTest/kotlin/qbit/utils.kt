@@ -11,11 +11,6 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }
 
-fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: RoEntity): Db {
-    val facts = entities.flatMap { it.toFacts(eids.next()) }
-    return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
-}
-
 object emptyDb : Db {
 
     override fun pull(eid: Gid): Entity? = null
@@ -26,7 +21,7 @@ object emptyDb : Db {
 
     override fun query(vararg preds: QueryPred): Sequence<Entity> = emptySequence()
 
-    override fun attr(attr: String): Attr2<*>? = bootstrapSchema[attr]
+    override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
     override fun with(facts: List<Fact>): Db {
         return IndexDb(Index().addFacts(facts))

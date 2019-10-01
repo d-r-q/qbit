@@ -42,7 +42,7 @@ class MappingTest {
 
         val facts = destruct(user, db::attr, eids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val u = reconstruct(User::class, facts.filter { it.eid.eid == 6}, db2)
+        val u = reconstruct(User::class, facts.filter { it.eid.eid == 6 }, db2)
         assertEquals("login", u.login)
         assertEquals(listOf("str1", "str2"), u.strs)
         assertEquals("addr", u.addr.addr)
@@ -129,9 +129,20 @@ class MappingTest {
             reconstruct(User::class, addrFacts, emptyDb)
         }
     }
+
+    @Test
+    fun `findGidProp should return only properties with name 'id'`() {
+        val objWithouId = object {
+            val eid = Gid(0)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            findGidProp(objWithouId)
+        }
+    }
+
 }
 
-fun schema(body: SchemaBuilder.() -> Unit): List<Attr2<*>> {
+fun schema(body: SchemaBuilder.() -> Unit): List<Attr<Any>> {
     val scb = SchemaBuilder()
     scb.body()
     return scb.attrs
@@ -139,7 +150,7 @@ fun schema(body: SchemaBuilder.() -> Unit): List<Attr2<*>> {
 
 class SchemaBuilder {
 
-    internal val attrs: MutableList<Attr2<*>> = ArrayList()
+    internal val attrs: MutableList<Attr<Any>> = ArrayList()
 
     fun <T : Any> entity(type: KClass<T>, body: EntityBuilder.(T) -> Unit = {}) {
         val eb = EntityBuilder(type)

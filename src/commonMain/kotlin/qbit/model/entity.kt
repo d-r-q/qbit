@@ -5,116 +5,93 @@ package qbit.model
 import qbit.Db
 import qbit.Fact
 import qbit.QBitException
+import qbit.mapping.gid
+import qbit.tombstone as tsAttr
 
-interface AttrValue<out A : Attr2<T>, out T : Any> {
+interface AttrValue<A : Attr<T>, T : Any> {
 
     val attr: A
     val value: T
 
     fun toPair() = attr to value
 
-    operator fun component1(): Attr2<T> = attr
+    operator fun component1(): Attr<T> = attr
 
     operator fun component2(): T = value
 
 }
 
-internal class QbitAttrValue<T : Any>(override val attr: Attr2<T>, override val value:T) : AttrValue<Attr2<T>, T>
+internal class QbitAttrValue<T : Any>(override val attr: Attr<T>, override val value:T) : AttrValue<Attr<T>, T>
 
-fun Entity(vararg entries: AttrValue<Attr2<Any>, Any>): Entity {
-    return DetachedEntity(null, entries.map { it.toPair() }.toMap())
+fun Entity(gid: Gid, vararg entries: Any): Entity {
+    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.toPair() }.toMap())
+}
+
+fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, db: Db): Entity {
+    return AttachedEntity(gid, entries.toMap(), db)
 }
 
 fun Tombstone(eid: Gid): Tombstone = QTombstone(eid)
 
-internal fun Entity(eid: Gid, entries: Collection<Pair<Attr2<*>, Any>>, db: Db): StoredEntity = AttachedEntity(eid, entries.toMap(), db, false)
+internal fun Entity(eid: Gid, entries: Collection<Pair<Attr<Any>, Any>>): DetachedEntity = DetachedEntity(eid, entries.toMap())
 
-interface RoEntity {
+interface Entity {
 
-    val eid: Gid?
+    val eid: Gid
 
-    val keys: Set<Attr2<Any>>
+    val keys: Set<Attr<Any>>
 
-    operator fun <T : Any> get(key: Attr2<T>): T = tryGet(key) ?: throw QBitException("Entity $this does not contain value for ${key.name}")
+    operator fun <T : Any> get(key: Attr<T>): T = tryGet(key) ?: throw QBitException("Entity $this does not contain value for ${key.name}")
 
-    fun <T : Any> tryGet(key: Attr2<T>): T?
+    fun <T : Any> tryGet(key: Attr<T>): T?
 
-    val entries: Set<AttrValue<Attr2<Any>, Any>>
+    val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = keys.map {
             it eq this[it]
         }.toSet()
 
 }
 
-interface Entity : RoEntity {
-
-    fun <T : Any> with(key: Attr2<T>, value: T): Entity =
-            with(key eq value)
-
-    fun with(vararg values: AttrValue<Attr2<*>, *>): Entity
-
-    fun <T : Any> remove(key: Attr2<T>): Entity
-
-}
-
 interface StoredEntity : Entity {
 
-    fun peek(key: Attr2<*>) :Any?
+    fun peek(key: Attr<*>) :Any?
 
-    override fun <T : Any> with(key: Attr2<T>, value: T): StoredEntity =
-            with(key eq value)
-
-    override fun with(vararg values: AttrValue<Attr2<*>, *>): StoredEntity
-
-    override fun <T : Any> remove(key: Attr2<T>): StoredEntity
 }
 
-interface Tombstone : RoEntity
+interface Tombstone : Entity
 
-internal sealed class QRoEntity(override val eid: Gid?) : RoEntity
+internal fun Tombstone.toFacts() = listOf(Fact(this.eid, tsAttr, true))
+
+internal sealed class QRoEntity(override val eid: Gid) : Entity
 
 internal class QTombstone(eid: Gid) : QRoEntity(eid), Tombstone {
 
-    override val keys: Set<Attr2<Any>>
+    override val keys: Set<Attr<Any>>
         get() = TODO()
 
-    override fun <T : Any> tryGet(key: Attr2<T>): T? {
+    override fun <T : Any> tryGet(key: Attr<T>): T? {
         TODO()
     }
 
 }
 
-internal sealed class QEntity(eid: Gid?) : QRoEntity(eid), Entity
+internal sealed class QEntity(eid: Gid) : QRoEntity(eid), Entity
 
-internal class DetachedEntity(eid: Gid?, map: Map<Attr2<*>, *>) : QEntity(eid) {
+internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid) {
 
-    private val delegate = MapEntity(map) { newMap -> DetachedEntity(eid, newMap) }
+    private val delegate = MapEntity(eid, map)
 
-    constructor () : this(null, emptyMap<Attr2<*>, Any>())
+    constructor(eid: Gid) : this(eid, emptyMap<Attr<Any>, Any>())
 
-    constructor(eid: Gid) : this(eid, emptyMap<Attr2<*>, Any>())
+    constructor(e: Entity) : this(e.eid, e.entries.map { it.toPair() }.toMap())
 
-    constructor(e: RoEntity) : this(e.eid, e.entries.map { it.toPair() }.toMap())
+    constructor(eid: Gid, e: Entity) : this(eid, e.entries.map { it.toPair() }.toMap())
 
-    constructor(eid: Gid, e: RoEntity) : this(eid, e.entries.map { it.toPair() }.toMap())
-
-    override val keys: Set<Attr2<Any>>
+    override val keys: Set<Attr<Any>>
         get() = delegate.keys
 
-    override fun <T : Any> tryGet(key: Attr2<T>): T? {
+    override fun <T : Any> tryGet(key: Attr<T>): T? {
         return delegate.tryGet(key)
-    }
-
-    override fun <T : Any> with(key: Attr2<T>, value: T): DetachedEntity {
-        return delegate.with(key, value)
-    }
-
-    override fun with(vararg values: AttrValue<Attr2<*>, *>): DetachedEntity {
-        return delegate.with(*values)
-    }
-
-    override fun <T : Any> remove(key: Attr2<T>): DetachedEntity {
-        return delegate.remove(key)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -135,14 +112,14 @@ internal class DetachedEntity(eid: Gid?, map: Map<Attr2<*>, *>) : QEntity(eid) {
 
 }
 
-internal class AttachedEntity(eid: Gid, map: Map<Attr2<*>, *>, val db: Db, val dirty: Boolean) : QEntity(eid), StoredEntity {
+internal class AttachedEntity(gid: Gid, map: Map<Attr<Any>, Any>, val db: Db) : QEntity(gid), StoredEntity {
 
-    private val delegate = MapEntity(map) { newMap -> AttachedEntity(eid, newMap, db, true) }
+    private val delegate = MapEntity(gid, map)
 
-    override val keys: Set<Attr2<Any>>
+    override val keys: Set<Attr<Any>>
         get() = delegate.keys
 
-    override fun <T : Any> tryGet(key: Attr2<T>): T? {
+    override fun <T : Any> tryGet(key: Attr<T>): T? {
         val type = DataType.ofCode(key.type)!!
         return if (type.ref()) {
             if (!type.isList()) {
@@ -155,57 +132,23 @@ internal class AttachedEntity(eid: Gid, map: Map<Attr2<*>, *>, val db: Db, val d
         }
     }
 
-    override fun  peek(key: Attr2<*>): Any? =
+    override fun  peek(key: Attr<*>): Any? =
             delegate.tryGet(key)
-
-    override fun <T : Any> with(key: Attr2<T>, value: T): AttachedEntity {
-        if (value == this.tryGet(key)) {
-            return this
-        }
-        return delegate.with(key, value)
-    }
-
-    override fun with(vararg values: AttrValue<Attr2<*>, *>): AttachedEntity {
-        return delegate.with(*values)
-    }
-
-    override fun <T : Any> remove(key: Attr2<T>): AttachedEntity {
-        return delegate.remove(key)
-    }
 
 }
 
-private class MapEntity<out T : Entity>(private val map: Map<Attr2<*>, *>, private val create: (Map<Attr2<*>, *>) -> T) : Entity {
+private class MapEntity(override val eid: Gid, private val map: Map<Attr<Any>, Any>) : Entity {
 
-    override val eid: Gid? = null
-
-    override val keys: Set<Attr2<Any>>
+    override val keys: Set<Attr<Any>>
         get() = map.keys
 
-    override fun <T : Any> tryGet(key: Attr2<T>): T? {
-        return map[key] as T?
-    }
-
-    override fun <V : Any> with(key: Attr2<V>, value: V): T =
-            with(key eq value)
-
-    override fun with(vararg values: AttrValue<Attr2<*>, *>): T {
-        val newMap = HashMap(map)
-        for ((key, value) in values) {
-            newMap[key] = value
-        }
-        return create(newMap)
-    }
-
-    override fun <V : Any> remove(key: Attr2<V>): T {
-        val newMap = HashMap(map)
-        newMap -= key
-        return create(newMap)
+    override fun <T2 : Any> tryGet(key: Attr<T2>): T2? {
+        return (map as Map<Attr<T2>, T2>)[key]
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is MapEntity<*>) return false
+        if (other !is MapEntity) return false
 
         if (map.keys.size != other.keys.size) return false
         if (map.keys.any { map[it] != other.map[it] }) return false
@@ -219,8 +162,8 @@ private class MapEntity<out T : Entity>(private val map: Map<Attr2<*>, *>, priva
 
 }
 
-internal fun RoEntity.toFacts(eid: Gid): Collection<Fact> =
-        this.entries.flatMap { (attr: Attr2<Any>, value) ->
+internal fun Entity.toFacts(): Collection<Fact> =
+        this.entries.flatMap { (attr: Attr<Any>, value) ->
             val type = DataType.ofCode(attr.type)!!
             when  {
                 type.value() && !attr.list -> listOf(valToFacts(eid, attr, value))
@@ -231,21 +174,24 @@ internal fun RoEntity.toFacts(eid: Gid): Collection<Fact> =
             }
         }
 
-private fun <T : Any> valToFacts(eid: Gid, attr: Attr2<T>, value: T) =
+private fun <T : Any> valToFacts(eid: Gid, attr: Attr<T>, value: T) =
         Fact(eid, attr, value)
 
-private fun refToFacts(eid: Gid, attr: Attr2<Any>, value: Any) =
+private fun refToFacts(eid: Gid, attr: Attr<Any>, value: Any) =
         Fact(eid, attr, eidOf(value)!!)
 
-private fun listToFacts(eid: Gid, attr: Attr2<*>, value: List<Any>) =
+private fun listToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
         value.map { Fact(eid, attr, it) }
 
-private fun refListToFacts(eid: Gid, attr: Attr2<*>, value: List<Any>) =
+private fun refListToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
         value.map { Fact(eid, attr, eidOf(it)!!) }
 
 private fun eidOf(a: Any): Gid? =
         when {
-            a is RoEntity && a.eid != null -> a.eid
+            a is Entity -> a.eid
             a is Gid -> a
             else -> null
         }
+
+val Any.tombstone
+        get() = Tombstone(this.gid)

@@ -18,13 +18,13 @@ interface QueryPred {
     fun compareTo(another: Any): Int
 }
 
-fun hasAttr(attr: Attr2<*>): QueryPred =
+fun hasAttr(attr: Attr<*>): QueryPred =
         AttrPred(attr.name)
 
-fun <T : Any> attrIs(attr: Attr2<T>, value: T): QueryPred =
+fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
         AttrValuePred(attr.name, value)
 
-fun <T : Any> attrIn(attr: Attr2<T>, from: T, to: T): QueryPred =
+fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
         AttrRangePred(attr.name, from, to)
 
 internal data class AttrPred(override val attrName: String) : QueryPred {
@@ -65,7 +65,7 @@ interface Db {
     // Todo: add check that attrs are presented in schema
     fun query(vararg preds: QueryPred): Sequence<Entity>
 
-    fun attr(attr: String): Attr2<*>?
+    fun attr(attr: String): Attr<Any>?
 
     fun with(facts: List<Fact>): Db
 
@@ -86,7 +86,7 @@ inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred): Sequence<R> =
 class IndexDb(internal val index: Index) : Db {
     private val schema = loadAttrs(index)
 
-    private val notFound = DetachedEntity()
+    private val notFound = DetachedEntity(Gid(0, 0))
 
     private val entityCache = WeakHashMap<Gid, Entity>()
 
@@ -115,7 +115,7 @@ class IndexDb(internal val index: Index) : Db {
             require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $eid" }
             attr to if (attr.list) it.value else it.value[0]
         }
-        val entity = Entity(eid, attrValues, this)
+        val entity = AttachedEntity(eid, attrValues, this)
         entityCache[eid] = entity
         return entity
     }
@@ -130,7 +130,7 @@ class IndexDb(internal val index: Index) : Db {
             return cached as R
         }
 
-        val dc = reconstruct(type, entity.toFacts(eid), this)
+        val dc = reconstruct(type, entity.toFacts(), this)
         dcCache[entity] = dc
         return dc
     }
@@ -186,11 +186,11 @@ class IndexDb(internal val index: Index) : Db {
                 }
     }
 
-    override fun attr(attr: String): Attr2<*>? = schema[attr]
+    override fun attr(attr: String): Attr<Any>? = schema[attr]
 
     companion object {
 
-        private fun loadAttrs(index: Index): Map<String, Attr2<*>> {
+        private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
             val attrEids = index.eidsByPred(hasAttr(name))
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEids
@@ -200,7 +200,7 @@ class IndexDb(internal val index: Index) : Db {
                         val type = e.getValue(type.name)[0] as Byte
                         val unique = e[unique.name]?.firstOrNull() as? Boolean ?: false
                         val list = e[list.name]?.firstOrNull() as? Boolean ?: false
-                        val attr = Attr2<Any>(it, name, type, unique, list)
+                        val attr = Attr<Any>(it, name, type, unique, list)
                         (name to attr)
                     }
             return attrFacts.toMap()

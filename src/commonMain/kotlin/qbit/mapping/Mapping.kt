@@ -6,6 +6,7 @@ import qbit.QBitException
 import qbit.model.*
 import qbit.platform.IdentityHashMap
 import qbit.platform.set
+import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
@@ -29,11 +30,7 @@ val valueTypes = types.values
 data class Query<R : Any>(val type: KClass<R>, val links: Map<String, Query<*>?>)
 
 fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Any>): Any {
-    val idProp = root::class.members
-            .firstOrNull {
-                it is KProperty1<*, *> && it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class
-            }
-            ?: throw IllegalArgumentException("Entity $root does not contains `id: Long` property")
+    val idProp = findGidProp(root)
 
     var id = idProp.call(root) ?: idMap[root]
     var needUpdate = id == null
@@ -89,7 +86,17 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
     }
 }
 
-fun destruct(e: Any, schema: (String) -> Attr2<*>?, gids: Iterator<Gid>): List<Fact> {
+internal fun findGidProp(root: Any): KCallable<*> =
+        root::class.members
+                .firstOrNull {
+                    it is KProperty1<*, *> && it.name == "id" && (it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class)
+                }
+                ?: throw IllegalArgumentException("Entity $root does not contains `id: (Long|Gid)` property")
+
+fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fact> {
+    if (e is Tombstone) {
+        return e.toFacts()
+    }
     val res = IdentityHashMap<Any, List<Fact>>()
     val idMap = IdentityHashMap<Any, Any>()
 
@@ -101,7 +108,7 @@ fun destruct(e: Any, schema: (String) -> Attr2<*>?, gids: Iterator<Gid>): List<F
         val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
         val eid = Gid(e.id) // ids existence has been checked while identification
         val facts: List<Fact> = attrs.flatMap {
-            val attr: Attr2<*> = schema(e::class.attrName(it))
+            val attr: Attr<*> = schema(e::class.attrName(it))
                     ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
             when (it.returnType.classifier) {
                 in valueTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
@@ -128,7 +135,8 @@ fun destruct(e: Any, schema: (String) -> Attr2<*>?, gids: Iterator<Gid>): List<F
         return facts
     }
 
-    body(identifyEntityGraph(e, gids, idMap))
+    val identified = identifyEntityGraph(e, gids, idMap)
+    body(identified)
 
     return res.values.flatten()
 }
@@ -208,22 +216,22 @@ fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
 fun KClass<*>.attrName(prop: KProperty0<*>): String =
         "." + this.qualifiedName!! + "/" + prop.name
 
-fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr2<*>> {
+fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
     val getters = type.members.filterIsInstance<KProperty1<*, *>>()
     val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
     val id = ids.firstOrNull()
     id ?: throw IllegalArgumentException("Type $type does not contains id: Long property")
     return attrs.map {
         when (it.returnType.classifier) {
-            in valueTypes -> Attr2(null, type.attrName(it), types.getValue(it.returnType.classifier as KClass<*>).code, type.attrName(it) in unique, false)
+            in valueTypes -> Attr(null, type.attrName(it), types.getValue(it.returnType.classifier as KClass<*>).code, type.attrName(it) in unique, false)
             in collectionTypes -> {
                 when (val valueType = it.returnType.arguments[0].type!!.classifier as KClass<*>) {
-                    in valueTypes -> Attr2(null, type.attrName(it), types.getValue(valueType).code, type.attrName(it) in unique, true)
-                    else -> Attr2<Any>(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
+                    in valueTypes -> Attr(null, type.attrName(it), types.getValue(valueType).code, type.attrName(it) in unique, true)
+                    else -> Attr<Any>(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
                 }
             }
             else -> {
-                Attr2(null, type.attrName(it), QRef.code, type.attrName(it) in unique, false)
+                Attr(null, type.attrName(it), QRef.code, type.attrName(it) in unique, false)
             }
         }
     }

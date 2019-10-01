@@ -1,7 +1,8 @@
 package qbit.model
 
-import qbit.emptyDb
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @Suppress("UNCHECKED_CAST")
 class EntityTest {
@@ -147,9 +148,9 @@ class EntityTest {
 
     @Test
     fun `Factorization of reference attribute returns Fact(_, _, value = gid)`() {
-        val e1 = Entity(Gid(0, 0), emptyList(), emptyDb)
-        val e2 = Entity(Attr<Any>("ref") eq e1)
-        val value = e2.toFacts(Gid(0, 1)).first().value
+        val e1 = Entity(Gid(0, 0))
+        val e2 = Entity(Gid(0, 1), Attr<Any>("ref") eq e1)
+        val value = e2.toFacts().first().value
         assertTrue(value is Gid, "Gid expected, but got $value")
     }
 

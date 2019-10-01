@@ -1,8 +1,8 @@
 package qbit
 
-import qbit.model.Attr2
+import qbit.model.Attr
 
-fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr2<*>> = emptyList()) {
+fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.name }
     val factAttrs = facts.map { it.attr to (db.attr(it.attr) ?: newAttrsByName[it.attr]) }.toMap()
 
@@ -24,9 +24,9 @@ fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr2<*>> = emptyList()) 
 
     // within db
     facts.forEach {
-        val attr: Attr2<Any> = factAttrs.getValue(it.attr)!!
+        val attr: Attr<*> = factAttrs.getValue(it.attr)!!
         if (attr.unique) {
-            val eids = db.query(attrIs(attr, it.value)).map { f -> f.eid }.distinct().toList()
+            val eids = db.query(attrIs(attr as Attr<Any>, it.value)).map { f -> f.eid }.distinct().toList()
             if (eids.isNotEmpty() && eids != listOf(it.eid)) {
                 throw QBitException("Duplicate fact $it for unique attribute")
             }

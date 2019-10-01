@@ -9,6 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import qbit.Users.name as userName
+import qbit.tombstone as tsAttr
 
 class IndexTest {
 
@@ -118,16 +119,13 @@ class IndexTest {
         val eid2 = Gid(0, 2)
         val eid3 = Gid(0, 3)
 
-        val eids = generateSequence(eid0) { eid -> eid.next(1) }
-                .iterator()
-
         val _date = Attr<Long>("date")
 
-        val e1 = Entity(_date eq 1L)
-        val e2 = Entity(_date eq 2L)
-        val e3 = Entity(_date eq 3L)
-        val e4 = Entity(_date eq 4L)
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
+        val e1 = Entity(eid0, _date eq 1L)
+        val e2 = Entity(eid1, _date eq 2L)
+        val e3 = Entity(eid2, _date eq 3L)
+        val e4 = Entity(eid3, _date eq 4L)
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
@@ -155,7 +153,7 @@ class IndexTest {
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
-                Fact(eid, tombstone, true)
+                Fact(eid, tsAttr, true)
         )))
         val index = Index(Graph { null }, n2)
         assertNull(index.entityById(eid))
@@ -171,6 +169,6 @@ class IndexTest {
         }
     }
 
-    private fun <T : Any> f(eid: Int, attr: Attr2<T>, value: T) = Fact(Gid(0, eid), attr.name, value)
+    private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Fact(Gid(0, eid), attr.name, value)
 
 }

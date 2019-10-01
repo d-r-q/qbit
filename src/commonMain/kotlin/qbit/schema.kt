@@ -16,34 +16,34 @@ val qbitNs = Namespace.of("qbit")
 
 object Attrs {
 
-    val name = Attr2<String>(Gid(1, 0), Attr2::class.attrName(Attr2<String>::name), QString.code, unique = true, list = false)
-    val type = Attr2<Byte>(Gid(1, 1), Attr2::class.attrName(Attr2<Byte>::type), QByte.code, unique = false, list = false)
-    val unique = Attr2<Boolean>(Gid(1, 2), Attr2::class.attrName(Attr2<Boolean>::unique), QBoolean.code, unique = false, list = false)
-    val list = Attr2<Boolean>(Gid(1, 3), Attr2::class.attrName(Attr2<Boolean>::list), QBoolean.code, unique = false, list = false)
+    val name = Attr<String>(Gid(1, 0), Attr::class.attrName(Attr<String>::name), QString.code, unique = true, list = false)
+    val type = Attr<Byte>(Gid(1, 1), Attr::class.attrName(Attr<Byte>::type), QByte.code, unique = false, list = false)
+    val unique = Attr<Boolean>(Gid(1, 2), Attr::class.attrName(Attr<Boolean>::unique), QBoolean.code, unique = false, list = false)
+    val list = Attr<Boolean>(Gid(1, 3), Attr::class.attrName(Attr<Boolean>::list), QBoolean.code, unique = false, list = false)
 
 }
 
 object Instances {
 
-    val forks = Attr2<Int>(Gid(1, 4), Instance::class.attrName(Instance::forks), QInt.code, unique = false, list = false)
-    val nextEid = Attr2<Int>(Gid(1, 5), Instance::class.attrName(Instance::nextEid), QInt.code, unique = false, list = false)
-    val iid = Attr2<Int>(Gid(1, 6), Instance::class.attrName(Instance::iid), QInt.code, unique = true, list = false)
+    val forks = Attr<Int>(Gid(1, 4), Instance::class.attrName(Instance::forks), QInt.code, unique = false, list = false)
+    val nextEid = Attr<Int>(Gid(1, 5), Instance::class.attrName(Instance::nextEid), QInt.code, unique = false, list = false)
+    val iid = Attr<Int>(Gid(1, 6), Instance::class.attrName(Instance::iid), QInt.code, unique = true, list = false)
 
 }
 
-val tombstone = Attr2<Boolean>(Gid(IID(1, 4), 7), qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
+val tombstone = Attr<Boolean>(Gid(IID(1, 4), 7), qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
 
 internal val theInstanceEid = Gid(IID(1, 4), 8).eid
 
 internal const val firstInstanceEid = 9
 
-
-val bootstrapSchema = mapOf(name.name to name,
-        type.name to type,
-        unique.name to unique,
-        list.name to list,
-        forks.name to forks,
-        nextEid.name to nextEid,
-        iid.name to iid,
-        tombstone.name to tombstone
+val bootstrapSchema: Map<String, Attr<Any>> = mapOf(
+        (name.name to name) as Pair<String, Attr<Any>>,
+        (type.name to type) as Pair<String, Attr<Any>>,
+        (unique.name to unique) as Pair<String, Attr<Any>>,
+        (list.name to list) as Pair<String, Attr<Any>>,
+        (forks.name to forks) as Pair<String, Attr<Any>>,
+        (nextEid.name to nextEid) as Pair<String, Attr<Any>>,
+        (iid.name to iid) as Pair<String, Attr<Any>>,
+        (tombstone.name to tombstone) as Pair<String, Attr<Any>>
 )

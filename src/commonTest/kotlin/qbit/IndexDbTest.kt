@@ -21,11 +21,11 @@ class DbTest {
         val time1 = currentTimeMillis()
 
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
-                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts() + pChen.toFacts() + mStonebreaker.toFacts() + eBrewer.toFacts()).toTypedArray()))
+                schemaMap.values.flatMap { it.toFacts() } + eCodd.toFacts() + pChen.toFacts() + mStonebreaker.toFacts() + eBrewer.toFacts()).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(Gid(2, 1)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.eid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(Gid(pChen.id!!)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.eid }.toList().toTypedArray())
     }
 
     @Test
@@ -33,7 +33,7 @@ class DbTest {
         val dbUuid = DbUuid(IID(0, 1))
 
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
-                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
+                schemaMap.values.flatMap { it.toFacts() } + eCodd.toFacts()).toTypedArray()))
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
@@ -93,10 +93,10 @@ class DbTest {
         val eids = Gid(0, 0).nextGids()
         val ref = Attr<Any>(eids.next(), "ref")
 
-        val e1 = Entity(eids.next(), emptyList(), emptyDb)
-        val e2 = Entity(ref eq e1)
+        val e1 = Entity(eids.next())
         val e2eid = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((ref.toFacts() + e2.toFacts(e2eid)).toTypedArray()))
+        val e2 = Entity(e2eid, ref eq e1)
+        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((ref.toFacts() + e2.toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
 
@@ -111,7 +111,7 @@ class DbTest {
     @Ignore
     @Test
     fun testUniqueList() {
-        val uniqueList = Attr2<Int>(null, "uniqueList", QInt.code, true, true)
+        val uniqueList = Attr<Int>(null, "uniqueList", QInt.code, true, true)
         assertNull(uniqueList)
         // todo: what is expected behaviour for such attributes?
     }

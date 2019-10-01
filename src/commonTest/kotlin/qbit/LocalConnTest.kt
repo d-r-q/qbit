@@ -1,70 +1,14 @@
 package qbit
 
-import qbit.ns.Namespace
-import qbit.storage.MemStorage
-import qbit.trx.qbit
-import kotlin.test.*
+import qbit.model.Entity
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class LocalConnTest {
 
-    @Test
-    fun testInit() {
-        val storage = MemStorage()
-        val db = qbit(storage)
-        assertNotNull(db)
-        assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
-    }
-
-    @Test
-    fun testUpdate() {
-        val conn = setupTestData()
-        conn.persist(eCodd.copy(name = "Im updated"))
-        conn.db() {
-            assertEquals("Im updated", it.pullT<User>(eCodd.id!!)!!.name)
-        }
-    }
-
-    @Test
-    fun testUnique() {
-        val conn = setupTestData()
-        try {
-            conn.persist(User(null, eCodd.externalId, "", emptyList()))
-            fail("QBitException expected")
-        } catch (e: QBitException) {
-            assertTrue(e.message?.contains("Duplicate") ?: false)
-        }
-    }
-
-//    @Test
-//    fun testDelete() {
-//        val conn = qbit(MemStorage())
-//        val _attr = ScalarAttr(Namespace("user")["attr"], QString)
-//        conn.persist(_attr)
-//
-//        val e = Entity(_attr eq "value")
-//        var se = conn.persist(e).storedEntity()
-//        se = se.with(_attr, "value2")
-//        conn.persist(se)
-//
-//        val pulledE2 = conn.db.pull(se.eid)
-//        assertEquals("value2", pulledE2!![_attr])
-//
-//        conn.persist(pulledE2.tombstone())
-//
-//        val deletedPulledE2 = conn.db.pull(se.eid)
-//        assertNull(deletedPulledE2)
-//        assertEquals(0, conn.db.query(attrIs(_attr, "value")).count())
-//        assertEquals(0, conn.db.query(attrIs(_attr, "value2")).count())
-//    }
-//
 //    @Test
 //    fun testPersistRef() {
-//        val user = Namespace("user")
-//        val _val = ScalarAttr(user["val"], QString)
-//        val _ref = RefAttr(user["ref"])
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_val, _ref)
+//        val conn = setupTestData()
 //
 //        val e1 = Entity(_val eq "e1")
 //        val e2 = Entity(_val eq "e2", _ref eq e1)
@@ -74,7 +18,7 @@ class LocalConnTest {
 //        val se1 = se2[_ref]
 //        assertEquals("e1", se1[_val])
 //    }
-//
+
 //    @Test
 //    fun testPersistRefCycle() {
 //        val user = Namespace("user")
