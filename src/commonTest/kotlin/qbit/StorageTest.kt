@@ -1,19 +1,25 @@
 package qbit
 
-import qbit.model.eq
+import io.ktor.client.HttpClient
+import io.ktor.client.request.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import qbit.ns.Key
 import qbit.ns.Namespace
-import qbit.ns.ns
-import qbit.ns.root
 import qbit.platform.Files
 import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import qbit.storage.Storage
-import qbit.trx.qbit
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StorageTest {
+
+    val TEST_ACCESS_TOKEN = "AgAAAAA4v_tAAADLW-MJ7N5YOU1BvQAUJ3i8_XM";
+    val YANDEX_DISK_API_CREATE_FOLDER = "https://cloud-api.yandex.net:443/v1/disk/resources?"
+//    val YANDEX_DISK_API_CREATE_FOLDER = "https://cloud-api.yandex.net:443/v1/disk/resources"
 
     @Test
     fun testMemStorage() {
@@ -26,6 +32,69 @@ class StorageTest {
         val root = Files.createTempDirectory("qbit").toFile()
         val storage = FileSystemStorage(root)
         testStorage(storage)
+    }
+
+    @Test
+    fun yandexDiskStorageAdd(){
+        val namespace0 = Namespace("namespace0");
+        val namespace1 = Namespace(namespace0, "namespace1")
+        val key : Key = Key(namespace1, "file1");
+        val byteArray = ByteArray(1000);
+
+        var job : Job = Job();
+        GlobalScope.launch {
+            val client = HttpClient()
+            var response: String
+            job = launch {
+                val paths = generatePutResourcePaths(namespace1);
+                val iterator = paths.iterator();
+                while(iterator.hasNext()){
+                    val path = iterator.next();
+                    client.put<String>(YANDEX_DISK_API_CREATE_FOLDER) {
+                        parameter("path", path)
+                        header("Authorization", "OAuth " + TEST_ACCESS_TOKEN);
+                    }
+                }
+            }
+            job.join()
+            client.close()
+            assertTrue(true)
+        }
+        while (!job.isCompleted) {}
+    }
+
+    @Test
+    fun yandexDiskStorage() {
+        var job : Job = Job();
+        GlobalScope.launch {
+            val client = HttpClient()
+            var htmlContent = "";
+            job = launch {
+                htmlContent = client.get<String>("https://en.wikipedia.org/wiki/Main_Page");
+            }
+            job.join();
+            client.close();
+            print(htmlContent);
+            assertTrue(true);
+        }
+        while (!job.isCompleted) {}
+    }
+
+    private fun generatePutResourcePaths(namespace: Namespace) : List<String> {
+        val partsArrayList = arrayListOf<List<String>>()
+        val pathsArrayList = arrayListOf<String>()
+        var currentNamespace = namespace
+        while(currentNamespace.parent != null){
+            partsArrayList.add(currentNamespace.parts)
+            currentNamespace = currentNamespace.parent!!
+        }
+
+        val iterator = partsArrayList.iterator();
+        while(iterator.hasNext()) {
+            val parts = iterator.next();
+            pathsArrayList.add(parts.joinToString("/"));
+        }
+        return pathsArrayList.reversed();
     }
 
     private fun testStorage(storage: Storage) {

@@ -2,18 +2,12 @@ package qbit.storage
 
 import qbit.ns.Key
 import qbit.ns.Namespace
-import qbit.platform.File
 
 class YandexDiskStorage(private val accessToken: String) : Storage {
 
     //my access token: AgAAAAA4v_tAAAXk79S51RcMUk1RqX9J_fYXIas
-    init {
-        val client = HttpClient()
-    }
-
 
     override fun add(key: Key, value: ByteArray) {
-
     }
 
     override fun overwrite(key: Key, value: ByteArray) {
