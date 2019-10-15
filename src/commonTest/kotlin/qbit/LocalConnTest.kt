@@ -1,51 +1,34 @@
 package qbit
 
+import qbit.Users.extId
 import qbit.model.Entity
+import qbit.model.QString
+import qbit.ns.Namespace
+import qbit.storage.MemStorage
+import qbit.trx.qbit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class LocalConnTest {
 
-//    @Test
-//    fun testPersistRef() {
-//        val conn = setupTestData()
-//
-//        val e1 = Entity(_val eq "e1")
-//        val e2 = Entity(_val eq "e2", _ref eq e1)
-//
-//        conn.persist(e1, e2)
-//        val se2 = conn.db.query(attrIs(_val, "e2")).toList()[0]
-//        val se1 = se2[_ref]
-//        assertEquals("e1", se1[_val])
-//    }
+    @Test
+    fun testPersistRefCycle() {
+        val conn = setupTestData()
+        val pChenReviewed = pChen.copy()
+        val eCoddReviewed = eCodd.copy(reviewer = pChenReviewed)
+        val mStonebreakerReviewed = mStonebreaker.copy(reviewer = eCoddReviewed)
+        pChenReviewed.reviewer = mStonebreakerReviewed
 
-//    @Test
-//    fun testPersistRefCycle() {
-//        val user = Namespace("user")
-//        val _val = ScalarAttr(user["val"], QString)
-//        val _ref = RefAttr(user["ref"])
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_val, _ref)
-//
-//        var e1 = Entity(_val eq "e1")
-//        e1 = conn.persist(e1).storedEntity()
-//        val e2 = Entity(_val eq "e2", _ref eq e1)
-//        val e3 = Entity(_val eq "e3", _ref eq e2)
-//        e1 = e1.with(_ref, e3)
-//
-//        conn.persist(e1, e2, e3)
-//
-//        val se1 = conn.db.query(attrIs(_val, "e1")).toList()[0]
-//        assertEquals("e1", se1[_val])
-//        assertEquals("e3", se1[_ref][_val])
-//        assertEquals("e2", se1[_ref][_ref][_val])
-//        val se3 = conn.db.query(attrIs(_val, "e3")).toList()[0]
-//        assertEquals("e3", se3[_val])
-//        assertEquals("e2", se3[_ref][_val])
-//        assertEquals("e1", se3[_ref][_ref][_val])
-//    }
-//
+        conn.persist(pChenReviewed)
+
+        val pc = conn.db().queryT<User>(attrIs(extId, pChen.externalId), fetch = Eager).first()
+
+        assertEquals("Peter Chen", pc.name)
+        assertEquals("Michael Stonebreaker", pc.reviewer?.name)
+        assertEquals("Edgar Codd", pc.reviewer?.reviewer?.name)
+    }
+
 //    @Test
 //    fun testRootOnlyPersist() {
 //        val user = Namespace("user")

@@ -46,4 +46,18 @@ class FunTest {
         assertEquals(0, conn.db().query(attrIs(Users.extId, newExtId)).count())
     }
 
+    @Test
+    fun testPersistEntityViaRef() {
+        val conn = setupTestData()
+
+        var ru = Country(null, "Russia", 146_000_000)
+        var aErshov = User(null, 0, "Andrey Ershov", listOf("Kompilatorshik"), ru)
+
+        conn.persist(aErshov)
+        aErshov = conn.db().queryT<User>(attrIs(Users.extId, 0)).first()
+        ru = aErshov.country
+        assertNotNull(ru.id)
+        assertEquals("Russia", ru.name)
+    }
+
 }

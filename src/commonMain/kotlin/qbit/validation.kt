@@ -26,7 +26,7 @@ fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
     facts.forEach {
         val attr: Attr<*> = factAttrs.getValue(it.attr)!!
         if (attr.unique) {
-            val eids = db.query(attrIs(attr as Attr<Any>, it.value)).map { f -> f.eid }.distinct().toList()
+            val eids = db.query(attrIs(attr as Attr<Any>, it.value)).map { f -> f.gid }.distinct().toList()
             if (eids.isNotEmpty() && eids != listOf(it.eid)) {
                 throw QBitException("Duplicate fact $it for unique attribute")
             }

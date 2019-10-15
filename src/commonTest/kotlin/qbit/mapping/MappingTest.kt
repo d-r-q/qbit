@@ -6,9 +6,9 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.test.*
 
-data class Addr(val id: Long?, val addr: String)
+private data class Addr(val id: Long?, val addr: String)
 
-data class User(
+private data class User(
         val id: Long? = null,
         val login: String,
         val strs: List<String>,
@@ -49,7 +49,7 @@ class MappingTest {
         assertNull(u.optAddr)
         assertEquals("lstAddr", u.addrs[0].addr)
 
-        val fullUser = reconstruct(Query(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        val fullUser = reconstruct(GraphQuery(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
         assertEquals("optAddr", fullUser.optAddr!!.addr)
 
         schema {
@@ -83,7 +83,7 @@ class MappingTest {
         )
         val facts = destruct(user, db::attr, eids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val fullUser = reconstruct(Query(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        val fullUser = reconstruct(GraphQuery(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
         assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
         assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
     }
@@ -170,21 +170,3 @@ class EntityBuilder(internal val type: KClass<*>) {
 
 }
 
-val defaults = hashMapOf<KClass<*>, Any>()
-
-fun <T : Any> default(type: KClass<T>): T =
-        defaults.getOrPut(type) {
-            when (type) {
-                Boolean::class -> false as T
-                String::class -> "" as T
-                Byte::class -> 0.toByte() as T
-                Int::class -> 0 as T
-                Long::class -> 0L as T
-                List::class -> listOf<Any>() as T
-                else -> {
-                    val constr = type.constructors.first()
-                    val args = constr.parameters.map { it to default(it.type.classifier as KClass<*>) }.toMap()
-                    constr.callBy(args)
-                }
-            }
-        } as T

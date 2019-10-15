@@ -1,15 +1,10 @@
 package qbit.mapping
 
-import qbit.Db
-import qbit.Fact
-import qbit.QBitException
+import qbit.*
 import qbit.model.*
 import qbit.platform.IdentityHashMap
 import qbit.platform.set
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty0
-import kotlin.reflect.KProperty1
+import kotlin.reflect.*
 
 
 val collectionTypes = setOf(List::class)
@@ -27,63 +22,65 @@ val valueTypes = types.values
         .filter { it.value() }
         .map { it.typeClass() }
 
-data class Query<R : Any>(val type: KClass<R>, val links: Map<String, Query<*>?>)
+interface Query<T> {
 
-fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Any>): Any {
-    val idProp = findGidProp(root)
+    fun shouldFetch(attr: Attr<*>): Boolean
+}
 
-    var id = idProp.call(root) ?: idMap[root]
-    var needUpdate = id == null
-    id = id ?: eids.next().let {
-        if (idProp.returnType.classifier == Gid::class) {
-            it
-        } else {
-            it.value()
-        }
+class EagerQuery<T> : Query<T> {
+
+    override fun shouldFetch(attr: Attr<*>): Boolean = true
+
+}
+
+data class GraphQuery<R : Any>(val type: KClass<R>, val links: Map<String, GraphQuery<*>?>) : Query<R> {
+
+    override fun shouldFetch(attr: Attr<*>): Boolean {
+        return attr.name in links || type.propertyFor(attr)?.returnType?.isMarkedNullable == false
     }
 
-    val attrs = root::class.constructors.first().parameters
-            .map {
+}
+
+fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Gid>) {
+    if (idMap[root] != null) {
+        return
+    }
+    val idProp = findGidProp(root)
+
+    when (val id = idProp.call(root)) {
+        null -> idMap[root] = eids.next()
+        is Gid -> idMap[root] = id
+        is Long -> idMap[root] = Gid(id)
+    }
+
+    root::class.members
+            .filterIsInstance<KProperty1<*, *>>()
+            .forEach {
                 val prop = root::class.members.firstOrNull { m -> m.name == it.name }!!
                 if (prop == idProp) {
-                    return@map it to id
+                    return@forEach
                 }
-                val value = prop.call(root)
-                when (it.type.classifier) {
-                    null -> it to value
-                    in valueTypes -> it to value
+                val value = prop.call(root) ?: return@forEach
+
+                when (it.returnType.classifier) {
+                    in valueTypes -> return@forEach
                     in collectionTypes -> {
                         @Suppress("UNCHECKED_CAST")
                         val list = value as List<Any>?
                         if (list == null || list.isEmpty() || list[0]::class in valueTypes) {
-                            return@map it to value
+                            return@forEach
+                        } else {
+                            list.forEach { item ->
+                                identifyEntityGraph(item, eids, idMap)
+                            }
                         }
-                        val newList = list.map { item ->
-                            val newItem = identifyEntityGraph(item, eids, idMap)
-                            needUpdate = needUpdate || item !== newItem
-                            newItem
-                        }
-                        it to newList
                     }
                     else -> {
-                        val newValue = identifyEntityGraph(value!!, eids, idMap)
-                        needUpdate = needUpdate || value !== newValue
-                        it to newValue
+                        identifyEntityGraph(value, eids, idMap)
                     }
                 }
             }
-            .toMap()
 
-    return if (needUpdate) {
-        val identified = root::class.constructors.first().callBy(attrs)
-        idMap[root] = identified
-        identified
-    } else {
-        if (!idMap.containsKey(root)) {
-            idMap[root] = root
-        }
-        idMap[root]!!
-    }
 }
 
 internal fun findGidProp(root: Any): KCallable<*> =
@@ -98,15 +95,18 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
         return e.toFacts()
     }
     val res = IdentityHashMap<Any, List<Fact>>()
-    val idMap = IdentityHashMap<Any, Any>()
+    val idMap = IdentityHashMap<Any, Gid>()
 
     fun body(e: Any): List<Fact> {
         if (res.containsKey(e)) {
             return res[e]!!
+        } else {
+            res[e] = emptyList()
         }
+
         val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
         val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
-        val eid = Gid(e.id) // ids existence has been checked while identification
+        val eid = idMap[e]!! // ids existence has been checked while identification
         val facts: List<Fact> = attrs.flatMap {
             val attr: Attr<*> = schema(e::class.attrName(it))
                     ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
@@ -118,15 +118,16 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
                             in valueTypes -> listOf(Fact(eid, attr.name, v))
                             else -> {
                                 body(v)
-                                listOf(Fact(eid, attr.name, Gid(v.id)))
+                                listOf(Fact(eid, attr.name, idMap[v]!!))
                             }
                         }
                     }
                 }
                 else -> {
+                    val value = it.call(e) ?: return@flatMap emptyList<Fact>()
 
-                    val fs = arrayListOf(Fact(eid, attr.name, Gid(it.call(e)!!.id)))
-                    body(it.call(e)!!)
+                    val fs = arrayListOf(Fact(eid, attr.name, idMap[value]!!))
+                    body(value)
                     fs
                 }
             }
@@ -135,8 +136,8 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
         return facts
     }
 
-    val identified = identifyEntityGraph(e, gids, idMap)
-    body(identified)
+    identifyEntityGraph(e, gids, idMap)
+    body(e)
 
     return res.values.flatten()
 }
@@ -167,11 +168,20 @@ val Any.gid: Gid
         }
     }
 
-fun <R : Any> reconstruct(type: KClass<R>, facts: Collection<Fact>, db: Db): R {
-    return reconstruct(Query(type, mapOf()), facts, db)
+fun castGid(gid: Any, type: KClassifier) =
+        when {
+            gid is Gid && type == Long::class -> gid.value()
+            gid is Gid && type == Gid::class -> gid
+            gid is Long && type == Long::class -> gid
+            gid is Long && type == Gid::class -> Gid(gid)
+            else -> throw QBitException("Cannot cast $gid to $type")
+        }
+
+fun <R : Any> reconstruct(type: KClass<R>, facts: Collection<Fact>, db: Db, fetch: Fetch = qbit.Lazy): R {
+    return reconstruct(GraphQuery(type, mapOf()), facts, db, fetch)
 }
 
-fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
+fun <R : Any> reconstruct(query: GraphQuery<R>, facts: Collection<Fact>, db: Db, fetch: Fetch = qbit.Lazy): R {
     require(facts.distinctBy { it.eid }.size == 1) { "Too many expected exactly one entity: ${facts.distinctBy { it.eid }}" }
     val attrFacts = facts.groupBy { it.attr }
     val constr = query.type.constructors.first()
@@ -183,18 +193,18 @@ fun <R : Any> reconstruct(query: Query<R>, facts: Collection<Fact>, db: Db): R {
                     List::class -> {
                         when (param.type.arguments[0].type!!.classifier as KClass<*>) {
                             in valueTypes -> param to f.value.map { it.value }
-                            else -> param to f.value.map { db.pullT(f.value[0].value as Gid, param.type.arguments[0].type!!.classifier as KClass<*>) }
+                            else -> param to f.value.map { db.pull(f.value[0].value as Gid, param.type.arguments[0].type!!.classifier as KClass<*>, fetch) }
                         }
                     }
                     else -> {
                         if (param.type.isMarkedNullable) {
-                            if (query.links.contains(param.name)) {
-                                param to db.pullT(f.value[0].value as Gid, param.type.classifier as KClass<*>)
+                            if (query.links.contains(param.name) || fetch == Eager) {
+                                param to db.pull(f.value[0].value as Gid, param.type.classifier as KClass<*>, fetch)
                             } else {
                                 param to null
                             }
                         } else {
-                            param to db.pullT(f.value[0].value as Gid, param.type.classifier as KClass<*>)
+                            param to db.pull(f.value[0].value as Gid, param.type.classifier as KClass<*>, fetch)
                         }
                     }
                 }

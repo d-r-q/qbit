@@ -4,13 +4,20 @@ import qbit.Attrs.list
 import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
+import qbit.mapping.EagerQuery
+import qbit.mapping.GraphQuery
+import qbit.mapping.Typing
 import qbit.mapping.reconstruct
 import qbit.model.*
-import qbit.model.DetachedEntity
-import qbit.model.toFacts
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import kotlin.reflect.KClass
+
+sealed class Fetch
+
+object Eager : Fetch()
+
+object Lazy : Fetch()
 
 interface QueryPred {
     val attrName: String
@@ -58,9 +65,9 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 interface Db {
 
-    fun pull(eid: Gid): Entity?
+    fun pull(gid: Gid): StoredEntity?
 
-    fun <R : Any> pullT(eid: Gid, type: KClass<R>): R?
+    fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch = Lazy): R?
 
     // Todo: add check that attrs are presented in schema
     fun query(vararg preds: QueryPred): Sequence<Entity>
@@ -70,25 +77,27 @@ interface Db {
     fun with(facts: List<Fact>): Db
 
     fun queryGids(vararg preds: QueryPred): Sequence<Gid>
+
 }
 
 inline fun <reified R : Any> Db.pullT(eid: Gid): R? {
-    return this.pullT(eid, R::class)
+    return this.pull(eid, R::class)
 }
 
 inline fun <reified R : Any> Db.pullT(eid: Long): R? {
-    return this.pullT(Gid(eid), R::class)
+    return this.pull(Gid(eid), R::class)
 }
 
-inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred): Sequence<R> =
-        this.queryGids(*preds).map { this.pullT<R>(it)!! }
+inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred, fetch: Fetch = Lazy): Sequence<R> =
+        this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }
 
 class IndexDb(internal val index: Index) : Db {
+
     private val schema = loadAttrs(index)
 
-    private val notFound = DetachedEntity(Gid(0, 0))
+    private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this)
 
-    private val entityCache = WeakHashMap<Gid, Entity>()
+    private val entityCache = WeakHashMap<Gid, StoredEntity>()
 
     private val dcCache = WeakHashMap<Entity, Any>()
 
@@ -96,32 +105,32 @@ class IndexDb(internal val index: Index) : Db {
         return IndexDb(index.addFacts(facts))
     }
 
-    override fun pull(eid: Gid): Entity? {
-        val cached = entityCache[eid]
+    override fun pull(gid: Gid): StoredEntity? {
+        val cached = entityCache[gid]
         if (cached === notFound) {
             return null
         } else if (cached != null) {
             return cached
         }
 
-        val rawEntity = index.entityById(eid)
+        val rawEntity = index.entityById(gid)
         if (rawEntity == null) {
-            entityCache[eid] = notFound
+            entityCache[gid] = notFound
             return null
         }
         val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null) { "There is no attribute with name ${it.key}" }
-            require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $eid" }
+            require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid" }
             attr to if (attr.list) it.value else it.value[0]
         }
-        val entity = AttachedEntity(eid, attrValues, this)
-        entityCache[eid] = entity
+        val entity = AttachedEntity(gid, attrValues, this)
+        entityCache[gid] = entity
         return entity
     }
 
-    override fun <R : Any> pullT(eid: Gid, type: KClass<R>): R? {
-        val entity = pull(eid) ?: return null
+    override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
+        val entity = pull(gid) ?: return null
         val cached = dcCache[entity]
         if (cached === notFound) {
             return null
@@ -130,7 +139,13 @@ class IndexDb(internal val index: Index) : Db {
             return cached as R
         }
 
-        val dc = reconstruct(type, entity.toFacts(), this)
+        val query = when (fetch) {
+            Lazy -> GraphQuery(type, emptyMap())
+            Eager -> EagerQuery<R>()
+        }
+
+        val typing = Typing(entity, query, type)
+        val dc = typing.instantiate(entity, type)
         dcCache[entity] = dc
         return dc
     }

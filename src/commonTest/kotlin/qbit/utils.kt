@@ -13,9 +13,9 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
 
 object emptyDb : Db {
 
-    override fun pull(eid: Gid): Entity? = null
+    override fun pull(gid: Gid): StoredEntity? = null
 
-    override fun <R : Any> pullT(eid: Gid, type: KClass<R>): R? = null
+    override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? = null
 
     override fun queryGids(vararg preds: QueryPred): Sequence<Gid> = emptySequence()
 
@@ -25,6 +25,34 @@ object emptyDb : Db {
 
     override fun with(facts: List<Fact>): Db {
         return IndexDb(Index().addFacts(facts))
+    }
+
+}
+
+class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db {
+
+    override fun pull(gid: Gid): StoredEntity? {
+        return map[gid]
+    }
+
+    override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
+        TODO("not implemented")
+    }
+
+    override fun query(vararg preds: QueryPred): Sequence<Entity> {
+        TODO("not implemented")
+    }
+
+    override fun attr(attr: String): Attr<Any>? {
+        TODO("not implemented")
+    }
+
+    override fun with(facts: List<Fact>): Db {
+        TODO("not implemented")
+    }
+
+    override fun queryGids(vararg preds: QueryPred): Sequence<Gid> {
+        TODO("not implemented")
     }
 
 }

@@ -1,8 +1,10 @@
 package qbit
 
+import qbit.Users.country
 import qbit.Users.extId
 import qbit.Users.name
 import qbit.Users.nicks
+import qbit.Users.reviewer
 import qbit.mapping.destruct
 import qbit.mapping.gid
 import qbit.model.*
@@ -25,7 +27,7 @@ class DbTest {
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(Gid(pChen.id!!)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.eid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(Gid(pChen.id!!)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.gid }.toList().toTypedArray())
     }
 
     @Test
@@ -37,7 +39,7 @@ class DbTest {
         val index = Index(Graph { null }, root)
 
         val db = IndexDb(index)
-        assertArrayEquals(arrayOf(eCodd.gid), db.query(attrIn(nicks, "n", "u")).map { it.eid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(eCodd.gid), db.query(attrIn(nicks, "n", "u")).map { it.gid }.toList().toTypedArray())
     }
 
     @Test
@@ -87,27 +89,6 @@ class DbTest {
         assertNotNull(db.query(attrIs(extId, 5)))
     }
 
-    @Test
-    fun `StoredEntity returns null, when asked to pull entity via not set attribute`() {
-        val dbUuid = DbUuid(IID(0, 1))
-        val eids = Gid(0, 0).nextGids()
-        val ref = Attr<Any>(eids.next(), "ref")
-
-        val e1 = Entity(eids.next())
-        val e2eid = eids.next()
-        val e2 = Entity(e2eid, ref eq e1)
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((ref.toFacts() + e2.toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
-        val graph = Graph { nodes[it.hash] }
-
-        val indexDb = IndexDb(Index(graph, root))
-        val e2Pulled = indexDb.pull(e2eid)!!
-        assertNotNull(e2Pulled)
-        assertNull(e2Pulled.tryGet(ref))
-        // todo: add check, that pull isn't called second time
-        assertNull(e2Pulled.tryGet(ref))
-    }
-
     @Ignore
     @Test
     fun testUniqueList() {
@@ -115,4 +96,19 @@ class DbTest {
         assertNull(uniqueList)
         // todo: what is expected behaviour for such attributes?
     }
+
+    @Test
+    fun `pull with fetch = Eager should fetch nullable refs`() {
+        val dbUuid = DbUuid(IID(0, 1))
+
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + reviewer.toFacts() + country.toFacts() +
+                Countries.name.toFacts() + Countries.population.toFacts() +
+                eCodd.copy(reviewer = pChen).toFacts()).toTypedArray()))
+        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
+        val graph = Graph { nodes[it.hash] }
+        val db = IndexDb(Index(graph, root))
+        val pc = db.pull(eCodd.gid, User::class, Eager)!!
+        assertNotNull(pc.reviewer)
+    }
+
 }
