@@ -51,18 +51,6 @@ fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
             .firstOrNull() ?: 0
 }
 
-val eavCmp = Comparator<Fact> { o1, o2 ->
-
-    var res = o1.eid.compareTo(o2.eid)
-    if (res == 0) {
-        res = o1.attr.compareTo(o2.attr)
-    }
-    if (res == 0) {
-        res = compareValues(o1.value, o2.value)
-    }
-    res
-}
-
 val aveCmp = Comparator<Fact> { o1, o2 ->
 
     var res = o1.attr.compareTo(o2.attr)

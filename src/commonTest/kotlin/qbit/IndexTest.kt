@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.Users.extId
+import qbit.Scientists.extId
 import qbit.model.*
 import qbit.platform.currentTimeMillis
 import qbit.serialization.SimpleSerialization
@@ -8,7 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import qbit.Users.name as userName
+import qbit.Scientists.name as userName
 import qbit.tombstone as tsAttr
 
 class IndexTest {

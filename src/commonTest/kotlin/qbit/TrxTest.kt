@@ -1,7 +1,7 @@
 package qbit
 
-import qbit.Users.extId
-import qbit.Users.name
+import qbit.Scientists.extId
+import qbit.Scientists.name
 import qbit.model.Gid
 import qbit.ns.Key
 import qbit.ns.ns

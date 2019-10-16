@@ -25,11 +25,16 @@ val valueTypes = types.values
 interface Query<T> {
 
     fun shouldFetch(attr: Attr<*>): Boolean
+
+    fun <ST : Any> subquery(subType: KClass<ST>): Query<ST>
+
 }
 
 class EagerQuery<T> : Query<T> {
 
     override fun shouldFetch(attr: Attr<*>): Boolean = true
+
+    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = this as Query<ST>
 
 }
 
@@ -38,6 +43,8 @@ data class GraphQuery<R : Any>(val type: KClass<R>, val links: Map<String, Graph
     override fun shouldFetch(attr: Attr<*>): Boolean {
         return attr.name in links || type.propertyFor(attr)?.returnType?.isMarkedNullable == false
     }
+
+    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = GraphQuery(subType, links)
 
 }
 
@@ -104,7 +111,9 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
             res[e] = emptyList()
         }
 
-        val getters = e::class.members.filterIsInstance<KProperty1<*, *>>()
+        val getters = e::class.members
+                .filterIsInstance<KProperty1<*, *>>()
+                .sortedBy { it.name }
         val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
         val eid = idMap[e]!! // ids existence has been checked while identification
         val facts: List<Fact> = attrs.flatMap {

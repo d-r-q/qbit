@@ -5,7 +5,7 @@ import qbit.model.AttachedEntity
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.model.StoredEntity
-import qbit.User as Scientist
+import qbit.Scientist as Scientist
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -18,8 +18,8 @@ class TypingTest {
     fun `Test scalar ref traversing`() {
         val gids = Gid(0, 0).nextGids()
         val map = HashMap<Gid, StoredEntity>()
-        val aLaypunov = AttachedEntity(gids.next(), mapOf<Attr<Any>, Any>(Users.name to "Aleksey Lyapunov"), map::get)
-        val aErshov = AttachedEntity(gids.next(), mapOf(Users.name to "Andrey Ershov", Users.reviewer to aLaypunov.gid), map::get)
+        val aLaypunov = AttachedEntity(gids.next(), mapOf<Attr<Any>, Any>(Scientists.name to "Aleksey Lyapunov"), map::get)
+        val aErshov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Andrey Ershov", Scientists.reviewer to aLaypunov.gid), map::get)
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov
         val typing = Typing(aErshov, EagerQuery(), Scientist::class)
@@ -32,9 +32,9 @@ class TypingTest {
         val map = HashMap<Gid, StoredEntity>()
         val sLebedevGid = gids.next()
 
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(Users.name to "Aleksey Lyapunov", Users.reviewer to sLebedevGid), map::get)
-        val aErshov = AttachedEntity(gids.next(), mapOf(Users.name to "Andrey Ershov", Users.reviewer to aLaypunov.gid), map::get)
-        val sLebedev = AttachedEntity(sLebedevGid, mapOf(Users.name to "Sergey Lebedev", Users.reviewer to aErshov.gid), map::get)
+        val aLaypunov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid), map::get)
+        val aErshov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Andrey Ershov", Scientists.reviewer to aLaypunov.gid), map::get)
+        val sLebedev = AttachedEntity(sLebedevGid, mapOf(Scientists.name to "Sergey Lebedev", Scientists.reviewer to aErshov.gid), map::get)
 
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov
@@ -44,10 +44,40 @@ class TypingTest {
     }
 
     @Test
+    fun `Test list ref traversing`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+        val aLaypunov = AttachedEntity(gids.next(), mapOf<Attr<Any>, Any>(Scientists.name to "Aleksey Lyapunov"), map::get)
+        val aErshov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Andrey Ershov", Scientists.reviewer to aLaypunov.gid), map::get)
+        val researchGroup = AttachedEntity(gids.next(), mapOf(ResearchGroups.members to listOf(aLaypunov.gid, aErshov.gid)), map::get)
+        map[aLaypunov.gid] = aLaypunov
+        map[aErshov.gid] = aErshov
+        map[researchGroup.gid] = researchGroup
+
+        val typing = Typing(researchGroup, EagerQuery(), ResearchGroup::class)
+        assertEquals(3, typing.entities.size)
+    }
+
+    @Test
+    fun `When typing with GraphQuery type T1, that has mandatory ref to type T2, mandatory props of T2 should be fetched too`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+        val ru = AttachedEntity(gids.next(), mapOf<Attr<Any>, Any>(Countries.name to "Russia"), map::get)
+        val nsk = AttachedEntity(gids.next(), mapOf(Regions.name to "Novosibirskaya obl.", Regions.country to ru), map::get)
+        val nskCity = AttachedEntity(gids.next(), mapOf(Cities.name to "Novosibirsk", Cities.region to nsk), map::get)
+        map[ru.gid] = ru
+        map[nsk.gid] = nsk
+        map[nskCity.gid] = nskCity
+
+        val typing = Typing(nskCity, GraphQuery(City::class, emptyMap()), City::class)
+        assertEquals(3, typing.entities.size)
+    }
+
+    @Test
     fun `Test instantiation of entity with missed fact`() {
         val gids = Gid(0, 0).nextGids()
         val sLebedevGid = gids.next()
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(/* no externalId */ Users.name to "Aleksey Lyapunov", Users.reviewer to sLebedevGid), { gid -> null })
+        val aLaypunov = AttachedEntity(gids.next(), mapOf(/* no externalId */ Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid), { gid -> null })
         val typing = Typing(aLaypunov, EagerQuery(), Scientist::class)
         assertFailsWith<QBitException> {
             typing.instantiate(aLaypunov, Scientist::class)
@@ -115,14 +145,14 @@ class TypingTest {
         val ru = AttachedEntity(gids.next(),
                 mapOf(Countries.name to "Russia", Countries.population to 146_000_000),
                 map::get)
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(Users.name to "Aleksey Lyapunov", Users.extId to 1, Users.nicks to emptyList<String>(), Users.country to ru), map::get)
-        val aErshov = AttachedEntity(gids.next(), mapOf(Users.name to "Andrey Ershov", Users.reviewer to aLaypunov.gid, Users.extId to 2, Users.nicks to emptyList<String>(), Users.country to ru), map::get)
+        val aLaypunov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Aleksey Lyapunov", Scientists.extId to 1, Scientists.nicks to emptyList<String>(), Scientists.country to ru), map::get)
+        val aErshov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Andrey Ershov", Scientists.reviewer to aLaypunov.gid, Scientists.extId to 2, Scientists.nicks to emptyList<String>(), Scientists.country to ru), map::get)
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov
         map[ru.gid] = ru
         val typing = Typing(aErshov, EagerQuery(), Scientist::class)
         val typedErshov = typing.instantiate(aErshov, Scientist::class)
-        assertEquals(aLaypunov[Users.name], typedErshov.reviewer?.name)
+        assertEquals(aLaypunov[Scientists.name], typedErshov.reviewer?.name)
     }
 
     @Test
@@ -134,9 +164,9 @@ class TypingTest {
         val ru = AttachedEntity(gids.next(),
                 mapOf(Countries.name to "Russia", Countries.population to 146_000_000),
                 map::get)
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(Users.name to "Aleksey Lyapunov", Users.reviewer to sLebedevGid, Users.extId to 1, Users.nicks to emptyList<String>(), Users.country to ru), map::get)
-        val aErshov = AttachedEntity(gids.next(), mapOf(Users.name to "Andrey Ershov", Users.reviewer to aLaypunov.gid, Users.extId to 2, Users.nicks to emptyList<String>(), Users.country to ru), map::get)
-        val sLebedev = AttachedEntity(sLebedevGid, mapOf(Users.name to "Sergey Lebedev", Users.reviewer to aErshov.gid, Users.extId to 3, Users.nicks to emptyList<String>(), Users.country to ru), map::get)
+        val aLaypunov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid, Scientists.extId to 1, Scientists.nicks to emptyList<String>(), Scientists.country to ru), map::get)
+        val aErshov = AttachedEntity(gids.next(), mapOf(Scientists.name to "Andrey Ershov", Scientists.reviewer to aLaypunov.gid, Scientists.extId to 2, Scientists.nicks to emptyList<String>(), Scientists.country to ru), map::get)
+        val sLebedev = AttachedEntity(sLebedevGid, mapOf(Scientists.name to "Sergey Lebedev", Scientists.reviewer to aErshov.gid, Scientists.extId to 3, Scientists.nicks to emptyList<String>(), Scientists.country to ru), map::get)
 
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov

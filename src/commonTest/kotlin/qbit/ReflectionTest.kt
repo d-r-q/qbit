@@ -1,6 +1,5 @@
 package qbit
 
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -40,14 +39,14 @@ class ReflectionTest {
 
     @Test
     fun `test find mutable properties`() {
-        val mutProps = findMutableProperties(User::class)
+        val mutProps = findMutableProperties(Scientist::class)
         assertEquals(1, mutProps.size)
-        assertEquals(User::reviewer, mutProps[0])
+        assertEquals(Scientist::reviewer, mutProps[0])
     }
 
     @Test
     fun `test find primary constructor of type with single constructor`() {
-        assertNotNull(findPrimaryConstructor(User::class))
+        assertNotNull(findPrimaryConstructor(Scientist::class))
     }
 
     @Test
@@ -77,14 +76,14 @@ class ReflectionTest {
 
     @Test
     fun `Test find setable props`() {
-        val setableProps = setableProps(User::class)
+        val setableProps = setableProps(Scientist::class)
         assertEquals(1, setableProps.size)
         assertEquals("reviewer", setableProps[0].name)
     }
 
     @Test
     fun `Test find property for attr`() {
-        assertEquals("country", User::class.propertyFor(Users.country)?.name)
+        assertEquals("country", Scientist::class.propertyFor(Scientists.country)?.name)
     }
 
 }

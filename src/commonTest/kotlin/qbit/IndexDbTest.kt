@@ -1,10 +1,10 @@
 package qbit
 
-import qbit.Users.country
-import qbit.Users.extId
-import qbit.Users.name
-import qbit.Users.nicks
-import qbit.Users.reviewer
+import qbit.Scientists.country
+import qbit.Scientists.extId
+import qbit.Scientists.name
+import qbit.Scientists.nicks
+import qbit.Scientists.reviewer
 import qbit.mapping.destruct
 import qbit.mapping.gid
 import qbit.model.*
@@ -107,7 +107,7 @@ class DbTest {
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
         val db = IndexDb(Index(graph, root))
-        val pc = db.pull(eCodd.gid, User::class, Eager)!!
+        val pc = db.pull(eCodd.gid, Scientist::class, Eager)!!
         assertNotNull(pc.reviewer)
     }
 

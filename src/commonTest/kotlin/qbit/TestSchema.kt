@@ -13,7 +13,7 @@ import qbit.trx.qbit
 
 data class Country(val id: Long?, val name: String, val population: Int?)
 
-data class User(val id: Long?, val externalId: Int, val name: String, val nicks: List<String>, val country: Country, var reviewer: User? = null) {
+data class Scientist(val id: Long?, val externalId: Int, val name: String, val nicks: List<String>, val country: Country, var reviewer: Scientist? = null) {
 
     fun toFacts() =
             destruct(this, schemaMap::get, EmptyIterator)
@@ -25,10 +25,14 @@ data class User(val id: Long?, val externalId: Int, val name: String, val nicks:
 
 data class Region(val id: Long?, val name: String, val country: Country)
 
-data class Paper(val id: Long, val name: String, val editor: User?)
+data class City(val id: Long?, val name: String, val region: Region)
+
+data class Paper(val id: Long?, val name: String, val editor: Scientist?)
+
+data class ResearchGroup(val id: Long?, val members: List<Scientist>)
 
 val testSchema = schema {
-    entity(User::class) {
+    entity(Scientist::class) {
         unique(it::externalId)
     }
     entity(Country::class) {
@@ -36,6 +40,8 @@ val testSchema = schema {
     }
     entity(Region::class)
     entity(Paper::class)
+    entity(ResearchGroup::class)
+    entity(City::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
@@ -43,13 +49,13 @@ val schemaMap: Map<String, Attr<Any>> = testSchema
         .map { it.name to it.id(gids.next()) }
         .toMap()
 
-object Users {
+object Scientists {
 
-    val extId: Attr<Int> = schemaMap.getValue(User::class.attrName(User::externalId)) as Attr<Int>
-    val name: Attr<String> = schemaMap.getValue(User::class.attrName(User::name)) as Attr<String>
-    val nicks: Attr<List<String>> = schemaMap.getValue(User::class.attrName(User::nicks)) as Attr<List<String>>
-    val reviewer = schemaMap.getValue(User::class.attrName(User::reviewer))
-    val country = schemaMap.getValue(User::class.attrName(User::country))
+    val extId: Attr<Int> = schemaMap.getValue(Scientist::class.attrName(Scientist::externalId)) as Attr<Int>
+    val name: Attr<String> = schemaMap.getValue(Scientist::class.attrName(Scientist::name)) as Attr<String>
+    val nicks: Attr<List<String>> = schemaMap.getValue(Scientist::class.attrName(Scientist::nicks)) as Attr<List<String>>
+    val reviewer = schemaMap.getValue(Scientist::class.attrName(Scientist::reviewer))
+    val country = schemaMap.getValue(Scientist::class.attrName(Scientist::country))
 }
 
 object Countries {
@@ -66,10 +72,23 @@ object Regions {
 
 }
 
+object Cities {
+
+    val name = schemaMap.getValue(City::class.attrName(City::name))
+    val region = schemaMap.getValue(City::class.attrName(City::region))
+
+}
+
 object Papers {
 
     val name = schemaMap.getValue(Paper::class.attrName(Paper::name))
     val editor = schemaMap.getValue(Paper::class.attrName(Paper::editor))
+
+}
+
+object ResearchGroups {
+
+    val members = schemaMap.getValue(ResearchGroup::class.attrName(ResearchGroup::members))
 
 }
 
@@ -79,10 +98,10 @@ val us = Country(gids.next().value(), "USA", 328_000_000)
 val ru = Country(gids.next().value(), "Russia", 146_000_000)
 val nsk = Region(gids.next().value(), "Novosibirskaya obl.", ru)
 
-val eCodd = User(gids.next().value(), 1, "Edgar Codd", listOf("mathematician", "tabulator"), uk)
-val pChen = User(gids.next().value(), 2, "Peter Chen", listOf("unificator"), tw)
-val mStonebreaker = User(gids.next().value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"), us)
-val eBrewer = User(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
+val eCodd = Scientist(gids.next().value(), 1, "Edgar Codd", listOf("mathematician", "tabulator"), uk)
+val pChen = Scientist(gids.next().value(), 2, "Peter Chen", listOf("unificator"), tw)
+val mStonebreaker = Scientist(gids.next().value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"), us)
+val eBrewer = Scientist(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
 
 fun setupTestSchema(storage: Storage = MemStorage()): Conn {
     val conn = qbit(storage)

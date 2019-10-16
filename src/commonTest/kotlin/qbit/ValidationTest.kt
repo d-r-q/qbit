@@ -1,6 +1,6 @@
 package qbit
 
-import qbit.Users.extId
+import qbit.Scientists.extId
 import qbit.model.*
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

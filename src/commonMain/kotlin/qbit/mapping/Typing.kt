@@ -1,12 +1,9 @@
 package qbit.mapping
 
-import qbit.QBitException
-import qbit.findPrimaryConstructor
-import qbit.isId
+import qbit.*
 import qbit.model.DataType
 import qbit.model.Gid
 import qbit.model.StoredEntity
-import qbit.setableProps
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
@@ -15,10 +12,10 @@ import kotlin.reflect.KParameter
 class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query<T>, internal val type: KClass<T>) {
 
     internal val entities = HashMap<Gid, StoredEntity>()
-    internal val instances = HashMap<Gid, Any>()
+    private val instances = HashMap<Gid, Any>()
 
     init {
-        fun body(root: StoredEntity) {
+        fun <T : Any> body(root: StoredEntity, type: KClass<T>, query: Query<T>) {
             if (entities[root.gid] != null) {
                 return
             } else {
@@ -28,11 +25,21 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
                     .filter { DataType.ofCode(it.attr.type)!!.ref() }
                     .filter { query.shouldFetch(it.attr) }
                     .forEach {
-                        root.pull(it.value as Gid)?.let { e -> body(e) }
+                        if (it.attr.list) {
+                            val subType = type.propertyFor(it.attr)!!.returnType.arguments[0].type!!.classifier as KClass<T>
+                            val subquery = query.subquery(subType)
+                            (it.value as List<Gid>).forEach { gid ->
+                                root.pull(gid)?.let { e -> body(e, subType, subquery) }
+                            }
+                        } else {
+                            val subType = type.propertyFor(it.attr)!!.returnType.classifier as KClass<Any>
+                            val subquery = query.subquery(subType)
+                            root.pull(it.value as Gid)?.let { e -> body(e, subType, subquery) }
+                        }
                     }
         }
 
-        body(root)
+        body(root, type, query)
     }
 
     fun <R : Any> instantiate(e: StoredEntity, type: KClass<R>): R {
@@ -59,14 +66,14 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
                     param.type.classifier == List::class -> {
                         when (param.type.arguments[0].type!!.classifier as KClass<*>) {
                             in valueTypes -> param to e[attr]
-                            else -> param to ((e[attr] as List<Gid>).map {
+                            else -> (param to ((e[attr] as List<Gid>).map {
                                 instantiate(entities[it]!!, param.type.arguments[0].type!!.classifier as KClass<Any>)
-                            }) as Pair<KParameter, Any>
+                            }))
                         }
                     }
                     else -> {
-                        param to instantiate(entities[e[attr] as Gid]!!,
-                                param.type.classifier as KClass<Any>)
+                        val instance = instantiate(entities[e[attr] as Gid]!!, param.type.classifier as KClass<Any>)
+                        param to instance
                     }
                 }
             } else {

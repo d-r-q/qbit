@@ -47,12 +47,12 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
         val facts = destruct(entityGraphRoot, db::attr, eids)
         val entities = facts.map { it.eid }
                 .distinct()
-                .mapNotNull { db.pull(it)?.toFacts()?.sortedWith(eavCmp) }
+                .mapNotNull { db.pull(it)?.toFacts()?.toList() }
                 .map { it[0].eid to it }
                 .toMap()
         val updatedFacts = facts.groupBy { it.eid }
                 .filter { ue ->
-                    ue.value.sortedWith(aveCmp) != entities[ue.key]
+                    ue.value != entities[ue.key]
                 }
                 .values
                 .flatten()
