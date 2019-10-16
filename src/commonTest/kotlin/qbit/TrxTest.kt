@@ -2,9 +2,12 @@ package qbit
 
 import qbit.Users.extId
 import qbit.Users.name
+import qbit.model.Gid
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
+import qbit.trx.Instance
+import qbit.trx.QbitTrx2
 import qbit.trx.qbit
 import kotlin.test.*
 
@@ -31,6 +34,56 @@ class TrxTest {
             assertNotNull(it.query(attrIs(Attrs.name, extId.name)).firstOrNull())
             assertNull(it.query(attrIs(Attrs.name, name.name)).firstOrNull())
         }
+    }
+
+    @Test
+    fun `Qbit should ignore persistence of not changed entity`() {
+        val trxLog = FakeTrxLog()
+        val conn = FakeConn()
+        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+                Instances.iid, Instances.nextEid, Instances.forks,
+                extId), conn)
+        trx.persist(extId)
+        trx.commit()
+        assertEquals(0, trxLog.appendsCalls)
+        assertEquals(0, conn.updatesCalls)
+    }
+
+    @Test
+    fun `When entity graph to store contains both updated and stored entities, only updated entity should be actually stored`() {
+        val trxLog = FakeTrxLog()
+        val conn = FakeConn()
+        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+                Instances.iid, Instances.nextEid, Instances.forks,
+                Countries.name, Countries.population,
+                Regions.name, Regions.country,
+                nsk), conn)
+        trx.persist(nsk.copy(name = "Novonikolaevskaya obl."))
+        trx.commit()
+        assertEquals(1, trxLog.appendsCalls)
+        assertEquals(1, conn.updatesCalls)
+        assertEquals(5, trxLog.appendedFacts[0].size, "Five facts (2 for region and 3 for instance) expected")
+        assertTrue(trxLog.appendedFacts[0].any { it.value == "Novonikolaevskaya obl." })
+    }
+
+    @Test
+    fun `When entity graph to store contains both new and stored entities, only updated entity should be actually stored`() {
+        val trxLog = FakeTrxLog()
+        val conn = FakeConn()
+        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+                Instances.iid, Instances.nextEid, Instances.forks,
+                Countries.name, Countries.population,
+                Regions.name, Regions.country,
+                ru), conn)
+        trx.persist(Region(null, "Kemerovskaya obl.", ru))
+        trx.commit()
+        assertEquals(1, trxLog.appendsCalls)
+        assertEquals(1, conn.updatesCalls)
+        assertEquals(5, trxLog.appendedFacts[0].size, "Five facts (2 for region and 3 for instance) expected")
+        assertTrue(trxLog.appendedFacts[0].any { it.value == "Kemerovskaya obl." })
     }
 
     @Ignore

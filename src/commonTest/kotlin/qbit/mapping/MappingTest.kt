@@ -6,9 +6,9 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.test.*
 
-private data class Addr(val id: Long?, val addr: String)
+data class Addr(val id: Long?, val addr: String)
 
-private data class User(
+data class MUser(
         val id: Long? = null,
         val login: String,
         val strs: List<String>,
@@ -24,7 +24,7 @@ class MappingTest {
         val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
-            entity(User::class) {
+            entity(MUser::class) {
                 unique(it::login)
             }
             entity(Addr::class)
@@ -32,7 +32,7 @@ class MappingTest {
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
 
-        val user = User(
+        val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
                 addr = Addr(null, "addr"),
@@ -42,18 +42,18 @@ class MappingTest {
 
         val facts = destruct(user, db::attr, eids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val u = reconstruct(User::class, facts.filter { it.eid.eid == 6 }, db2)
+        val u = reconstruct(MUser::class, facts.filter { it.eid.eid == 6 }, db2)
         assertEquals("login", u.login)
         assertEquals(listOf("str1", "str2"), u.strs)
         assertEquals("addr", u.addr.addr)
         assertNull(u.optAddr)
         assertEquals("lstAddr", u.addrs[0].addr)
 
-        val fullUser = reconstruct(GraphQuery(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        val fullUser = reconstruct(GraphQuery(MUser::class, mapOf(MUser::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
         assertEquals("optAddr", fullUser.optAddr!!.addr)
 
         schema {
-            entity(User::class) {
+            entity(MUser::class) {
                 unique(it::login)
             }
         }
@@ -65,7 +65,7 @@ class MappingTest {
         val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
-            entity(User::class) {
+            entity(MUser::class) {
                 unique(it::login)
             }
             entity(Addr::class)
@@ -74,7 +74,7 @@ class MappingTest {
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
 
         val addr = Addr(null, "addr")
-        val user = User(
+        val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
                 addr = addr,
@@ -83,7 +83,7 @@ class MappingTest {
         )
         val facts = destruct(user, db::attr, eids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val fullUser = reconstruct(GraphQuery(User::class, mapOf(User::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        val fullUser = reconstruct(GraphQuery(MUser::class, mapOf(MUser::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
         assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
         assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
     }
@@ -94,14 +94,14 @@ class MappingTest {
         val eids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
-            entity(User::class)
+            entity(MUser::class)
             entity(Addr::class)
         }
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
 
         val addr = Addr(1, "addr")
-        val user = User(
+        val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
                 addr = addr,
@@ -126,7 +126,7 @@ class MappingTest {
         val eids = Gid(0, 0).nextGids()
         val addrFacts = destruct(Attr<String>("addr"), bootstrapSchema::get, eids)
         assertFailsWith<QBitException> {
-            reconstruct(User::class, addrFacts, emptyDb)
+            reconstruct(MUser::class, addrFacts, emptyDb)
         }
     }
 

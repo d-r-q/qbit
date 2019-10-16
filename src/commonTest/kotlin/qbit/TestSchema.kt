@@ -72,9 +72,11 @@ object Papers {
 
 }
 
-val uk = Country(gids.next().value(), "United Kingdom", 1)
-val tw = Country(gids.next().value(), "Taiwan", 2)
-val us = Country(gids.next().value(), "USA", 3)
+val uk = Country(gids.next().value(), "United Kingdom", 63_000_000)
+val tw = Country(gids.next().value(), "Taiwan", 23_000_000)
+val us = Country(gids.next().value(), "USA", 328_000_000)
+val ru = Country(gids.next().value(), "Russia", 146_000_000)
+val nsk = Region(gids.next().value(), "Novosibirskaya obl.", ru)
 
 val eCodd = User(gids.next().value(), 1, "Edgar Codd", listOf("mathematician", "tabulator"), uk)
 val pChen = User(gids.next().value(), 2, "Peter Chen", listOf("unificator"), tw)

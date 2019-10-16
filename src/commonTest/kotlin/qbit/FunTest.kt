@@ -60,4 +60,32 @@ class FunTest {
         assertEquals("Russia", ru.name)
     }
 
+
+    @Test
+    fun `Test persistence and pulling of entities cycle`() {
+        val conn = setupTestData()
+        val pChenReviewed = pChen.copy()
+        val eCoddReviewed = eCodd.copy(reviewer = pChenReviewed)
+        val mStonebreakerReviewed = mStonebreaker.copy(reviewer = eCoddReviewed)
+        pChenReviewed.reviewer = mStonebreakerReviewed
+
+        conn.persist(pChenReviewed)
+
+        val pc = conn.db().queryT<User>(attrIs(Users.extId, pChen.externalId), fetch = Eager).first()
+
+        assertEquals("Peter Chen", pc.name)
+        assertEquals("Michael Stonebreaker", pc.reviewer?.name)
+        assertEquals("Edgar Codd", pc.reviewer?.reviewer?.name)
+    }
+
+
+    @Test
+    fun `When not changed entity is stored, qbit should not write new transaction`() {
+        val conn = setupTestData()
+        val head = conn.head
+        conn.persist(eCodd)
+
+        assertEquals(head, conn.head)
+    }
+
 }

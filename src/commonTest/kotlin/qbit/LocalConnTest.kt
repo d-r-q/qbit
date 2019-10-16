@@ -1,71 +1,10 @@
 package qbit
 
-import qbit.Users.extId
-import qbit.model.Entity
-import qbit.model.QString
-import qbit.ns.Namespace
-import qbit.storage.MemStorage
-import qbit.trx.qbit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class LocalConnTest {
 
-    @Test
-    fun testPersistRefCycle() {
-        val conn = setupTestData()
-        val pChenReviewed = pChen.copy()
-        val eCoddReviewed = eCodd.copy(reviewer = pChenReviewed)
-        val mStonebreakerReviewed = mStonebreaker.copy(reviewer = eCoddReviewed)
-        pChenReviewed.reviewer = mStonebreakerReviewed
-
-        conn.persist(pChenReviewed)
-
-        val pc = conn.db().queryT<User>(attrIs(extId, pChen.externalId), fetch = Eager).first()
-
-        assertEquals("Peter Chen", pc.name)
-        assertEquals("Michael Stonebreaker", pc.reviewer?.name)
-        assertEquals("Edgar Codd", pc.reviewer?.reviewer?.name)
-    }
-
-//    @Test
-//    fun testRootOnlyPersist() {
-//        val user = Namespace("user")
-//        val _val = ScalarAttr(user["val"], QString)
-//        val _ref = RefAttr(user["ref"])
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_val, _ref)
-//
-//        val e1 = Entity(_val eq "e1")
-//        val e2 = Entity(_val eq "e2", _ref eq e1)
-//        val e3 = Entity(_val eq "e3", _ref eq e2)
-//
-//        conn.persist(e3)
-//
-//        val se3 = conn.db.query(attrIs(_val, "e3")).toList()[0]
-//        assertEquals("e3", se3[_val])
-//        assertEquals("e2", se3[_ref][_val])
-//        assertEquals("e1", se3[_ref][_ref][_val])
-//        se3[_ref]
-//    }
-//
-//    @Test
-//    fun testRestoreEntity() {
-//        val user = Namespace("user")
-//        val _val = ScalarAttr(user["val"], QString)
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_val)
-//
-//        val e1 = Entity(_val eq "e1")
-//        val se1 = conn.persist(e1).storedEntity()
-//        val h = conn.head
-//        conn.persist(se1)
-//        assertEquals(h, conn.head)
-//    }
-//
 //    @Test
 //    fun testRestoreEntityWithNew() {
 //        val user = Namespace("user")

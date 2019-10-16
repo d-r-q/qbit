@@ -121,7 +121,7 @@ class IndexDb(internal val index: Index) : Db {
         val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null) { "There is no attribute with name ${it.key}" }
-            require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid" }
+            require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
             attr to if (attr.list) it.value else it.value[0]
         }
         val entity = AttachedEntity(gid, attrValues, this)

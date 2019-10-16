@@ -7,7 +7,11 @@ import kotlin.test.assertEquals
 import kotlin.test.fail
 
 fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
-    val facts = entities.flatMap { destruct(it, bootstrapSchema::get, eids) }
+    val addedAttrs = entities
+            .filterIsInstance<Attr<*>>()
+            .map { it.name to it }
+            .toMap()
+    val facts = entities.flatMap { destruct(it, (bootstrapSchema + addedAttrs)::get, eids) }
     return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
 }
 

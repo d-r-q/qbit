@@ -8,7 +8,10 @@ import qbit.Attrs.unique
 import qbit.Instances.forks
 import qbit.Instances.nextEid
 import qbit.mapping.destruct
-import qbit.model.*
+import qbit.mapping.gid
+import qbit.model.Gid
+import qbit.model.IID
+import qbit.model.toFacts
 import qbit.ns.Namespace
 import qbit.platform.IdentityHashMap
 import qbit.platform.currentTimeMillis
@@ -35,20 +38,38 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     private val factsBuffer = ArrayList<Fact>()
 
-    val eids = Gid(inst.iid, inst.nextEid).nextGids()
+    private val eids = Gid(inst.iid, inst.nextEid).nextGids()
 
     override val db
         get() = (this.curDb ?: this.base)
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R> {
         val facts = destruct(entityGraphRoot, db::attr, eids)
-        validate(db, facts)
-        factsBuffer.addAll(facts)
-        curDb = db.with(facts)
-        return QbitWriteResult(Any() as R, curDb!!, IdentityHashMap<Any, Any>())
+        val entities = facts.map { it.eid }
+                .distinct()
+                .mapNotNull { db.pull(it)?.toFacts()?.sortedWith(eavCmp) }
+                .map { it[0].eid to it }
+                .toMap()
+        val updatedFacts = facts.groupBy { it.eid }
+                .filter { ue ->
+                    ue.value.sortedWith(aveCmp) != entities[ue.key]
+                }
+                .values
+                .flatten()
+        if (updatedFacts.isEmpty()) {
+            return QbitWriteResult(entityGraphRoot, db, IdentityHashMap())
+        }
+        validate(db, updatedFacts)
+        factsBuffer.addAll(updatedFacts)
+        curDb = db.with(updatedFacts)
+        return QbitWriteResult(Any() as R, curDb!!, IdentityHashMap())
     }
 
     override fun commit() {
+        if (factsBuffer.isEmpty()) {
+            return
+        }
+
         val newLog = trxLog.append(factsBuffer + destruct(inst.copy(nextEid = eids.next().eid), curDb!!::attr, EmptyIterator))
         try {
             conn.update(trxLog, newLog)
@@ -127,6 +148,8 @@ interface Conn {
 
     fun persist(e: Any): Db
 
+    val head: Hash
+
 }
 
 internal interface InternalConn : Conn {
@@ -144,6 +167,9 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
     private var trxLog: TrxLog = QbitTrxLog(head, Writer(nodesStorage, dbUuid))
 
     private var db = IndexDb(Index(graph, head))
+
+    override val head
+        get() = trxLog.hash
 
     override fun db() = db
 
