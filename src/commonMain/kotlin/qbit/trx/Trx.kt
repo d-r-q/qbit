@@ -40,10 +40,13 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     private val eids = Gid(inst.iid, inst.nextEid).nextGids()
 
+    private var rollbacked = false
+
     override val db
         get() = (this.curDb ?: this.base)
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R> {
+        ensureReady()
         val facts = destruct(entityGraphRoot, db::attr, eids)
         val entities = facts.map { it.eid }
                 .distinct()
@@ -66,6 +69,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
     }
 
     override fun commit() {
+        ensureReady()
         if (factsBuffer.isEmpty()) {
             return
         }
@@ -82,8 +86,15 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
     }
 
     override fun rollback() {
+        rollbacked = true
         factsBuffer.clear()
         curDb = null
+    }
+
+    private fun ensureReady() {
+        if (rollbacked) {
+            throw QBitException("Transaction already has been rollbacked")
+        }
     }
 
 }

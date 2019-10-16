@@ -2,6 +2,7 @@ package qbit
 
 import qbit.Scientists.extId
 import qbit.Scientists.name
+import qbit.mapping.gid
 import qbit.model.Gid
 import qbit.ns.Key
 import qbit.ns.ns
@@ -102,5 +103,39 @@ class TrxTest {
             val abortedTrxKey = Key(ns("node"), "e37c77c73f7b63afb8ffaadc065dadde6e140f")
             storage.hasKey(abortedTrxKey)
         }
+    }
+
+    @Test
+    fun `Test rollback`() {
+        val conn = setupTestData()
+        val trx = conn.trx()
+        trx.persist(eCodd.copy(name = "Not A Codd"))
+        assertEquals("Not A Codd", trx.db.pullT<Scientist>(eCodd.gid)!!.name)
+        trx.rollback()
+        assertEquals("Edgar Codd", trx.db.pullT<Scientist>(eCodd.gid)!!.name)
+    }
+
+    @Test
+    fun `Commit of rolled back transaction should fail`() {
+        val storage = MemStorage()
+        val conn = qbit(storage)
+        val trx = conn.trx()
+        trx.rollback()
+        val ex = assertFailsWith<QBitException> {
+            trx.commit()
+        }
+        assertEquals("Transaction already has been rollbacked", ex.message)
+    }
+
+    @Test
+    fun `Persist with rolled back transaction should fail`() {
+        val storage = MemStorage()
+        val conn = qbit(storage)
+        val trx = conn.trx()
+        trx.rollback()
+        val ex = assertFailsWith<QBitException> {
+            trx.persist(Any())
+        }
+        assertEquals("Transaction already has been rollbacked", ex.message)
     }
 }
