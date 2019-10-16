@@ -6,6 +6,7 @@ import qbit.mapping.schema
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.storage.MemStorage
+import qbit.storage.Storage
 import qbit.trx.Conn
 import qbit.trx.EmptyIterator
 import qbit.trx.qbit
@@ -83,22 +84,17 @@ val pChen = User(gids.next().value(), 2, "Peter Chen", listOf("unificator"), tw)
 val mStonebreaker = User(gids.next().value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"), us)
 val eBrewer = User(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
 
-fun <T> test(m: Map<T, String>) {}
-
-fun setupTestSchema(): Conn {
-    val map = hashMapOf<Number, String>()
-    test(map)
-    map.put(1, "")
-    val conn = qbit(MemStorage())
+fun setupTestSchema(storage: Storage = MemStorage()): Conn {
+    val conn = qbit(storage)
     testSchema.forEach {
         conn.persist(it)
     }
     return conn
 }
 
-fun setupTestData(): Conn {
-    return with(setupTestSchema()) {
-        listOf(eCodd, pChen, mStonebreaker, eBrewer).forEach {
+fun setupTestData(storage: Storage = MemStorage()): Conn {
+    return with(setupTestSchema(storage)) {
+        listOf(eCodd, pChen, mStonebreaker, eBrewer, uk, tw, us, ru, nsk).forEach {
             persist(it)
         }
         this

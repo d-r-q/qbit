@@ -82,7 +82,7 @@ class TrxTest {
         trx.commit()
         assertEquals(1, trxLog.appendsCalls)
         assertEquals(1, conn.updatesCalls)
-        assertEquals(5, trxLog.appendedFacts[0].size, "Five facts (2 for region and 3 for instance) expected")
+        assertEquals(5, trxLog.appendedFacts[0].size, "5 facts (2 for region and 3 for instance) expected")
         assertTrue(trxLog.appendedFacts[0].any { it.value == "Kemerovskaya obl." })
     }
 

@@ -6,24 +6,6 @@ import kotlin.test.assertEquals
 class LocalConnTest {
 
 //    @Test
-//    fun testRestoreEntityWithNew() {
-//        val user = Namespace("user")
-//        val _val = ScalarAttr(user["val"], QString)
-//        val _ref = RefAttr(user["ref"])
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_val, _ref)
-//
-//        val e1 = Entity(_val eq "e1")
-//        val se1 = conn.persist(e1).storedEntity()
-//
-//        val e2 = Entity(_val eq "e1", _ref eq se1)
-//        conn.persist(e2)
-//
-//        assertEquals(5, conn.head.data.trx.size)
-//    }
-//
-//    @Test
 //    fun testChangeNotUnqiueAttrWhenUniqueIsPresented() {
 //        val user = Namespace("user")
 //        val unique = ScalarAttr(user["unique"], QString, true)

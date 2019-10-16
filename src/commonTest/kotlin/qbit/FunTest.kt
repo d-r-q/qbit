@@ -2,6 +2,8 @@ package qbit
 
 import qbit.mapping.gid
 import qbit.model.tombstone
+import qbit.storage.MemStorage
+import qbit.storage.NodesStorage
 import kotlin.test.*
 
 
@@ -50,14 +52,14 @@ class FunTest {
     fun testPersistEntityViaRef() {
         val conn = setupTestData()
 
-        var ru = Country(null, "Russia", 146_000_000)
-        var aErshov = User(null, 0, "Andrey Ershov", listOf("Kompilatorshik"), ru)
+        var su = Country(null, "USSR", 146_000_000)
+        var aErshov = User(null, 0, "Andrey Ershov", listOf("Kompilatorshik"), su)
 
         conn.persist(aErshov)
         aErshov = conn.db().queryT<User>(attrIs(Users.extId, 0)).first()
-        ru = aErshov.country
-        assertNotNull(ru.id)
-        assertEquals("Russia", ru.name)
+        su = aErshov.country
+        assertNotNull(su.id)
+        assertEquals("USSR", su.name)
     }
 
 
@@ -86,6 +88,15 @@ class FunTest {
         conn.persist(eCodd)
 
         assertEquals(head, conn.head)
+    }
+
+    @Test
+    fun `When new entity referencing not changed entity is stored, qbit should write only new entity`() {
+        val storage = MemStorage()
+        val conn = setupTestData(storage)
+        conn.persist(Region(null, "Kemerovskaya obl.", ru))
+
+        assertEquals(5, NodesStorage(storage).load(NodeRef(conn.head))!!.data.trx.size, "5 facts (2 for region and 3 for instance) expected")
     }
 
 }
