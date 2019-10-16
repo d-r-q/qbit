@@ -1,7 +1,6 @@
 package qbit.mapping
 
 import qbit.*
-import qbit.Attrs.unique
 import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
@@ -143,6 +142,20 @@ class MappingTest {
         }
     }
 
+    @Test
+    fun `destruction of entity with list of nullable elements in props should fail`() {
+        val eids = Gid(0, 0).nextGids()
+
+        val testSchema = schema {
+            entity(ListOfNullables::class)
+        }
+
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, eids) }))
+        val ex = assertFailsWith<QBitException> {
+            destruct(ListOfNullables(null, listOf(null), listOf(null)), db::attr, eids)
+        }
+        assertEquals("List of nullable elements is not supported. Properties: ListOfNullables.(lst,refLst)", ex.message)
+    }
 }
 
 fun schema(body: SchemaBuilder.() -> Unit): List<Attr<Any>> {

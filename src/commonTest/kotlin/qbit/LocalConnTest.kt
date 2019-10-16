@@ -6,34 +6,6 @@ import kotlin.test.assertEquals
 class LocalConnTest {
 
 //    @Test
-//    fun testTrx() {
-//        val user = Namespace("user")
-//        val _id = ScalarAttr(user["val"], QString)
-//        val _list = ListAttr(user["list"], QString)
-//
-//        val conn = qbit(MemStorage())
-//        conn.persist(_id, _list)
-//
-//        val e = Entity(_id eq "1", _list eq listOf("1", "2"))
-//        val se = conn.persist(e).storedEntity()
-//        assertEquals("1", se[_id])
-//
-//        val trx = conn.trx()
-//        trx.persist(se.with(_id eq "2"))
-//
-//        assertEquals("1", conn.db.pull(se.eid)!![_id])
-//
-//        trx.rollback()
-//
-//        assertEquals("1", conn.db.pull(se.eid)!![_id])
-//
-//        trx.persist(se.with(_id eq "3"))
-//        trx.commit()
-//
-//        assertEquals("3", conn.db.pull(se.eid)!![_id])
-//    }
-//
-//    @Test
 //    fun testPersistDataTypes() {
 //        val bool = ScalarAttr(root["bool"], QBoolean)
 //        val boolList = ListAttr(root["boolList"], QBoolean)

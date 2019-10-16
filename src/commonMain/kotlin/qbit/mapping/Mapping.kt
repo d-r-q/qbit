@@ -101,6 +101,7 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
     if (e is Tombstone) {
         return e.toFacts()
     }
+    validate(e::class, findProperties(e::class))
     val res = IdentityHashMap<Any, List<Fact>>()
     val idMap = IdentityHashMap<Any, Gid>()
 
@@ -114,6 +115,7 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
         val getters = e::class.members
                 .filterIsInstance<KProperty1<*, *>>()
                 .sortedBy { it.name }
+
         val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
         val eid = idMap[e]!! // ids existence has been checked while identification
         val facts: List<Fact> = attrs.flatMap {
@@ -149,6 +151,14 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
     body(e)
 
     return res.values.flatten()
+}
+
+fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
+    val listsOfNullables = getters.filter { it.returnType.classifier == List::class && it.returnType.arguments[0].type!!.isMarkedNullable }
+    if (listsOfNullables.isNotEmpty()) {
+        val props = "${type.simpleName}.${listsOfNullables.map { it.name }.joinToString(",", "(", ")")}"
+        throw QBitException("List of nullable elements is not supported. Properties: $props")
+    }
 }
 
 val Any.id: Long
