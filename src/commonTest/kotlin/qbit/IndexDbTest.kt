@@ -89,14 +89,6 @@ class DbTest {
         assertNotNull(db.query(attrIs(extId, 5)))
     }
 
-    @Ignore
-    @Test
-    fun testUniqueList() {
-        val uniqueList = Attr<Int>(null, "uniqueList", QInt.code, true, true)
-        assertNull(uniqueList)
-        // todo: what is expected behaviour for such attributes?
-    }
-
     @Test
     fun `pull with fetch = Eager should fetch nullable refs`() {
         val dbUuid = DbUuid(IID(0, 1))

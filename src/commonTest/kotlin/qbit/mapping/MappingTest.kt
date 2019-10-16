@@ -1,6 +1,7 @@
 package qbit.mapping
 
 import qbit.*
+import qbit.Attrs.unique
 import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
@@ -25,7 +26,7 @@ class MappingTest {
 
         val testSchema = schema {
             entity(MUser::class) {
-                unique(it::login)
+                uniqueString(it::login)
             }
             entity(Addr::class)
         }
@@ -54,7 +55,7 @@ class MappingTest {
 
         schema {
             entity(MUser::class) {
-                unique(it::login)
+                uniqueString(it::login)
             }
         }
     }
@@ -66,7 +67,7 @@ class MappingTest {
 
         val testSchema = schema {
             entity(MUser::class) {
-                unique(it::login)
+                uniqueString(it::login)
             }
             entity(Addr::class)
         }
@@ -132,6 +133,8 @@ class MappingTest {
 
     @Test
     fun `findGidProp should return only properties with name 'id'`() {
+
+        @Suppress("unused")
         val objWithouId = object {
             val eid = Gid(0)
         }
@@ -164,7 +167,11 @@ class EntityBuilder(internal val type: KClass<*>) {
 
     internal val uniqueProps = HashSet<String>()
 
-    fun unique(prop: KProperty0<*>) {
+    fun uniqueInt(prop: KProperty0<Int>) {
+        uniqueProps.add(type.attrName(prop))
+    }
+
+    fun uniqueString(prop: KProperty0<String>) {
         uniqueProps.add(type.attrName(prop))
     }
 

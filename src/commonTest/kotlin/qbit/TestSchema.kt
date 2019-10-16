@@ -1,5 +1,6 @@
 package qbit
 
+import qbit.Attrs.unique
 import qbit.mapping.attrName
 import qbit.mapping.destruct
 import qbit.mapping.schema
@@ -33,10 +34,10 @@ data class ResearchGroup(val id: Long?, val members: List<Scientist>)
 
 val testSchema = schema {
     entity(Scientist::class) {
-        unique(it::externalId)
+        uniqueInt(it::externalId)
     }
     entity(Country::class) {
-        unique(it::name)
+        uniqueString(it::name)
     }
     entity(Region::class)
     entity(Paper::class)
