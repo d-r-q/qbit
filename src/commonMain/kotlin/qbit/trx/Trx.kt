@@ -8,7 +8,6 @@ import qbit.Attrs.unique
 import qbit.Instances.forks
 import qbit.Instances.nextEid
 import qbit.mapping.destruct
-import qbit.mapping.gid
 import qbit.model.Gid
 import qbit.model.IID
 import qbit.model.toFacts
@@ -22,7 +21,7 @@ import qbit.Instances.iid as instIid
 
 interface Trx {
 
-    val db: Db
+    fun db(): Db
 
     fun <R : Any> persist(entityGraphRoot: R): WriteResult<R>
 
@@ -42,8 +41,11 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     private var rollbacked = false
 
-    override val db
-        get() = (this.curDb ?: this.base)
+    override fun db() =
+            (this.curDb ?: this.base)
+
+    private val db: Db
+        get() = db()
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R> {
         ensureReady()

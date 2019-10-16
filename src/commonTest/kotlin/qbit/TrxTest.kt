@@ -16,6 +16,15 @@ import kotlin.test.*
 class TrxTest {
 
     @Test
+    fun `Test transaction commit`() {
+        val conn = setupTestData()
+        val trx = conn.trx()
+        trx.persist(eCodd.copy(name = "Not A Codd"))
+        trx.commit()
+        assertEquals("Not A Codd", conn.db().pullT<Scientist>(eCodd.gid)!!.name)
+    }
+
+    @Test
     fun `Qbit should detect concurrent transactions`() {
         val conn = qbit(MemStorage())
         val trx1 = conn.trx()
@@ -110,9 +119,9 @@ class TrxTest {
         val conn = setupTestData()
         val trx = conn.trx()
         trx.persist(eCodd.copy(name = "Not A Codd"))
-        assertEquals("Not A Codd", trx.db.pullT<Scientist>(eCodd.gid)!!.name)
+        assertEquals("Not A Codd", trx.db().pullT<Scientist>(eCodd.gid)!!.name)
         trx.rollback()
-        assertEquals("Edgar Codd", trx.db.pullT<Scientist>(eCodd.gid)!!.name)
+        assertEquals("Edgar Codd", trx.db().pullT<Scientist>(eCodd.gid)!!.name)
     }
 
     @Test
