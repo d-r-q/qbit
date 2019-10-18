@@ -20,7 +20,7 @@ fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
             .filter { factAttrs.getValue(it.attr)?.unique ?: false }
             .groupBy { it.attr to it.value }
             .filterValues { it.size > 1 }
-            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}") }
+            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}, entities: ${it.value.map { f -> f.eid }}") }
 
     // within db
     facts.forEach {

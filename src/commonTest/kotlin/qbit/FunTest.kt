@@ -157,6 +157,48 @@ class FunTest {
     }
 
     @Test
+    fun `Storage of different states of same entity should fail`() {
+        val conn = setupTestData()
+        val pChen2 = pChen.copy(name = "Not A Chen")
+        val rg = ResearchGroup(null, listOf(pChen, pChen2))
+        val ex = assertFailsWith<QBitException> {
+            conn.persist(rg)
+        }
+        assertTrue(ex.message?.contains("Entity 2/78 has several different states to store") == true)
+    }
+
+    @Test
+    fun `Storage of two entities with same value of unique attribute should fail with uniqueness violation exception`() {
+        val conn = setupTestData()
+        val pChen2 = pChen.copy(externalId = 100)
+        val eCodd2 = eCodd.copy(externalId = 100)
+        val rg = ResearchGroup(null, listOf(eCodd2, pChen2))
+        val ex = assertFailsWith<QBitException> {
+            conn.persist(rg)
+        }
+        assertEquals("Uniqueness violation for attr (.qbit.Scientist/externalId, 100), entities: [2/78, 2/77]", ex.message)
+    }
+
+    @Ignore
+    @Test
+    fun `Storage of entity with empty list should preserve list`() {
+        val conn = setupTestData()
+        conn.persist(NullableList(null, emptyList(), 0))
+        val stored = conn.db().queryT<NullableList>(attrIs(NullableLists.placeholder, 0L)).first()
+        assertEquals(emptyList(), stored.lst)
+    }
+
+    @Ignore
+    @Test
+    fun `Qbit should forbid externally generated gids`() {
+        val conn = setupTestData()
+        val ex = assertFailsWith<QBitException> {
+            conn.persist(IntEntity(Gid(1, 81).value(), 0))
+        }
+        assertEquals("", ex.message)
+    }
+
+    @Test
     fun `Test bomb with nulls handling`() {
         val conn = setupTestData()
         val bomb = createBombWithNulls()
