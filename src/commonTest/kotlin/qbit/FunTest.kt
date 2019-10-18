@@ -265,7 +265,8 @@ class FunTest {
         assertEquals(bomb.longListOpt, storedBomb.longListOpt)
 
         // there is some strange bug with instant (de)serealization on openjdk 11, see
-        // 4e072eb
+        // 4e072eb8
+        // 39366672
         // https://travis-ci.com/d-r-q/qbit/builds/132566841
         // https://travis-ci.com/d-r-q/qbit/builds/95747234
         // https://travis-ci.com/d-r-q/qbit/builds/95749078
