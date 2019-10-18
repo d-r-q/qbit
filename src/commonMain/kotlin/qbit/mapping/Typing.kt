@@ -1,9 +1,7 @@
 package qbit.mapping
 
 import qbit.*
-import qbit.model.DataType
-import qbit.model.Gid
-import qbit.model.StoredEntity
+import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
@@ -13,6 +11,7 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
 
     internal val entities = HashMap<Gid, StoredEntity>()
     private val instances = HashMap<Gid, Any>()
+    private var fetchedAttrs: Set<Attr<Any>> = HashSet()
 
     init {
         fun <T : Any> body(root: StoredEntity, type: KClass<T>, query: Query<T>) {
@@ -21,10 +20,13 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
             } else {
                 entities[root.gid] = root
             }
-            root.entries
+            val fetchedAttrValues = root.entries
                     .filter { DataType.ofCode(it.attr.type)!!.ref() }
                     .filter { query.shouldFetch(it.attr) }
+            fetchedAttrs = fetchedAttrs + fetchedAttrValues.map { it.attr }.toSet()
+            fetchedAttrValues
                     .forEach {
+
                         if (it.attr.list) {
                             val subType = type.propertyFor(it.attr)!!.returnType.arguments[0].type!!.classifier as KClass<T>
                             val subquery = query.subquery(subType)
@@ -48,9 +50,14 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
         }
         val constr = findPrimaryConstructor(type)
         var params: Map<KParameter, Any?> = constr.parameters.map { it to null }.toMap()
+        val setters = setableProps(type)
+        val setablePropNames = setters.map { it.name }
 
         params = params.map { (param, _) ->
-            if (!param.type.isMarkedNullable || param.type.classifier in valueTypes) {
+            val attr = e.keys.firstOrNull { it.name.endsWith(param.name!!) }
+            if (!param.type.isMarkedNullable || param.type.classifier in valueTypes ||
+                    (param.type.classifier == List::class && (param.type.arguments[0].type!!.classifier as KClass<*>) in valueTypes) ||
+                    (param.name !in setablePropNames && attr in fetchedAttrs)) {
                 if (param.isId())  {
                     val id = when {
                         param.type.classifier == Long::class -> e.gid.value()
@@ -59,8 +66,13 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
                     }
                     return@map param to id
                 }
-                val attr = e.keys.firstOrNull { it.name.endsWith(param.name!!) }
-                        ?: throw QBitException("Could not map $e to $type. Missed property: ${param.name}. Did you add this property?")
+                if (attr == null) {
+                    if (!param.type.isMarkedNullable) {
+                        throw QBitException("Could not map $e to $type. Missed property: ${param.name}. Did you add or made not nullable this property?")
+                    } else {
+                        return@map param to null
+                    }
+                }
                 when {
                     param.type.classifier in valueTypes -> param to e[attr]
                     param.type.classifier == List::class -> {
@@ -82,12 +94,23 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
         }.toMap()
         val instance = constr.callBy(params)
         instances[e.gid] = instance
-        val setters = setableProps(type)
         setters.forEach {
             val attr = e.keys.firstOrNull { attr -> attr.name.endsWith(it.name) }
-            if (attr != null && query.shouldFetch(attr)) {
-                val gid = e[attr] as Gid
-                (it as KMutableProperty1<Any, Any>).set(instance, instantiate(entities[gid]!!, it.returnType.classifier as KClass<*>))
+            if (attr != null) {
+                val propType = DataType.ofCode(attr.type)
+                if (propType?.value() == true) {
+                    (it as KMutableProperty1<Any, Any>).set(instance, e[attr])
+                } else if (propType?.isList() == true && (propType as QList<Any>).value()) {
+                    (it as KMutableProperty1<Any, Any>).set(instance, e[attr])
+                } else if (query.shouldFetch(attr)) {
+                    if (propType?.isList() != true) {
+                        val gid = e[attr] as Gid
+                        (it as KMutableProperty1<Any, Any>).set(instance, instantiate(entities[gid]!!, it.returnType.classifier as KClass<*>))
+                    } else {
+                        val instances = (e[attr] as List<Gid>).map { gid -> instantiate(entities[gid]!!, it.returnType.arguments[0].type!!.classifier as KClass<*>) }
+                        (it as KMutableProperty1<Any, Any>).set(instance, instances)
+                    }
+                }
             }
         }
         return instance

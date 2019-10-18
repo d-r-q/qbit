@@ -85,6 +85,31 @@ class TypingTest {
     }
 
     @Test
+    fun `Test instantiation of self-referencing entity`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+        val sLebedevGid = gids.next()
+
+        val ru = AttachedEntity(gids.next(),
+                mapOf(Countries.name to "Russia", Countries.population to 146_000_000),
+                map::get)
+        val sLebedev = AttachedEntity(sLebedevGid, mapOf(
+                Scientists.name to "Sergey Lebedev",
+                Scientists.extId to 1,
+                Scientists.nicks to emptyList<String>(),
+                Scientists.country to ru,
+                Scientists.reviewer to sLebedevGid),
+                map::get)
+
+        map[sLebedev.gid] = sLebedev
+        map[ru.gid] = ru
+
+        val typing = Typing(sLebedev, EagerQuery(), Scientist::class)
+        val typedLebedev = typing.instantiate(sLebedev, Scientist::class)
+        assertEquals("Sergey Lebedev", typedLebedev.reviewer!!.name)
+    }
+
+    @Test
     fun `Test simple instantiation`() {
         val gids = Gid(0, 0).nextGids()
         val ru = AttachedEntity(gids.next(),
@@ -176,4 +201,61 @@ class TypingTest {
         val typedErshov = typing.instantiate(aErshov, Scientist::class)
         assertEquals(typedErshov, typedErshov.reviewer?.reviewer?.reviewer)
     }
+
+    @Test
+    fun `Test instantiation of entity without fact for optional property`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+
+        val e = AttachedEntity(gids.next(), mapOf(NullableScalars.placeholder to 0), map::get)
+
+        map[e.gid] = e
+        val typing = Typing(e, EagerQuery(), NullableScalar::class)
+        val ns = typing.instantiate(e, NullableScalar::class)
+        assertEquals(0, ns.placeholder)
+    }
+
+    @Test
+    fun `Test instantiation of entity with attribute for nullable mutable value property`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+
+        val e = AttachedEntity(gids.next(), mapOf(NullableScalars.scalar to 1.toByte(), NullableScalars.placeholder to 1L), map::get)
+
+        map[e.gid] = e
+        val typing = Typing(e, EagerQuery(), NullableScalar::class)
+        val ns = typing.instantiate(e, NullableScalar::class)
+        assertEquals(1, ns.placeholder)
+        assertEquals(1, ns.scalar)
+    }
+
+    @Test
+    fun `Test instantiation of entity with not-null value for nullable values list attribute`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+
+        val e = AttachedEntity(gids.next(), mapOf(NullableLists.lst to listOf(1.toByte()), NullableLists.placeholder to 1L), map::get)
+
+        map[e.gid] = e
+        val typing = Typing(e, EagerQuery(), NullableList::class)
+        val ns = typing.instantiate(e, NullableList::class)
+        assertEquals(listOf(1.toByte()), ns.lst)
+    }
+
+    @Test
+    fun `Test instantiation of entity with not-null value for nullable ref attribute`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+
+        val refGid = gids.next()
+        val r = AttachedEntity(refGid, mapOf(IntEntities.int to 1), map::get)
+        val e = AttachedEntity(gids.next(), mapOf(NullableRefs.ref to refGid, NullableRefs.placeholder to 1L), map::get)
+
+        map[r.gid] = r
+        map[e.gid] = e
+        val typing = Typing(e, EagerQuery(), NullableRef::class)
+        val ns = typing.instantiate(e, NullableRef::class)
+        assertEquals(1, ns.ref?.int)
+    }
+
 }

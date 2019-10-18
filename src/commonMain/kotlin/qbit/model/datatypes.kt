@@ -33,7 +33,12 @@ sealed class DataType<out T : Any> {
         private val values: Array<DataType<*>>
             get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QInstant, QZonedDateTime, QDecimal, QRef)
 
-        fun ofCode(code: Byte): DataType<*>? = values.firstOrNull { it.code == code }
+        fun ofCode(code: Byte): DataType<*>? =
+                if (code <= 19) {
+                    values.firstOrNull { it.code == code }
+                } else {
+                    values.map { it.list() }.firstOrNull{ it.code == code }
+                }
 
         fun <T : Any> ofValue(value: T?): DataType<T>? = when (value) {
             is Boolean -> QBoolean as DataType<T>

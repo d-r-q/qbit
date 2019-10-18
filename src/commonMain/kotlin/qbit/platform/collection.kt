@@ -1,9 +1,6 @@
 package qbit.platform
 
-expect class IdentityHashMap<K, V>() {
-    val values: MutableCollection<V>
-    operator fun get(key: K): V?
-    fun containsKey(key: K): Boolean
+expect class IdentityHashMap<K, V>() : MutableMap<K, V> {
 }
 
 expect operator fun <K, V> IdentityHashMap<K, V>.set(key: K, value: V)

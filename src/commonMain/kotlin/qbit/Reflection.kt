@@ -2,6 +2,7 @@ package qbit
 
 import qbit.model.Attr
 import qbit.model.Gid
+import qbit.platform.*
 import kotlin.reflect.*
 
 fun findMutableProperties(type: KClass<*>): List<KCallable<*>> {
@@ -60,6 +61,10 @@ fun <T : Any> default(type: KClass<T>): T =
                 Int::class -> 0 as T
                 Long::class -> 0L as T
                 List::class -> listOf<Any>() as T
+                Instant::class -> Instants.ofEpochMilli(0)
+                ZonedDateTime::class -> ZonedDateTimes.of(0, 1, 1, 0, 0, 0, 0, ZoneIds.of("UTC"))
+                BigDecimal::class -> BigDecimal(0)
+                ByteArray::class -> ByteArray(0)
                 else -> {
                     val constr = type.constructors.first()
                     val args = constr.parameters.map {

@@ -2,19 +2,23 @@ package qbit.mapping
 
 import qbit.*
 import qbit.model.*
-import qbit.platform.IdentityHashMap
-import qbit.platform.set
+import qbit.platform.*
 import kotlin.reflect.*
 
 
 val collectionTypes = setOf(List::class)
 
 val types: Map<KClass<*>, DataType<*>> = mapOf(
-        String::class to QString,
+        Boolean::class to QBoolean,
         Byte::class to QByte,
         Int::class to QInt,
         Long::class to QLong,
-        Boolean::class to QBoolean,
+        BigDecimal::class to QDecimal,
+        Instant::class to QInstant,
+        ZonedDateTime::class to QZonedDateTime,
+        String::class to QString,
+        ByteArray::class to QBytes,
+        Gid::class to QGid,
         Any::class to QRef
 )
 
@@ -52,6 +56,8 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
     if (idMap[root] != null) {
         return
     }
+    validate(root::class, findProperties(root::class))
+
     val idProp = findGidProp(root)
 
     when (val id = idProp.call(root)) {
@@ -74,7 +80,7 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
                     in collectionTypes -> {
                         @Suppress("UNCHECKED_CAST")
                         val list = value as List<Any>?
-                        if (list == null || list.isEmpty() || list[0]::class in valueTypes) {
+                        if (list == null || list.isEmpty() || list.firstOrNull()?.let { e -> e::class } in valueTypes) {
                             return@forEach
                         } else {
                             list.forEach { item ->
@@ -101,9 +107,10 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
     if (e is Tombstone) {
         return e.toFacts()
     }
-    validate(e::class, findProperties(e::class))
+
     val res = IdentityHashMap<Any, List<Fact>>()
     val idMap = IdentityHashMap<Any, Gid>()
+    val entities = HashMap<Gid, Any>()
 
     fun body(e: Any): List<Fact> {
         if (res.containsKey(e)) {
@@ -117,19 +124,30 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
                 .sortedBy { it.name }
 
         val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
-        val eid = idMap[e]!! // ids existence has been checked while identification
+        val gid = idMap[e]!! // ids existence has been checked while identification
+        if (entities[gid] != null) {
+            // different instance with the same state
+            return emptyList()
+        }
         val facts: List<Fact> = attrs.flatMap {
             val attr: Attr<*> = schema(e::class.attrName(it))
                     ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
             when (it.returnType.classifier) {
-                in valueTypes -> listOf(Fact(eid, attr.name, it.call(e)!!))
+                in valueTypes -> {
+                    val value = it.call(e)
+                    if (value != null) {
+                        listOf(Fact(gid, attr.name, value))
+                    } else {
+                        emptyList()
+                    }
+                }
                 in collectionTypes -> {
-                    (it.call(e) as List<*>).flatMap { v ->
+                    ((it.call(e) as List<*>?) ?: emptyList<Any>()).flatMap { v ->
                         when (v!!::class) {
-                            in valueTypes -> listOf(Fact(eid, attr.name, v))
+                            in valueTypes -> listOf(Fact(gid, attr.name, v))
                             else -> {
                                 body(v)
-                                listOf(Fact(eid, attr.name, idMap[v]!!))
+                                listOf(Fact(gid, attr.name, idMap[v]!!))
                             }
                         }
                     }
@@ -137,26 +155,37 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
                 else -> {
                     val value = it.call(e) ?: return@flatMap emptyList<Fact>()
 
-                    val fs = arrayListOf(Fact(eid, attr.name, idMap[value]!!))
+                    val fs = arrayListOf(Fact(gid, attr.name, idMap[value]!!))
                     body(value)
                     fs
                 }
             }
         }
         res[e] = facts
+        entities[gid] = e
         return facts
     }
 
     identifyEntityGraph(e, gids, idMap)
+    idMap.entries
+            .groupBy { it.value }
+            .forEach {
+                val distinctStates = it.value.map { it.key }.distinct()
+                if (distinctStates.size > 1) {
+                    throw QBitException("Entity ${it.key} has several different states to store: $distinctStates")
+                }
+            }
+
     body(e)
 
-    return res.values.flatten()
+    return res.values
+            .flatten()
 }
 
 fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
     val listsOfNullables = getters.filter { it.returnType.classifier == List::class && it.returnType.arguments[0].type!!.isMarkedNullable }
     if (listsOfNullables.isNotEmpty()) {
-        val props = "${type.simpleName}.${listsOfNullables.map { it.name }.joinToString(",", "(", ")")}"
+        val props = "${type.simpleName}.${listsOfNullables.joinToString(",", "(", ")") { it.name }}"
         throw QBitException("List of nullable elements is not supported. Properties: $props")
     }
 }
@@ -255,8 +284,8 @@ fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
             in valueTypes -> Attr(null, type.attrName(it), types.getValue(it.returnType.classifier as KClass<*>).code, type.attrName(it) in unique, false)
             in collectionTypes -> {
                 when (val valueType = it.returnType.arguments[0].type!!.classifier as KClass<*>) {
-                    in valueTypes -> Attr(null, type.attrName(it), types.getValue(valueType).code, type.attrName(it) in unique, true)
-                    else -> Attr<Any>(null, type.attrName(it), QRef.code, type.attrName(it) in unique, true)
+                    in valueTypes -> Attr(null, type.attrName(it), types.getValue(valueType).list().code, type.attrName(it) in unique, true)
+                    else -> Attr<Any>(null, type.attrName(it), QRef.list().code, type.attrName(it) in unique, true)
                 }
             }
             else -> {
