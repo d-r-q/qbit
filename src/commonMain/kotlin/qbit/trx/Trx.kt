@@ -182,7 +182,7 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
 
     private val graph = Graph(nodesStorage)
 
-    private var trxLog: TrxLog = QbitTrxLog(head, Writer(nodesStorage, dbUuid))
+    var trxLog: TrxLog = QbitTrxLog(head, Writer(nodesStorage, dbUuid))
 
     private var db = IndexDb(Index(graph, head))
 
@@ -213,6 +213,7 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
         }
         this.trxLog = newLog
         db = indexTrxLog(db, graph, NodeRef(newLog.hash), trxLog.hash)
+        storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
     }
 
 }
