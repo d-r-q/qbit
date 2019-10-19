@@ -5,6 +5,7 @@ import qbit.model.Gid
 import qbit.model.tombstone
 import qbit.storage.MemStorage
 import qbit.storage.NodesStorage
+import qbit.trx.Instance
 import kotlin.test.*
 
 
@@ -166,7 +167,7 @@ class FunTest {
         val ex = assertFailsWith<QBitException> {
             conn.persist(rg)
         }
-        assertTrue(ex.message?.contains("Entity 2/78 has several different states to store") == true)
+        assertTrue(ex.message?.contains("Entity ${pChen.gid} has several different states to store") == true)
     }
 
     @Test
@@ -257,6 +258,7 @@ class FunTest {
     @Test
     fun `Test bomb without nulls handling`() {
         val conn = setupTestData()
+        val inst = conn.db().pullT<Instance>(theInstanceGid)!!
         val bomb = createBombWithoutNulls()
         conn.persist(bomb)
         val storedBomb = conn.db().queryT<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()
@@ -319,7 +321,7 @@ class FunTest {
 
         assertEquals(bomb.country, storedBomb.country)
         assertEquals(bomb.optCountry, storedBomb.optCountry)
-        assertEquals(listOf(Country(0, "Country", 0), Country(Gid(1, 82).value(), "Country3", 2)), storedBomb.countiesList)
+        assertEquals(listOf(Country(0, "Country", 0), Country(Gid(1, inst.nextEid + 1).value(), "Country3", 2)), storedBomb.countiesList)
         // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
 
         assertEquals(bomb.mutCountry, storedBomb.mutCountry)

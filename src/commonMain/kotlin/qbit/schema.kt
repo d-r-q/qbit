@@ -33,7 +33,8 @@ object Instances {
 
 val tombstone = Attr<Boolean>(Gid(IID(1, 4), 7), qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
 
-internal val theInstanceEid = Gid(IID(1, 4), 8).eid
+internal val theInstanceGid = Gid(IID(1, 4), 8)
+internal val theInstanceEid = theInstanceGid.eid
 
 internal const val firstInstanceEid = 9
 
