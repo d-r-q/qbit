@@ -33,17 +33,19 @@ class FunTest {
     @Test
     fun testDelete() {
         val conn = setupTestData()
-        var eCodd = conn.db().pullT<Scientist>(eCodd.gid)!!
+        var eCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
         val newExtId = eCodd.externalId shl 10
         eCodd = eCodd.copy(externalId = newExtId)
         conn.persist(eCodd)
 
-        val pulledECodd = conn.db().pullT<Scientist>(eCodd.gid)!!
+        val pulledECodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
         assertEquals(newExtId, pulledECodd.externalId)
 
-        conn.persist(pulledECodd.tombstone)
+        val ts = pulledECodd.tombstone
+        val (stored) = conn.persist(ts)
+        assertSame(ts, stored)
 
-        val deletedPulledE2 = conn.db().pull(eCodd.gid)
+        val deletedPulledE2 = conn.db().pull(eCodd.gid!!)
         assertNull(deletedPulledE2)
         assertEquals(0, conn.db().query(attrIs(Scientists.extId, eCodd.externalId)).count())
         assertEquals(0, conn.db().query(attrIs(Scientists.extId, newExtId)).count())
@@ -66,7 +68,7 @@ class FunTest {
     @Test
     fun `Test pulling of referenced entity()`() {
         val conn = setupTestData()
-        assertEquals("Russia", conn.db().pullT<Region>(nsk.gid)!!.country.name)
+        assertEquals("Russia", conn.db().pullT<Region>(nsk.gid!!)!!.country.name)
     }
 
     @Test
@@ -108,7 +110,7 @@ class FunTest {
     fun `Test updating entity with unique attribute (it shouldn't treated as unique constraint violation)`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(name = "Not A Codd"))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid)!!
+        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
         assertEquals(1, updatedCodd.externalId)
         assertEquals("Not A Codd", updatedCodd.name)
     }
@@ -133,7 +135,7 @@ class FunTest {
     fun `Test deletion of scalar list element`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = eCodd.nicks.drop(1)))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid)!!
+        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
         assertEquals(listOf("tabulator"), updatedCodd.nicks)
     }
 
@@ -152,7 +154,7 @@ class FunTest {
     fun `Test scalar list clearing`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = emptyList()))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid)!!
+        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
         assertEquals(emptyList(), updatedCodd.nicks)
     }
 

@@ -8,11 +8,11 @@ import qbit.Attrs.unique
 import qbit.Instances.forks
 import qbit.Instances.nextEid
 import qbit.mapping.destruct
+import qbit.mapping.gid
 import qbit.model.Gid
 import qbit.model.IID
 import qbit.model.toFacts
 import qbit.ns.Namespace
-import qbit.platform.IdentityHashMap
 import qbit.platform.currentTimeMillis
 import qbit.storage.NodesStorage
 import qbit.storage.Storage
@@ -23,7 +23,7 @@ interface Trx {
 
     fun db(): Db
 
-    fun <R : Any> persist(entityGraphRoot: R): WriteResult<R>
+    fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?>
 
     fun commit()
 
@@ -47,7 +47,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
     private val db: Db
         get() = db()
 
-    override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R> {
+    override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?> {
         ensureReady()
         val facts = destruct(entityGraphRoot, db::attr, eids)
         val entities = facts.map { it.eid }
@@ -62,12 +62,18 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
                 .values
                 .flatten()
         if (updatedFacts.isEmpty()) {
-            return QbitWriteResult(entityGraphRoot, db, IdentityHashMap())
+            return QbitWriteResult(entityGraphRoot, db)
         }
         validate(db, updatedFacts)
         factsBuffer.addAll(updatedFacts)
         curDb = db.with(updatedFacts)
-        return QbitWriteResult(Any() as R, curDb!!, IdentityHashMap())
+
+        val res = if (entityGraphRoot.gid != null) {
+            entityGraphRoot
+        } else {
+            facts.entityFacts[entityGraphRoot]?.get(0)?.eid?.let { db.pull(it, entityGraphRoot::class) }
+        }
+        return QbitWriteResult(res, curDb!!)
     }
 
     override fun commit() {
@@ -107,14 +113,13 @@ interface WriteResult<R> {
 
     val db: Db
 
-    val createdEntities: IdentityHashMap<Any, Any>
+    operator fun component1(): R
 
 }
 
 internal data class QbitWriteResult<R>(
         override val persisted: R,
-        override val db: Db,
-        override val createdEntities: IdentityHashMap<Any, Any>
+        override val db: Db
 ) : WriteResult<R>
 
 internal interface TrxLog {
@@ -159,7 +164,7 @@ interface Conn {
 
     fun trx(): Trx
 
-    fun persist(e: Any): Db
+    fun <R : Any> persist(e: R): WriteResult<R?>
 
     val head: Hash
 
@@ -194,12 +199,12 @@ internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head:
         return QbitTrx2(db.pullT(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
     }
 
-    override fun persist(e: Any): Db {
-        with (trx()) {
-            persist(e)
+    override fun <R : Any> persist(e: R): WriteResult<R?> {
+        return with (trx()) {
+            val wr = persist(e)
             commit()
+            wr
         }
-        return db
     }
 
     override fun update(trxLog: TrxLog, newLog: TrxLog) {
@@ -242,13 +247,13 @@ fun qbit(storage: Storage): Conn {
     val iid = IID(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
-    if (headHash != null) {
+    return if (headHash != null) {
         val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        return QbitConn(dbUuid, storage, head)
+        QbitConn(dbUuid, storage, head)
     } else {
-        return bootstrap(dbUuid, storage)
+        bootstrap(dbUuid, storage)
     }
 }
 

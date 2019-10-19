@@ -73,7 +73,10 @@ class Index(
         private val index: List<Fact> = ArrayList()
 ) {
 
-    fun addFacts(facts: List<Fact>): Index {
+    fun addFacts(facts: List<Fact>): Index =
+            addFacts(facts as Iterable<Fact>)
+
+    fun addFacts(facts: Iterable<Fact>): Index {
         val entities = facts
                 .groupBy { it.eid }
                 .map { it.key to it.value }

@@ -5,11 +5,8 @@ import qbit.model.AttachedEntity
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.model.StoredEntity
+import kotlin.test.*
 import qbit.Scientist as Scientist
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 
 
 class TypingTest {
@@ -256,6 +253,24 @@ class TypingTest {
         val typing = Typing(e, EagerQuery(), NullableRef::class)
         val ns = typing.instantiate(e, NullableRef::class)
         assertEquals(1, ns.ref?.int)
+    }
+
+
+    @Ignore
+    @Test
+    fun `Pulling entity of wrong type should fail with typing exception`() {
+        val gids = Gid(0, 0).nextGids()
+        val map = HashMap<Gid, StoredEntity>()
+
+        val refGid = gids.next()
+        val r = AttachedEntity(refGid, mapOf(IntEntities.int to 1), map::get)
+
+        map[r.gid] = r
+        val ex = assertFailsWith<QBitException> {
+            val typing = Typing(r, EagerQuery(), NullableRef::class)
+            val ns = typing.instantiate(r, NullableRef::class)
+        }
+        assertEquals("", ex.message)
     }
 
 }

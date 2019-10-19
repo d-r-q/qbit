@@ -74,10 +74,13 @@ internal sealed class QRoEntity(override val gid: Gid) : Entity {
 internal class QTombstone(eid: Gid) : QRoEntity(eid), Tombstone {
 
     override val keys: Set<Attr<Any>>
-        get() = TODO()
+        get() = emptySet()
 
-    override fun <T : Any> tryGet(key: Attr<T>): T? {
-        TODO()
+    override fun <T : Any> tryGet(key: Attr<T>): T? =
+            null
+
+    override fun toString(): String {
+        return "Tombstone(gid = $gid)"
     }
 
 }
@@ -186,11 +189,11 @@ private fun refListToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
         value.map { Fact(eid, attr, eidOf(it)!!) }
 
 private fun eidOf(a: Any): Gid? =
-        when {
-            a is Entity -> a.gid
-            a is Gid -> a
+        when (a) {
+            is Entity -> a.gid
+            is Gid -> a
             else -> null
         }
 
 val Any.tombstone
-    get() = Tombstone(this.gid)
+    get() = Tombstone(this.gid!!)

@@ -22,7 +22,7 @@ data class ListOfNullablesHolder(val id: Long?, val nullables: ListOfNullables)
 class MappingTest {
 
     @Test
-    fun test() {
+    fun `Test simple entity mapping`() {
         val gids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
@@ -44,25 +44,22 @@ class MappingTest {
 
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val u = reconstruct(MUser::class, facts.filter { it.eid.eid == 6 }, db2)
+        val se = db2.pull(facts.entityFacts[user]!!.first().eid)
+        val lazyTyping = Typing(se!!, GraphQuery(MUser::class, emptyMap()), MUser::class)
+        val u = lazyTyping.instantiate(se, MUser::class)
         assertEquals("login", u.login)
         assertEquals(listOf("str1", "str2"), u.strs)
         assertEquals("addr", u.addr.addr)
         assertNull(u.optAddr)
         assertEquals("lstAddr", u.addrs[0].addr)
 
-        val fullUser = reconstruct(GraphQuery(MUser::class, mapOf(MUser::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+        val eagerTyping = Typing(se, EagerQuery(), MUser::class)
+        val fullUser = eagerTyping.instantiate(se, MUser::class)
         assertEquals("optAddr", fullUser.optAddr!!.addr)
-
-        schema {
-            entity(MUser::class) {
-                uniqueString(it::login)
-            }
-        }
     }
 
     @Test
-    fun test2() {
+    fun `Test entity graph with mulitple entity types mapping`() {
 
         val gids = Gid(0, 0).nextGids()
 
@@ -85,7 +82,11 @@ class MappingTest {
         )
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val fullUser = reconstruct(GraphQuery(MUser::class, mapOf(MUser::optAddr.name to null)), facts.filter { it.eid.eid == 6 }, db2)
+
+        val se = db2.pull(facts.entityFacts[user]!!.first().eid)!!
+        val eagerTyping = Typing(se, EagerQuery(), MUser::class)
+        val fullUser = eagerTyping.instantiate(se, MUser::class)
+
         assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
         assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
     }
@@ -120,16 +121,6 @@ class MappingTest {
     @Test
     fun `Type of Any(class) is QRef`() {
         assertEquals(QRef, types[Any::class])
-    }
-
-    @Ignore
-    @Test
-    fun `Pulling entity of wrong type should fail with explanation`() {
-        val gids = Gid(0, 0).nextGids()
-        val addrFacts = destruct(Attr<String>("addr"), bootstrapSchema::get, gids)
-        assertFailsWith<QBitException> {
-            reconstruct(MUser::class, addrFacts, emptyDb)
-        }
     }
 
     @Test

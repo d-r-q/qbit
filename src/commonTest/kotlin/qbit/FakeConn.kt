@@ -3,6 +3,7 @@ package qbit
 import qbit.trx.InternalConn
 import qbit.trx.Trx
 import qbit.trx.TrxLog
+import qbit.trx.WriteResult
 
 internal class FakeConn : InternalConn {
 
@@ -23,7 +24,7 @@ internal class FakeConn : InternalConn {
         TODO("not implemented")
     }
 
-    override fun persist(e: Any): Db {
+    override fun <R : Any> persist(e: R): WriteResult<R?> {
         TODO("not implemented")
     }
 

@@ -103,9 +103,12 @@ internal fun findGidProp(root: Any): KCallable<*> =
                 }
                 ?: throw IllegalArgumentException("Entity $root does not contains `id: (Long|Gid)` property")
 
-fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fact> {
+fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
     if (e is Tombstone) {
-        return e.toFacts()
+        val entityFacts = IdentityHashMap<Any, List<Fact>>().apply {
+            this[e] = e.toFacts()
+        }
+        return EntityGraphFactorization(entityFacts)
     }
 
     val res = IdentityHashMap<Any, List<Fact>>()
@@ -123,7 +126,7 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
                 .filterIsInstance<KProperty1<*, *>>()
                 .sortedBy { it.name }
 
-        val (id, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
+        val (_, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class }
         val gid = idMap[e]!! // ids existence has been checked while identification
         if (entities[gid] != null) {
             // different instance with the same state
@@ -178,8 +181,7 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): List<Fa
 
     body(e)
 
-    return res.values
-            .flatten()
+    return EntityGraphFactorization(res)
 }
 
 fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
@@ -190,83 +192,23 @@ fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
     }
 }
 
-val Any.id: Long
+val Any.gid: Gid?
     get() {
+        if (this is Entity) {
+            return this.gid
+        }
+
         val id = this::class.members
                 .filterIsInstance<KProperty1<Any, *>>()
                 .firstOrNull { it.name == "id" }
                 ?.get(this)
         return when (id) {
-            is Long -> id
-            is Gid -> id.value()
+            null -> null
+            is Long -> Gid(id)
+            is Gid -> id
             else -> throw QBitException("Unsupported id type: $id of entity $this")
         }
     }
-
-val Any.gid: Gid
-    get() {
-        val id = this::class.members
-                .filterIsInstance<KProperty1<Any, *>>()
-                .firstOrNull { it.name == "id" }
-                ?.get(this)
-        return when (id) {
-            is Long -> Gid(id)
-            is Gid -> id
-            else -> throw QBitException("Unsupported id type: $id")
-        }
-    }
-
-fun castGid(gid: Any, type: KClassifier) =
-        when {
-            gid is Gid && type == Long::class -> gid.value()
-            gid is Gid && type == Gid::class -> gid
-            gid is Long && type == Long::class -> gid
-            gid is Long && type == Gid::class -> Gid(gid)
-            else -> throw QBitException("Cannot cast $gid to $type")
-        }
-
-fun <R : Any> reconstruct(type: KClass<R>, facts: Collection<Fact>, db: Db, fetch: Fetch = qbit.Lazy): R {
-    return reconstruct(GraphQuery(type, mapOf()), facts, db, fetch)
-}
-
-fun <R : Any> reconstruct(query: GraphQuery<R>, facts: Collection<Fact>, db: Db, fetch: Fetch = qbit.Lazy): R {
-    require(facts.distinctBy { it.eid }.size == 1) { "Too many expected exactly one entity: ${facts.distinctBy { it.eid }}" }
-    val attrFacts = facts.groupBy { it.attr }
-    val constr = query.type.constructors.first()
-    val attrParams =
-            attrFacts.map { f ->
-                val param = constr.parameters.find { it.name == f.value[0].attr.substringAfter("/") } ?: return@map null
-                when (param.type.classifier) {
-                    in valueTypes -> param to f.value[0].value
-                    List::class -> {
-                        when (param.type.arguments[0].type!!.classifier as KClass<*>) {
-                            in valueTypes -> param to f.value.map { it.value }
-                            else -> param to f.value.map { db.pull(f.value[0].value as Gid, param.type.arguments[0].type!!.classifier as KClass<*>, fetch) }
-                        }
-                    }
-                    else -> {
-                        if (param.type.isMarkedNullable) {
-                            if (query.links.contains(param.name) || fetch == Eager) {
-                                param to db.pull(f.value[0].value as Gid, param.type.classifier as KClass<*>, fetch)
-                            } else {
-                                param to null
-                            }
-                        } else {
-                            param to db.pull(f.value[0].value as Gid, param.type.classifier as KClass<*>, fetch)
-                        }
-                    }
-                }
-            }
-                    .filterNotNull()
-    val idProp = constr.parameters.find { it.name == "id" }!!
-    val id = if (idProp.type.classifier == Gid::class) {
-        facts.first().eid
-    } else {
-        facts.first().eid.value()
-    }
-    val idParam = (idProp to id)
-    return constr.callBy((attrParams + idParam).toMap())
-}
 
 fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
         "." + this.qualifiedName!! + "/" + prop.name

@@ -159,4 +159,9 @@ class EntityTest {
         assertEquals(QRef.code, Attr<Any>("any").type)
     }
 
+    @Test
+    fun `Test Tombstone toString`() {
+        assertEquals("Tombstone(gid = 0/0)", QTombstone(Gid(0, 0)).toString())
+    }
+
 }

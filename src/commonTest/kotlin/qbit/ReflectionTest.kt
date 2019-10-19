@@ -1,6 +1,8 @@
 package qbit
 
+import qbit.mapping.gid
 import qbit.model.Gid
+import qbit.model.QTombstone
 import qbit.platform.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -185,6 +187,11 @@ class ReflectionTest {
     @Test
     fun `Test find property for attr`() {
         assertEquals("country", Scientist::class.propertyFor(Scientists.country)?.name)
+    }
+
+    @Test
+    fun `Test gid retrieving from Tombstone`(){
+        assertEquals(Gid(1, 1), (QTombstone(Gid(1, 1)) as Any).gid)
     }
 
 }

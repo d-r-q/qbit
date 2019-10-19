@@ -29,7 +29,7 @@ object emptyDb : Db {
 
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
-    override fun with(facts: List<Fact>): Db {
+    override fun with(facts: Iterable<Fact>): Db {
         return IndexDb(Index().addFacts(facts))
     }
 
@@ -53,7 +53,7 @@ class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db {
         TODO("not implemented")
     }
 
-    override fun with(facts: List<Fact>): Db {
+    override fun with(facts: Iterable<Fact>): Db {
         TODO("not implemented")
     }
 

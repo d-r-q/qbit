@@ -7,13 +7,13 @@ import qbit.Scientists.nicks
 import qbit.Scientists.reviewer
 import qbit.mapping.destruct
 import qbit.mapping.gid
-import qbit.model.*
+import qbit.model.Gid
+import qbit.model.IID
+import qbit.model.toFacts
 import qbit.platform.currentTimeMillis
 import qbit.trx.indexTrxLog
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class DbTest {
 
@@ -46,7 +46,7 @@ class DbTest {
     fun `Indexer can index multiple transactions`() {
         val dbUuid = DbUuid(IID(0, 1))
 
-        val gids = eBrewer.gid.nextGids()
+        val gids = eBrewer.gid!!.nextGids()
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
                 testSchema.flatMap { destruct(it, bootstrapSchema::get, gids) } +
                 extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
@@ -56,16 +56,16 @@ class DbTest {
 
         var db = IndexDb(index)
 
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((pChen.toFacts()).toTypedArray()))
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
         nodes[n1.hash] = n1
 
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((mStonebreaker.toFacts()).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(mStonebreaker.toFacts().toList().toTypedArray()))
         nodes[n2.hash] = n2
 
         db = indexTrxLog(db, graph, n2, root.hash)
-        assertNotNull(db.pull(eCodd.gid))
-        assertNotNull(db.pull(pChen.gid))
-        assertNotNull(db.pull(mStonebreaker.gid))
+        assertNotNull(db.pull(eCodd.gid!!))
+        assertNotNull(db.pull(pChen.gid!!))
+        assertNotNull(db.pull(mStonebreaker.gid!!))
     }
 
     @Test
@@ -79,10 +79,10 @@ class DbTest {
 
         var db = IndexDb(index)
 
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((pChen.toFacts()).toTypedArray()))
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
         nodes[n1.hash] = n1
 
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((pChen.copy( externalId = 5).toFacts()).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(pChen.copy( externalId = 5).toFacts().toList().toTypedArray()))
         nodes[n2.hash] = n2
 
         db = indexTrxLog(db, graph, n2, root.hash)
@@ -99,7 +99,7 @@ class DbTest {
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val graph = Graph { nodes[it.hash] }
         val db = IndexDb(Index(graph, root))
-        val pc = db.pull(eCodd.gid, Scientist::class, Eager)!!
+        val pc = db.pull(eCodd.gid!!, Scientist::class, Eager)!!
         assertNotNull(pc.reviewer)
     }
 

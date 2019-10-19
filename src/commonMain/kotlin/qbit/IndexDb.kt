@@ -7,7 +7,6 @@ import qbit.Attrs.unique
 import qbit.mapping.EagerQuery
 import qbit.mapping.GraphQuery
 import qbit.mapping.Typing
-import qbit.mapping.reconstruct
 import qbit.model.*
 import qbit.platform.WeakHashMap
 import qbit.platform.set
@@ -74,7 +73,7 @@ interface Db {
 
     fun attr(attr: String): Attr<Any>?
 
-    fun with(facts: List<Fact>): Db
+    fun with(facts: Iterable<Fact>): Db
 
     fun queryGids(vararg preds: QueryPred): Sequence<Gid>
 
@@ -101,7 +100,7 @@ class IndexDb(internal val index: Index) : Db {
 
     private val dcCache = WeakHashMap<Entity, Any>()
 
-    override fun with(facts: List<Fact>): Db {
+    override fun with(facts: Iterable<Fact>): Db {
         return IndexDb(index.addFacts(facts))
     }
 
