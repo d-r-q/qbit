@@ -10,18 +10,6 @@ import qbit.platform.*
 
 class FileSystemStorage(private val root: File) : Storage {
 
-    constructor(root: File, origin: Storage) : this(root) {
-        fun copyNs(ns: Namespace) {
-            origin.keys(ns).forEach {
-                add(it, origin.load(it)!!)
-            }
-            origin.subNamespaces(ns).forEach {
-                copyNs(it)
-            }
-        }
-        copyNs(qbit.ns.root)
-    }
-
     override fun add(key: Key, value: ByteArray) {
         val dir = root.resolve(key.ns.toFile())
         if (!dir.exists()) {

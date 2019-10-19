@@ -18,3 +18,15 @@ interface Storage {
     fun hasKey(key: Key): Boolean
 
 }
+
+internal fun copyStorage(from: Storage, to: Storage) {
+    fun copyNs(ns: Namespace) {
+        from.keys(ns).forEach {
+            to.add(it, from.load(it)!!)
+        }
+        from.subNamespaces(ns).forEach {
+            copyNs(it)
+        }
+    }
+    copyNs(qbit.ns.root)
+}
