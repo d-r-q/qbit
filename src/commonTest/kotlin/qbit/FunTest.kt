@@ -6,6 +6,7 @@ import qbit.model.tombstone
 import qbit.storage.MemStorage
 import qbit.storage.NodesStorage
 import qbit.trx.Instance
+import qbit.trx.qbit
 import kotlin.test.*
 
 
@@ -219,6 +220,19 @@ class FunTest {
         val (stored) = conn.persist(EntityWithoutAttrs(null))
         assertNotNull(stored)
         assertNotNull(conn.db().pull(stored.gid!!))
+    }
+
+    @Test
+    fun `Reopening existing storage should preserve state`() {
+        val storage = MemStorage()
+        setupTestSchema(storage)
+
+        val conn1 = qbit(storage)
+        assertNotNull(conn1.db().attr(Scientists.name.name))
+        conn1.persist(IntEntity(null, 2))
+
+        val conn2 = qbit(storage)
+        assertNotNull(conn2.db().query(attrIs(IntEntities.int, 2)).firstOrNull())
     }
 
     @Test
