@@ -200,6 +200,26 @@ class FunTest {
         assertEquals("", ex.message)
     }
 
+    @Ignore
+    @Test
+    fun `Peristance of entity with all attr = null should actually persist the entity`() {
+        val conn = setupTestSchema()
+        val (stored) = conn.persist(NullableScalarWithoutPlaceholder(null, null))
+        assertNotNull(stored)
+        assertNotNull(conn.db().pull(stored.gid!!))
+        assertNull(conn.db().pullT<NullableScalarWithoutPlaceholder>(stored.gid!!)!!.scalar)
+    }
+
+    @Ignore
+    @Test
+    fun `Test persistence of entity without attributes`() {
+        // Consider storing entities without attributes, to enable use case, when untyped attributes add later to the entity
+        val conn = setupTestSchema()
+        val (stored) = conn.persist(EntityWithoutAttrs(null))
+        assertNotNull(stored)
+        assertNotNull(conn.db().pull(stored.gid!!))
+    }
+
     @Test
     fun `Test bomb with nulls handling`() {
         val conn = setupTestData()

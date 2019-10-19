@@ -252,9 +252,13 @@ data class ListOfNullables(val id: Long?, val lst: List<Int?>, val refLst: List<
 
 data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
 
+data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
+
 data class NullableList(val id: Long?, val lst: List<Byte>?, val placeholder: Long)
 
 data class NullableRef(val id: Long?, val ref: IntEntity?, val placeholder: Long)
+
+data class EntityWithoutAttrs(val id: Long?)
 
 val testSchema = schema {
     entity(Scientist::class) {
@@ -273,6 +277,8 @@ val testSchema = schema {
     entity(NullableList::class)
     entity(NullableRef::class)
     entity(IntEntity::class)
+    entity(EntityWithoutAttrs::class)
+    entity(NullableScalarWithoutPlaceholder::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
