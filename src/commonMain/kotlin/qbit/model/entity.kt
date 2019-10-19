@@ -6,6 +6,7 @@ import qbit.Db
 import qbit.Fact
 import qbit.QBitException
 import qbit.mapping.gid
+import qbit.mapping.isListOfVals
 import qbit.tombstone as tsAttr
 
 interface AttrValue<A : Attr<T>, T : Any> {
@@ -26,16 +27,26 @@ internal class QbitAttrValue<T : Any>(override val attr: Attr<T>, override val v
 }
 
 fun Entity(gid: Gid, vararg entries: Any): Entity {
-    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.toPair() }.toMap())
+    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
 }
 
 fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, db: Db): StoredEntity {
-    return AttachedEntity(gid, entries.toMap(), db::pull)
+    return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v)}.toMap(), db::pull)
+}
+
+private fun entity2gid(e: Any): Any {
+    return when {
+        e is Entity -> e.gid
+        e is List<*> && !isListOfVals(e as List<Any>) -> e.map(::entity2gid)
+        else -> e
+    }
+}
+
+fun AttachedEntity(gid: Gid, entries: Map<Attr<Any>, Any>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
+    return QStoredEntity(gid, entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value }, resolveGid)
 }
 
 fun Tombstone(eid: Gid): Tombstone = QTombstone(eid)
-
-internal fun Entity(eid: Gid, entries: Collection<Pair<Attr<Any>, Any>>): DetachedEntity = DetachedEntity(eid, entries.toMap())
 
 interface Entity {
 
@@ -91,12 +102,6 @@ internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid)
 
     private val delegate = MapEntity(eid, map)
 
-    constructor(eid: Gid) : this(eid, emptyMap<Attr<Any>, Any>())
-
-    constructor(e: Entity) : this(e.gid, e.entries.map { it.toPair() }.toMap())
-
-    constructor(eid: Gid, e: Entity) : this(eid, e.entries.map { it.toPair() }.toMap())
-
     override val keys: Set<Attr<Any>>
         get() = delegate.keys
 
@@ -122,9 +127,9 @@ internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid)
 
 }
 
-internal class AttachedEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : QEntity(gid), StoredEntity {
+private class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : QEntity(gid), StoredEntity {
 
-    private val delegate = MapEntity(gid, map.mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value })
+    private val delegate = MapEntity(gid, map)
 
     override val keys: Set<Attr<Any>>
         get() = delegate.keys

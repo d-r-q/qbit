@@ -80,10 +80,10 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
                     in collectionTypes -> {
                         @Suppress("UNCHECKED_CAST")
                         val list = value as List<Any>?
-                        if (list == null || list.isEmpty() || list.firstOrNull()?.let { e -> e::class } in valueTypes) {
+                        if (isListOfVals(list)) {
                             return@forEach
                         } else {
-                            list.forEach { item ->
+                            list!!.forEach { item ->
                                 identifyEntityGraph(item, eids, idMap)
                             }
                         }
@@ -95,6 +95,9 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
             }
 
 }
+
+internal fun isListOfVals(list: List<Any>?) =
+        list == null || list.isEmpty() || list.firstOrNull()?.let { e -> e::class } in valueTypes
 
 internal fun findGidProp(root: Any): KCallable<*> =
         root::class.members
@@ -172,10 +175,10 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityG
     identifyEntityGraph(e, gids, idMap)
     idMap.entries
             .groupBy { it.value }
-            .forEach {
-                val distinctStates = it.value.map { it.key }.distinct()
+            .forEach { entityStates ->
+                val distinctStates = entityStates.value.map { it.key }.distinct()
                 if (distinctStates.size > 1) {
-                    throw QBitException("Entity ${it.key} has several different states to store: $distinctStates")
+                    throw QBitException("Entity ${entityStates.key} has several different states to store: $distinctStates")
                 }
             }
 

@@ -1,10 +1,14 @@
 package qbit.model
 
 import qbit.Attrs
+import qbit.Attrs.name
+import qbit.Attrs.type
+import qbit.Attrs.unique
 import qbit.Fact
 import qbit.QBitException
 import qbit.mapping.types
 import qbit.ns.Key
+import kotlin.reflect.KClass
 
 // Interface
 
@@ -21,13 +25,27 @@ data class Attr<out T : Any>(val id: Gid?, val name: String, val type: Byte, val
 inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr<T> =
         Attr(null, name, unique)
 
-inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true) = Attr<T>(
-        id,
-        name,
-        types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class}"),
-        unique,
-        false
-)
+inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
+    println(T::class)
+    println(L::class)
+    return Attr<L>(
+            id,
+            name,
+            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+            unique,
+            false
+    )
+}
+
+inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true): Attr<T> {
+    return Attr<T>(
+            id,
+            name,
+            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+            unique,
+            false
+    )
+}
 
 fun Attr<*>.toFacts(): List<Fact> = listOf(Fact(this.id!!, Attrs.name.name, this.name),
         Fact(this.id, Attrs.type.name, this.type),
