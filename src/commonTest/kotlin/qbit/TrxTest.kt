@@ -4,6 +4,7 @@ import qbit.Scientists.extId
 import qbit.Scientists.name
 import qbit.index.pullT
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.query.attrIs
 import qbit.storage.MemStorage
 import qbit.trx.QTrx

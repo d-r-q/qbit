@@ -1,8 +1,7 @@
-package qbit
+package qbit.storage
 
 import qbit.platform.Files
-import qbit.storage.FileSystemStorage
-import qbit.storage.Storage
+import qbit.serialization.Storage
 
 
 class FileStorageTest : StorageTest() {

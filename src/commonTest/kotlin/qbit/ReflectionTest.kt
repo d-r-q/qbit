@@ -85,12 +85,14 @@ data class AllTypes(val bool: Boolean, val boolList: List<Boolean>,
 
 }
 
+@Suppress("unused")
 private data class SubSecondaryTest(val prop1: String, val prop2: String) {
 
     constructor(prop1: String) : this(prop1, "prop2")
 
 }
 
+@Suppress("unused")
 private data class RenamedSecondaryTest(val prop1: String, val prop2: String) {
 
     constructor(notAprop1: String, notAprop2: Int) : this(notAprop1, notAprop2.toString())
@@ -101,6 +103,7 @@ private data class RenamedSecondaryTest(val prop1: String, val prop2: String) {
 
 }
 
+@Suppress("unused")
 private data class CustomCopy(val prop1: String, val prop2: String) {
 
     fun copy(prop1: Int = 1, prop2: String = this.prop2): CustomCopy {

@@ -6,6 +6,7 @@ import qbit.index.Db
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.platform.*
 import qbit.query.Fetch
 import qbit.query.QueryPred
@@ -25,7 +26,7 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
     return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 
-object emptyDb : Db {
+object EmptyDb : Db {
 
     override fun pull(gid: Gid): StoredEntity? = null
 
@@ -75,13 +76,15 @@ val nullNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { null }
 
 val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
 
+val nullGidResolver: (Gid) -> StoredEntity? = { null }
+
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
 
 inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr<T> =
         Attr(null, name, unique)
 
 inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
-    return Attr<L>(
+    return Attr(
             id,
             name,
             types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
@@ -91,7 +94,7 @@ inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: Strin
 }
 
 inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true): Attr<T> {
-    return Attr<T>(
+    return Attr(
             id,
             name,
             types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),

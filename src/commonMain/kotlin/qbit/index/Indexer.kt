@@ -1,6 +1,6 @@
 package qbit.index
 
-import qbit.model.QBitException
+import qbit.model.impl.QBitException
 import qbit.serialization.*
 import qbit.model.Hash
 

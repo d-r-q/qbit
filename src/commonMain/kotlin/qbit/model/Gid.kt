@@ -1,5 +1,6 @@
 package qbit.model
 
+import qbit.model.impl.QBitException
 import kotlin.reflect.KProperty1
 
 class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
@@ -12,7 +13,7 @@ class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (!(other is Gid)) return false
+        if (other !is Gid) return false
 
         if (iid != other.iid) return false
         if (eid != other.eid) return false

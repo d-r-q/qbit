@@ -1,11 +1,12 @@
 package qbit.storage
 
-import qbit.model.QBitException
+import qbit.model.impl.QBitException
 import qbit.model.Key
 import qbit.model.Namespace
 import qbit.platform.ConcurrentHashMap
 import qbit.platform.asSequence
 import qbit.platform.getOrPut
+import qbit.serialization.Storage
 
 class MemStorage : Storage {
 

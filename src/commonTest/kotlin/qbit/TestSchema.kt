@@ -9,7 +9,7 @@ import qbit.platform.BigDecimal
 import qbit.platform.Instant
 import qbit.platform.ZonedDateTime
 import qbit.storage.MemStorage
-import qbit.storage.Storage
+import qbit.serialization.Storage
 import qbit.typing.schema
 
 data class IntEntity(val id: Long?, val int: Int)
@@ -317,7 +317,6 @@ object Cities {
 object Papers {
 
     val name = schemaMap.getValue(Paper::class.attrName(Paper::name))
-    val editor = schemaMap.getValue(Paper::class.attrName(Paper::editor))
 
 }
 

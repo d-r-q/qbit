@@ -1,6 +1,7 @@
 package qbit.reflection
 
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.platform.*
 import kotlin.reflect.*
 

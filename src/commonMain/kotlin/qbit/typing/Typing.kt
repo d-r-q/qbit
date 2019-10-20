@@ -2,6 +2,7 @@ package qbit.typing
 
 import qbit.factorization.valueTypes
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.query.Query
 import qbit.reflection.*
 import kotlin.reflect.KClass

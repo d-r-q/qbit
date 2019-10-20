@@ -2,6 +2,7 @@ package qbit.typing
 
 import qbit.*
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import kotlin.test.*
@@ -72,7 +73,9 @@ class TypingTest {
     fun `Test instantiation of entity with missed fact`() {
         val gids = Gid(0, 0).nextGids()
         val sLebedevGid = gids.next()
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(/* no externalId */ Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid)) { _ -> null }
+        val aLaypunov = AttachedEntity(gids.next(),
+                mapOf(/* no externalId */ Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid),
+                nullGidResolver)
         val typing = Typing(aLaypunov, EagerQuery(), Scientist::class)
         assertFailsWith<QBitException> {
             typing.instantiate(aLaypunov, Scientist::class)
@@ -109,7 +112,7 @@ class TypingTest {
         val gids = Gid(0, 0).nextGids()
         val ru = AttachedEntity(gids.next(),
                 mapOf(Countries.name to "Russia", Countries.population to 146_000_000),
-                { _ -> null })
+                nullGidResolver)
         val typing = Typing(ru, EagerQuery(), Country::class)
         val typedRu = typing.instantiate(ru, Country::class)
         assertEquals("Russia", typedRu.name)
@@ -138,7 +141,7 @@ class TypingTest {
 
         val ru = AttachedEntity(gids.next(),
                 mapOf(Countries.name to "Russia", Countries.population to 146_000_000),
-                {_ -> null})
+                nullGidResolver)
         val typing = Typing(ru, EagerQuery(), Country::class)
         val typedRu = typing.instantiate(ru, Country::class)
         assertEquals(146_000_000, typedRu.population)
@@ -150,7 +153,7 @@ class TypingTest {
 
         val er = AttachedEntity(gids.next(),
                 mapOf(Papers.name to "ER-Model"),
-                {_ -> null})
+                nullGidResolver)
         val typing = Typing(er, EagerQuery(), Paper::class)
         val typedEr = typing.instantiate(er, Paper::class)
         assertEquals("ER-Model", typedEr.name)

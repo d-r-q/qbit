@@ -9,9 +9,10 @@ import qbit.serialization.Node
 import qbit.serialization.NodeRef
 import qbit.serialization.NodeVal
 import qbit.serialization.NodesStorage
-import qbit.storage.Storage
+import qbit.serialization.Storage
 import qbit.trx.*
 import qbit.model.Hash
+import qbit.model.impl.QBitException
 
 fun qbit(storage: Storage): Conn {
     val iid = Iid(1, 4)

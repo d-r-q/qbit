@@ -4,6 +4,7 @@ import qbit.collections.EmptyIterator
 import qbit.factorization.destruct
 import qbit.index.Db
 import qbit.model.*
+import qbit.model.impl.QBitException
 
 
 interface Trx {

@@ -1,4 +1,4 @@
-package qbit.storage
+package qbit.serialization
 
 import qbit.model.Key
 import qbit.model.Namespace

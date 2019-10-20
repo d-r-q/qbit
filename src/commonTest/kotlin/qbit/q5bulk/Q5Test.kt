@@ -50,7 +50,6 @@ object Cats {
 
 class Q5Test {
 
-    @Ignore
     @Test
     fun test() {
         val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")
@@ -181,7 +180,7 @@ class Q5Test {
         val v1 = fieldsV1.size > fieldsV2.size
         val fields = if (v1) fieldsV1 else fieldsV2
 
-        val date = if (fields.size > 0) fields[0] else return null
+        val date = if (fields.isNotEmpty()) fields[0] else return null
         val time = if (fields.size > 1) fields[1] else return null
         val dateTime =
                 if (v1) dateTimeFormatV1.parse("$date $time").getTime()
@@ -195,7 +194,7 @@ class Q5Test {
         val comment = if (fields.size > 4) fields[4].replace("\"\"", "\"") else return null
         val device = if (fields.size > 5) fields[5] else return null
         val source = if (fields.size > 6) fields[6] else return null
-        val e = Trx(null,
+        return Trx(null,
                 (sum.replace(",", ".").toDouble() * 100).toLong(),
                 ZonedDateTimes.ofInstant(Instants.ofEpochMilli(dateTime), ZoneIds.of("Asia/Novosibirsk")),
                 catSe,
@@ -203,7 +202,6 @@ class Q5Test {
                 source,
                 device
         )
-        return e
     }
 
 }

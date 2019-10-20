@@ -3,6 +3,7 @@ package qbit
 import qbit.index.pullT
 import qbit.index.queryT
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.query.Eager
 import qbit.query.attrIs
 import qbit.query.hasAttr

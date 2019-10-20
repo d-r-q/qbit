@@ -29,7 +29,7 @@ class ConnTest {
         val conn = QConn(dbUuid, storage, storedRoot)
 
         val newLog = FakeTrxLog(storedLeaf.hash)
-        conn.update(conn.trxLog, newLog, emptyDb)
+        conn.update(conn.trxLog, newLog, EmptyDb)
 
         assertArrayEquals(newLog.hash.bytes, storage.load(Namespace("refs")["head"]))
     }

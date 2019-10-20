@@ -1,11 +1,12 @@
-package qbit
+package qbit.storage
 
+import qbit.assertArrayEquals
 import qbit.model.Namespace
 import qbit.model.ns
 import qbit.model.root
-import qbit.storage.MemStorage
-import qbit.storage.Storage
-import qbit.storage.copyStorage
+import qbit.serialization.Storage
+import qbit.serialization.copyStorage
+import qbit.setupTestSchema
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

@@ -1,6 +1,7 @@
 package qbit.factorization
 
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.platform.BigDecimal
 import qbit.platform.IdentityHashMap
 import qbit.platform.Instant

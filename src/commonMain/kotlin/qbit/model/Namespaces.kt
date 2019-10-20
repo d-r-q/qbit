@@ -11,9 +11,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
 
     companion object {
         fun of(vararg parts: String): Namespace {
-            if (parts.isEmpty()) {
-                throw IllegalArgumentException("parts is empty")
-            }
+            require(parts.isNotEmpty()) { "parts is empty" }
             if (parts.size == 1 && parts[0] == "") {
                 return root
             }

@@ -1,9 +1,8 @@
 package qbit.serialization
 
-import qbit.model.QBitException
+import qbit.model.impl.QBitException
 import qbit.model.Namespace
 import qbit.platform.asInput
-import qbit.storage.Storage
 import qbit.model.Hash
 import qbit.model.hash
 

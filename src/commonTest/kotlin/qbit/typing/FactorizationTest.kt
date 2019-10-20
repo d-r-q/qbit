@@ -5,6 +5,7 @@ import qbit.factorization.*
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.model.*
+import qbit.model.impl.QBitException
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.reflection.default
@@ -38,7 +39,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
         val user = MUser(
                 login = "login",
@@ -76,7 +77,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
         val addr = Addr(null, "addr")
         val user = MUser(
@@ -107,7 +108,7 @@ class MappingTest {
             entity(Addr::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
         val addr = Addr(1, "addr")
         val user = MUser(
@@ -149,7 +150,7 @@ class MappingTest {
             entity(ListOfNullables::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val ex = assertFailsWith<QBitException> {
             destruct(ListOfNullables(null, listOf(null), listOf(null)), db::attr, gids)
         }
@@ -165,7 +166,7 @@ class MappingTest {
             entity(ListOfNullables::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val ex = assertFailsWith<QBitException> {
             destruct(ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), db::attr, gids)
         }
@@ -180,7 +181,7 @@ class MappingTest {
             entity(NullableScalar::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val facts = destruct(NullableScalar(null, null, 0), db::attr, gids)
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
     }
@@ -193,7 +194,7 @@ class MappingTest {
             entity(NullableList::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val facts = destruct(NullableList(null, null, 0), db::attr, gids)
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
     }
@@ -207,7 +208,7 @@ class MappingTest {
             entity(Bomb::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val facts = destruct(createBombWithNulls(), db::attr, gids)
         assertEquals(56, facts.size)
     }
@@ -221,7 +222,7 @@ class MappingTest {
             entity(Bomb::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val facts = destruct(createBombWithoutNulls(), db::attr, gids)
         assertEquals(134, facts.size)
     }
@@ -235,7 +236,7 @@ class MappingTest {
             entity(Country::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val s = Scientist(null, 1, "s", emptyList(), Country(null, "c", 0), null)
         s.reviewer = s
 
@@ -308,7 +309,7 @@ class MappingTest {
             entity(Scientist::class)
             entity(ResearchGroup::class)
         }
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, emptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
         val s1 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
         val s2 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
         val rg = ResearchGroup(null, listOf(s1, s2))
@@ -334,7 +335,7 @@ class SchemaBuilder {
 
 }
 
-class EntityBuilder(internal val type: KClass<*>) {
+class EntityBuilder(private val type: KClass<*>) {
 
     internal val uniqueProps = HashSet<String>()
 

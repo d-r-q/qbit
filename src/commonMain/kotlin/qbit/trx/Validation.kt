@@ -3,7 +3,7 @@ package qbit.trx
 import qbit.index.Db
 import qbit.model.Attr
 import qbit.model.Eav
-import qbit.model.QBitException
+import qbit.model.impl.QBitException
 import qbit.query.attrIs
 
 fun validate(db: Db, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {

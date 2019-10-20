@@ -103,8 +103,8 @@ fun <E : Any> splitToPair(arr: ArrayList<E>): Pair<ArrayList<E>, ArrayList<E>> {
     require(arr.size >= 2)
 
     val middle = arr.size / 2
-    val left = ArrayList<E>(arr.subList(0, middle))
-    val right = ArrayList<E>(arr.subList(middle, arr.size))
+    val left = ArrayList(arr.subList(0, middle))
+    val right = ArrayList(arr.subList(middle, arr.size))
     return Pair(left, right)
 }
 

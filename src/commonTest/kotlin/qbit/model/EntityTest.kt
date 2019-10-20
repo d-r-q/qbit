@@ -63,9 +63,9 @@ class EntityTest {
     @Test
     fun eqIsTypeSave() {
         // Try to find out of type safe way to entity creation
-        val attr = Attr<Int>(null, "", QInt.code, false, false)
+        val attr = Attr<Int>(null, "", QInt.code, unique = false, list = false)
         val entries = attr eq ""
-        val e = Entity(Gid(0, 0), entries)
+        Entity(Gid(0, 0), entries)
         fail("attr eq \"\" should not compile")
     }
 

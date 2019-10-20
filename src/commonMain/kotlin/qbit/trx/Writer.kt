@@ -2,7 +2,7 @@ package qbit.trx
 
 import qbit.model.DbUuid
 import qbit.model.Eav
-import qbit.model.QBitException
+import qbit.model.impl.QBitException
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.model.Hash
