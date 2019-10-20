@@ -1,4 +1,6 @@
-package qbit.model
+package qbit.api.model
+
+import qbit.api.gid.Gid
 
 fun Fact(gid: Gid, attr: Attr<*>, value: Any) = Eav(gid, attr.name, value)
 

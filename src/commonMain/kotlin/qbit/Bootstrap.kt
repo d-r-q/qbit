@@ -1,9 +1,16 @@
 package qbit
 
-import qbit.collections.EmptyIterator
+import qbit.api.Attrs
+import qbit.api.Instances
+import qbit.api.db.Conn
+import qbit.api.model.Attr
+import qbit.api.model.Eav
+import qbit.api.protoInstance
+import qbit.api.system.DbUuid
+import qbit.api.tombstone
 import qbit.factorization.destruct
-import qbit.model.*
-import qbit.model.Namespace
+import qbit.ns.Namespace
+import qbit.platform.collections.EmptyIterator
 import qbit.platform.currentTimeMillis
 import qbit.serialization.NodeData
 import qbit.serialization.NodesStorage

@@ -1,6 +1,7 @@
 package qbit.model
 
-import qbit.model.impl.QBitException
+import qbit.api.gid.Iid
+import qbit.api.QBitException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -25,16 +26,16 @@ class IidTest {
 
     @Test
     fun testOverflow() {
-        assertFailsWith<QBitException> {
+        assertFailsWith<IllegalArgumentException> {
             Iid(0, 4).fork(16)
         }
     }
 
-
     @Test
     fun testNegative() {
-        assertFailsWith<QBitException> {
+        assertFailsWith<IllegalArgumentException> {
             Iid(0, 4).fork(0)
         }
     }
+
 }

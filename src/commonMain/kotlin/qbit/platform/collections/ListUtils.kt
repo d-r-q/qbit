@@ -1,6 +1,6 @@
-package qbit.collections
+package qbit.platform.collections
 
-import qbit.model.impl.assert
+import qbit.platform.assert
 
 fun <E> arrayList(size: Int, init: (Int) -> E): ArrayList<E> {
     val res = ArrayList<E>(size)

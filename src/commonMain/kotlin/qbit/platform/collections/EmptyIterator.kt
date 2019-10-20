@@ -1,4 +1,4 @@
-package qbit.collections
+package qbit.platform.collections
 
 object EmptyIterator : Iterator<Nothing> {
 

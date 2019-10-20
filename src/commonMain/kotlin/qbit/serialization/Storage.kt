@@ -1,8 +1,8 @@
 package qbit.serialization
 
-import qbit.model.Key
-import qbit.model.Namespace
-import qbit.model.root
+import qbit.ns.Key
+import qbit.ns.Namespace
+import qbit.ns.root
 
 interface Storage {
 

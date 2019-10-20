@@ -1,19 +1,10 @@
 package qbit.trx
 
-import qbit.index.Db
-
-interface WriteResult<R> {
-
-    val persisted: R
-
-    val db: Db
-
-    operator fun component1(): R
-
-}
+import qbit.api.db.Db
+import qbit.api.db.WriteResult
 
 internal data class QbitWriteResult<R>(
         override val persisted: R,
         override val db: Db
-) : WriteResult<R>
+) : WriteResult<R>()
 

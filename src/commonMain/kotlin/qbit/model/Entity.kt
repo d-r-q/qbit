@@ -2,83 +2,35 @@
 
 package qbit.model
 
-import qbit.model.impl.QBitException
-import qbit.model.tombstone as tsAttr
-
-interface AttrValue<A : Attr<T>, T : Any> {
-
-    val attr: A
-    val value: T
-
-    fun toPair() = attr to value
-
-    operator fun component1(): Attr<T> = attr
-
-    operator fun component2(): T = value
-
-}
-
-internal class QbitAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T> {
-    override fun toString(): String = "${attr.name}=$value"
-}
-
-fun Entity(gid: Gid, vararg entries: Any): Entity {
-    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
-}
+import qbit.api.QBitException
+import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.AttrValue
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
+import qbit.api.model.Tombstone
+import qbit.api.model.entity2gid
+import kotlin.reflect.KProperty1
 
 fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
-    return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v)}.toMap(), resolveGid)
+    return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v) }.toMap(), resolveGid)
 }
 
-private fun entity2gid(e: Any): Any {
-    return when {
-        e is Entity -> e.gid
-        e is List<*> && !isListOfVals(e as List<Any>) -> e.map(::entity2gid)
-        else -> e
-    }
-}
+internal sealed class QRoEntity(override val gid: Gid) : Entity {
 
-fun AttachedEntity(gid: Gid, entries: Map<Attr<Any>, Any>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
-    return QStoredEntity(gid, entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value }, resolveGid)
-}
-
-fun Tombstone(eid: Gid): Tombstone = QTombstone(eid)
-
-interface Entity {
-
-    val gid: Gid
-
-    val keys: Set<Attr<Any>>
-
-    operator fun <T : Any> get(key: Attr<T>): T = tryGet(key)
-            ?: throw QBitException("Entity $this does not contain value for ${key.name}")
-
-    fun <T : Any> tryGet(key: Attr<T>): T?
-
-    val entries: Set<AttrValue<Attr<Any>, Any>>
+    override val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = keys.map {
             it eq this[it]
         }.toSet()
-
-}
-
-interface StoredEntity : Entity {
-
-    fun pull(gid: Gid): StoredEntity?
-
-}
-
-interface Tombstone : Entity
-
-internal fun Tombstone.toFacts() = listOf(Fact(this.gid, tsAttr, true))
-
-internal sealed class QRoEntity(override val gid: Gid) : Entity {
 
     override fun toString() = "Entity(gid = $gid, ${entries.joinToString(",")})"
 
 }
 
-internal class QTombstone(eid: Gid) : QRoEntity(eid), Tombstone {
+internal class QTombstone(override val gid: Gid) : Tombstone() {
+
+    override val entries: Set<AttrValue<Attr<Any>, Any>>
+        get() = emptySet()
 
     override val keys: Set<Attr<Any>>
         get() = emptySet()
@@ -123,7 +75,7 @@ internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid)
 
 }
 
-private class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : QEntity(gid), StoredEntity {
+internal class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : QEntity(gid), StoredEntity {
 
     private val delegate = MapEntity(gid, map)
 
@@ -141,6 +93,9 @@ private class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: 
 }
 
 private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, Any>) : Entity {
+
+    override val entries: Set<AttrValue<Attr<Any>, Any>>
+        get() = map.entries.map { it.key eq it.value }.toSet()
 
     override val keys: Set<Attr<Any>>
         get() = map.keys
@@ -165,34 +120,26 @@ private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, A
 
 }
 
-internal fun Entity.toFacts(): Collection<Eav> =
-        this.entries.flatMap { (attr: Attr<Any>, value) ->
-            val type = DataType.ofCode(attr.type)!!
-            when {
-                type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
-                type.value() && attr.list -> listToFacts(gid, attr, value as List<Any>)
-                type.ref() && !attr.list -> listOf(refToFacts(gid, attr, value))
-                type.ref() && attr.list -> refListToFacts(gid, attr, value as List<Any>)
-                else -> throw AssertionError("Unexpected attr kind: $attr")
-            }
+internal infix fun <T : Any> Attr<T>.eq(v: T): AttrValue<Attr<T>, T> = QbitAttrValue(this, v)
+
+internal class QbitAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T> {
+    override fun toString(): String = "${attr.name}=$value"
+}
+
+internal val Any.gid: Gid?
+    get() {
+        if (this is Entity) {
+            return this.gid
         }
 
-private fun <T : Any> valToFacts(eid: Gid, attr: Attr<T>, value: T) =
-        Fact(eid, attr, value)
-
-private fun refToFacts(eid: Gid, attr: Attr<Any>, value: Any) =
-        Fact(eid, attr, eidOf(value)!!)
-
-private fun listToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
-        value.map { Fact(eid, attr, it) }
-
-private fun refListToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
-        value.map { Fact(eid, attr, eidOf(it)!!) }
-
-private fun eidOf(a: Any): Gid? =
-        when (a) {
-            is Entity -> a.gid
-            is Gid -> a
-            else -> null
+        val id = this::class.members
+                .filterIsInstance<KProperty1<Any, *>>()
+                .firstOrNull { it.name == "id" }
+                ?.get(this)
+        return when (id) {
+            null -> null
+            is Long -> Gid(id)
+            is Gid -> id
+            else -> throw QBitException("Unsupported id type: $id of entity $this")
         }
-
+    }

@@ -1,6 +1,10 @@
 package qbit
 
-import qbit.model.*
+import qbit.api.model.Eav
+import qbit.api.gid.Gid
+import qbit.api.system.DbUuid
+import qbit.api.gid.Iid
+import qbit.ns.Namespace
 import qbit.platform.Files
 import qbit.platform.currentTimeMillis
 import qbit.serialization.Leaf

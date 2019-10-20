@@ -1,10 +1,19 @@
 package qbit.typing
 
+import qbit.api.QBitException
+import qbit.api.db.Query
+import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.DataType
+import qbit.api.model.Entity
+import qbit.api.model.QList
+import qbit.api.model.StoredEntity
 import qbit.factorization.valueTypes
-import qbit.model.*
-import qbit.model.impl.QBitException
-import qbit.query.Query
-import qbit.reflection.*
+import qbit.reflection.findPrimaryConstructor
+import qbit.reflection.getListElementClass
+import qbit.reflection.isId
+import qbit.reflection.propertyFor
+import qbit.reflection.setableProps
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 

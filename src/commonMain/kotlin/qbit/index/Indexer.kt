@@ -1,8 +1,12 @@
 package qbit.index
 
-import qbit.model.impl.QBitException
-import qbit.serialization.*
-import qbit.model.Hash
+import qbit.api.QBitException
+import qbit.api.model.Hash
+import qbit.serialization.Leaf
+import qbit.serialization.Merge
+import qbit.serialization.Node
+import qbit.serialization.NodeVal
+import qbit.serialization.Root
 
 internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
 

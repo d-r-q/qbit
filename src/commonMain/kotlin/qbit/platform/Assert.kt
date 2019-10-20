@@ -1,8 +1,8 @@
-package qbit.model.impl
+package qbit.platform
 
 import qbit.platform.assert as assertImpl
 
-val enabled = try {
+var enabled = try {
     assertImpl(false)
     false
 } catch (e: AssertionError) {

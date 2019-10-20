@@ -1,8 +1,8 @@
 package qbit.trx
 
-import qbit.model.Eav
+import qbit.api.model.Eav
+import qbit.api.model.Hash
 import qbit.serialization.NodeVal
-import qbit.model.Hash
 
 
 internal interface TrxLog {

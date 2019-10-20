@@ -1,13 +1,13 @@
 package qbit.q5bulk
 
-import qbit.api.Conn
+import qbit.api.db.Conn
 import qbit.factorization.attrName
 import qbit.model.gid
 import qbit.platform.*
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
-import qbit.query.attrIn
-import qbit.query.attrIs
+import qbit.api.db.attrIn
+import qbit.api.db.attrIs
 import qbit.storage.FileSystemStorage
 import qbit.schema.schema
 import kotlin.test.Ignore

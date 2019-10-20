@@ -1,20 +1,26 @@
 package qbit
 
 import qbit.Scientists.extId
+import qbit.api.*
+import qbit.api.db.AttrPred
+import qbit.api.db.AttrValuePred
+import qbit.api.db.attrIn
+import qbit.api.db.attrIs
+import qbit.api.gid.Gid
+import qbit.api.model.*
+import qbit.api.system.DbUuid
+import qbit.api.gid.Iid
 import qbit.index.*
 import qbit.model.*
 import qbit.platform.currentTimeMillis
-import qbit.query.AttrPred
-import qbit.query.AttrValuePred
-import qbit.query.attrIn
-import qbit.query.attrIs
 import qbit.serialization.*
+import qbit.trx.toFacts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import qbit.Scientists.name as userName
-import qbit.model.tombstone as tsAttr
+import qbit.api.tombstone as tsAttr
 
 class IndexTest {
 
@@ -168,7 +174,7 @@ class IndexTest {
     fun `Test putting tombstone into index should filter all facts of correspondingEntity`() {
         val idx = Index(listOf(Gid(0, 0) to listOf(Eav(Gid(0, 0), "any", "any")),
                 Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))))
-        val filtered = idx.addFacts(listOf(Eav(Gid(0, 0), qbit.model.tombstone.name, true)))
+        val filtered = idx.addFacts(listOf(Eav(Gid(0, 0), qbit.api.tombstone.name, true)))
         assertEquals(1, filtered.entities.size)
         assertEquals(2, filtered.indices.size)
     }

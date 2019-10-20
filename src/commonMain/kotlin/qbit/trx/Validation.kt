@@ -1,10 +1,10 @@
 package qbit.trx
 
-import qbit.index.Db
-import qbit.model.Attr
-import qbit.model.Eav
-import qbit.model.impl.QBitException
-import qbit.query.attrIs
+import qbit.api.QBitException
+import qbit.api.db.Db
+import qbit.api.db.attrIs
+import qbit.api.model.Attr
+import qbit.api.model.Eav
 
 fun validate(db: Db, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.name }

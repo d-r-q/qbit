@@ -1,18 +1,28 @@
 package qbit
 
-import qbit.index.Db
+import qbit.api.QBitException
+import qbit.api.db.Conn
+import qbit.api.db.Db
+import qbit.api.db.Trx
+import qbit.api.db.WriteResult
+import qbit.api.gid.Gid
+import qbit.api.gid.Iid
+import qbit.api.model.Hash
+import qbit.api.system.DbUuid
+import qbit.api.theInstanceEid
 import qbit.index.Indexer
 import qbit.index.pullT
-import qbit.model.*
-import qbit.model.Namespace
+import qbit.ns.Namespace
 import qbit.serialization.Node
 import qbit.serialization.NodeRef
 import qbit.serialization.NodeVal
 import qbit.serialization.NodesStorage
 import qbit.serialization.Storage
-import qbit.trx.*
-import qbit.model.Hash
-import qbit.model.impl.QBitException
+import qbit.trx.CommitHandler
+import qbit.trx.QTrx
+import qbit.trx.QTrxLog
+import qbit.trx.TrxLog
+import qbit.trx.Writer
 
 fun qbit(storage: Storage): Conn {
     val iid = Iid(1, 4)
@@ -28,23 +38,7 @@ fun qbit(storage: Storage): Conn {
     }
 }
 
-interface Conn {
-
-    val dbUuid: DbUuid
-
-    fun db(): Db
-
-    fun db(body: (Db) -> Unit)
-
-    fun trx(): Trx
-
-    fun <R : Any> persist(e: R): WriteResult<R?>
-
-    val head: Hash
-
-}
-
-internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : Conn, CommitHandler {
+internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : Conn(), CommitHandler {
 
     private val nodesStorage = NodesStorage(storage)
 

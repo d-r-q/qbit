@@ -1,8 +1,8 @@
 package qbit.schema
 
+import qbit.api.model.Attr
 import qbit.factorization.attrName
 import qbit.factorization.schemaFor
-import qbit.model.Attr
 import qbit.reflection.default
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0

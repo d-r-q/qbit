@@ -1,8 +1,8 @@
 package qbit.storage
 
-import qbit.model.impl.QBitException
-import qbit.model.Key
-import qbit.model.Namespace
+import qbit.api.QBitException
+import qbit.ns.Key
+import qbit.ns.Namespace
 import qbit.platform.ConcurrentHashMap
 import qbit.platform.asSequence
 import qbit.platform.getOrPut

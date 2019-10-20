@@ -1,8 +1,18 @@
 package qbit.model
 
+import qbit.Entity
+import qbit.AttachedEntity
 import qbit.Attr
 import qbit.ListAttr
+import qbit.api.model.StoredEntity
+import qbit.api.model.Attr
+import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
+import qbit.api.model.QInt
+import qbit.api.model.QRef
 import qbit.assertArrayEquals
+import qbit.ns.Namespace
+import qbit.trx.toFacts
 import kotlin.test.*
 
 @Suppress("UNCHECKED_CAST")

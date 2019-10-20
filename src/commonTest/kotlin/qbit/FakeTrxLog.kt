@@ -1,7 +1,7 @@
 package qbit
 
-import qbit.model.Eav
-import qbit.model.Hash
+import qbit.api.model.Eav
+import qbit.api.model.Hash
 import qbit.trx.TrxLog
 
 internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxLog {

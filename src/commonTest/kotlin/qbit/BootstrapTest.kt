@@ -1,8 +1,13 @@
 package qbit
 
+import qbit.api.*
+import qbit.api.db.attrIs
+import qbit.api.model.Attr
+import qbit.api.system.DbUuid
+import qbit.api.gid.Iid
+import qbit.api.system.Instance
 import qbit.index.queryT
-import qbit.model.*
-import qbit.query.attrIs
+import qbit.ns.Namespace
 import qbit.storage.MemStorage
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,7 +44,7 @@ class BootstrapTest {
 
     @Test
     fun `Tombstone attr is correctly bootstrapped`() {
-        assertEquals(tombstone.name, newDb.db().queryT<Attr<*>>(attrIs(Attrs.name, tombstone.name)).first().name)
+        assertEquals(qbit.api.tombstone.name, newDb.db().queryT<Attr<*>>(attrIs(Attrs.name, qbit.api.tombstone.name)).first().name)
     }
 
     @Test

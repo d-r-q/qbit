@@ -3,11 +3,39 @@ package qbit.serialization
 import kotlinx.io.charsets.Charset
 import kotlinx.io.charsets.decode
 import kotlinx.io.charsets.encode
-import kotlinx.io.core.*
-import qbit.model.*
-import qbit.platform.*
-import qbit.model.Hash
-import qbit.model.nullHash
+import kotlinx.io.core.ByteReadPacket
+import kotlinx.io.core.EOFException
+import kotlinx.io.core.ExperimentalIoApi
+import kotlinx.io.core.Input
+import kotlinx.io.core.readAvailable
+import qbit.api.gid.Gid
+import qbit.api.gid.Iid
+import qbit.api.model.DataType
+import qbit.api.model.Eav
+import qbit.api.model.Hash
+import qbit.api.model.QBoolean
+import qbit.api.model.QByte
+import qbit.api.model.QBytes
+import qbit.api.model.QDecimal
+import qbit.api.model.QGid
+import qbit.api.model.QInstant
+import qbit.api.model.QInt
+import qbit.api.model.QList
+import qbit.api.model.QLong
+import qbit.api.model.QRef
+import qbit.api.model.QString
+import qbit.api.model.QZonedDateTime
+import qbit.api.model.nullHash
+import qbit.api.system.DbUuid
+import qbit.platform.BigDecimal
+import qbit.platform.BigInteger
+import qbit.platform.Instant
+import qbit.platform.Instants
+import qbit.platform.ZoneIds
+import qbit.platform.ZonedDateTime
+import qbit.platform.ZonedDateTimes
+import qbit.platform.asInput
+import qbit.platform.toBigDecimal
 
 object SimpleSerialization : Serialization {
 

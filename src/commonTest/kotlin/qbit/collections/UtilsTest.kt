@@ -1,6 +1,11 @@
 package qbit.collections
 
 import qbit.assertArrayEquals
+import qbit.platform.collections.arrayList
+import qbit.platform.collections.insert
+import qbit.platform.collections.set
+import qbit.platform.collections.split
+import qbit.platform.collections.splitByArray
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertTrue

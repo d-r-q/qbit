@@ -2,7 +2,7 @@
 
 package qbit
 
-import qbit.model.Gid
+import qbit.api.gid.Gid
 import qbit.model.QTombstone
 import qbit.model.gid
 import qbit.platform.*

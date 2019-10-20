@@ -1,10 +1,12 @@
 package qbit
 
-import qbit.collections.EmptyIterator
+import qbit.api.model.Attr
+import qbit.api.db.Conn
+import qbit.platform.collections.EmptyIterator
 import qbit.factorization.attrName
 import qbit.factorization.destruct
-import qbit.model.Attr
-import qbit.model.Gid
+import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
 import qbit.platform.BigDecimal
 import qbit.platform.Instant
 import qbit.platform.ZonedDateTime

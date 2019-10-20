@@ -1,11 +1,13 @@
 package qbit.typing
 
 import qbit.*
+import qbit.api.*
+import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
+import qbit.api.model.*
 import qbit.factorization.*
 import qbit.index.Index
 import qbit.index.IndexDb
-import qbit.model.*
-import qbit.model.impl.QBitException
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.schema.schema

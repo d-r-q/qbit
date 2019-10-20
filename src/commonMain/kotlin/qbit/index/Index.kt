@@ -1,12 +1,12 @@
 package qbit.index
 
-import qbit.collections.firstMatchIdx
-import qbit.collections.merge
-import qbit.collections.subList
-import qbit.model.Eav
-import qbit.model.Gid
-import qbit.model.tombstone
-import qbit.query.QueryPred
+import qbit.api.db.QueryPred
+import qbit.api.gid.Gid
+import qbit.api.model.Eav
+import qbit.api.tombstone
+import qbit.platform.collections.firstMatchIdx
+import qbit.platform.collections.merge
+import qbit.platform.collections.subList
 
 typealias RawEntity = Pair<Gid, List<Eav>>
 

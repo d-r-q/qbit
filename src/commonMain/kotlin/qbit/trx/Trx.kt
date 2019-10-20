@@ -1,25 +1,23 @@
 package qbit.trx
 
-import qbit.collections.EmptyIterator
+import qbit.api.QBitException
+import qbit.api.db.Db
+import qbit.api.db.Trx
+import qbit.api.db.WriteResult
+import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
+import qbit.api.model.Attr
+import qbit.api.model.DataType
+import qbit.api.model.Eav
+import qbit.api.model.Entity
+import qbit.api.model.Fact
+import qbit.api.system.Instance
 import qbit.factorization.destruct
-import qbit.index.Db
-import qbit.model.*
-import qbit.model.impl.QBitException
+import qbit.model.gid
+import qbit.platform.collections.EmptyIterator
 
 
-interface Trx {
-
-    fun db(): Db
-
-    fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?>
-
-    fun commit()
-
-    fun rollback()
-
-}
-
-internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: Db, private val commitHandler: CommitHandler) : Trx {
+internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: Db, private val commitHandler: CommitHandler) : Trx() {
 
     private var curDb: Db? = null
 
@@ -95,3 +93,35 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
     }
 
 }
+
+internal fun Entity.toFacts(): Collection<Eav> =
+        this.entries.flatMap { (attr: Attr<Any>, value) ->
+            val type = DataType.ofCode(attr.type)!!
+            @Suppress("UNCHECKED_CAST")
+            when {
+                type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
+                type.value() && attr.list -> listToFacts(gid, attr, value as List<Any>)
+                type.ref() && !attr.list -> listOf(refToFacts(gid, attr, value))
+                type.ref() && attr.list -> refListToFacts(gid, attr, value as List<Any>)
+                else -> throw AssertionError("Unexpected attr kind: $attr")
+            }
+        }
+
+private fun <T : Any> valToFacts(eid: Gid, attr: Attr<T>, value: T) =
+        Fact(eid, attr, value)
+
+private fun refToFacts(eid: Gid, attr: Attr<Any>, value: Any) =
+        Fact(eid, attr, eidOf(value)!!)
+
+private fun listToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
+        value.map { Fact(eid, attr, it) }
+
+private fun refListToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
+        value.map { Fact(eid, attr, eidOf(it)!!) }
+
+private fun eidOf(a: Any): Gid? =
+        when (a) {
+            is Entity -> a.gid
+            is Gid -> a
+            else -> null
+        }

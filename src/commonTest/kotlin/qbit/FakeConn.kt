@@ -1,14 +1,15 @@
 package qbit
 
-import qbit.index.Db
-import qbit.model.DbUuid
-import qbit.model.Hash
+import qbit.api.db.Conn
+import qbit.api.db.Db
+import qbit.api.db.Trx
+import qbit.api.system.DbUuid
+import qbit.api.model.Hash
 import qbit.trx.CommitHandler
-import qbit.trx.Trx
 import qbit.trx.TrxLog
-import qbit.trx.WriteResult
+import qbit.api.db.WriteResult
 
-internal class FakeConn : Conn, CommitHandler {
+internal class FakeConn : Conn(), CommitHandler {
 
     var updatesCalls = 0
 

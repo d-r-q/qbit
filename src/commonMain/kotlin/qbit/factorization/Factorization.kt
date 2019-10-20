@@ -1,38 +1,32 @@
 package qbit.factorization
 
-import qbit.model.*
-import qbit.model.impl.QBitException
+import qbit.api.QBitException
+import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.DataType
+import qbit.api.model.Eav
+import qbit.api.model.Fact
+import qbit.api.model.QBoolean
+import qbit.api.model.QByte
+import qbit.api.model.QBytes
+import qbit.api.model.QDecimal
+import qbit.api.model.QGid
+import qbit.api.model.QInstant
+import qbit.api.model.QInt
+import qbit.api.model.QLong
+import qbit.api.model.QRef
+import qbit.api.model.QString
+import qbit.api.model.QZonedDateTime
+import qbit.api.model.Tombstone
+import qbit.api.model.isListOfVals
+import qbit.api.tombstone
 import qbit.platform.BigDecimal
 import qbit.platform.IdentityHashMap
 import qbit.platform.Instant
 import qbit.platform.ZonedDateTime
 import qbit.reflection.findProperties
-import kotlin.collections.Collection
-import kotlin.collections.HashMap
-import kotlin.collections.Iterator
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.Set
-import kotlin.collections.arrayListOf
 import kotlin.collections.contains
-import kotlin.collections.distinct
-import kotlin.collections.emptyList
-import kotlin.collections.filter
-import kotlin.collections.filterIsInstance
-import kotlin.collections.firstOrNull
-import kotlin.collections.flatMap
-import kotlin.collections.forEach
-import kotlin.collections.getValue
-import kotlin.collections.groupBy
-import kotlin.collections.isNotEmpty
-import kotlin.collections.joinToString
-import kotlin.collections.listOf
-import kotlin.collections.map
-import kotlin.collections.mapOf
-import kotlin.collections.partition
 import kotlin.collections.set
-import kotlin.collections.setOf
-import kotlin.collections.sortedBy
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
@@ -225,4 +219,6 @@ fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
 
 fun KClass<*>.attrName(prop: KProperty0<*>): String =
         "." + this.qualifiedName!! + "/" + prop.name
+
+internal fun Tombstone.toFacts() = listOf(Fact(this.gid, tombstone, true))
 

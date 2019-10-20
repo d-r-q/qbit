@@ -1,4 +1,4 @@
-package qbit.model
+package qbit.api.model
 
 import qbit.platform.MessageDigests
 import qbit.platform.toHexString
@@ -9,7 +9,7 @@ val nullHash = Hash(ByteArray(HASH_LEN))
 
 fun hash(data: ByteArray): Hash = Hash(MessageDigests.getInstance("SHA-1").digest(data))
 
-class Hash(val bytes: ByteArray) {
+data class Hash(val bytes: ByteArray) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

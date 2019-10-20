@@ -1,5 +1,6 @@
-package qbit.model
+package qbit.api.model
 
+import qbit.api.gid.Gid
 import qbit.platform.BigDecimal
 import qbit.platform.Instant
 import qbit.platform.ZonedDateTime

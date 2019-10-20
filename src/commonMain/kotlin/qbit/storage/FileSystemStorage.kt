@@ -3,10 +3,14 @@ package qbit.storage
 import kotlinx.io.core.use
 import kotlinx.io.core.writeFully
 import kotlinx.io.errors.IOException
-import qbit.model.impl.QBitException
-import qbit.model.Key
-import qbit.model.Namespace
-import qbit.platform.*
+import qbit.api.QBitException
+import qbit.ns.Key
+import qbit.ns.Namespace
+import qbit.platform.File
+import qbit.platform.fileOutput
+import qbit.platform.listFiles
+import qbit.platform.readBytes
+import qbit.platform.resolve
 import qbit.serialization.Storage
 
 class FileSystemStorage(private val root: File) : Storage {

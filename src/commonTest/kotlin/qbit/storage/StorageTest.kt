@@ -1,9 +1,9 @@
 package qbit.storage
 
 import qbit.assertArrayEquals
-import qbit.model.Namespace
-import qbit.model.ns
-import qbit.model.root
+import qbit.ns.Namespace
+import qbit.ns.ns
+import qbit.ns.root
 import qbit.serialization.Storage
 import qbit.serialization.copyStorage
 import qbit.setupTestSchema

@@ -1,5 +1,6 @@
 package qbit.model
 
+import qbit.api.gid.Gid
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

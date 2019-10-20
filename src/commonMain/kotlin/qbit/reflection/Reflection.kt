@@ -1,9 +1,21 @@
 package qbit.reflection
 
-import qbit.model.*
-import qbit.model.impl.QBitException
-import qbit.platform.*
-import kotlin.reflect.*
+import qbit.api.QBitException
+import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.platform.BigDecimal
+import qbit.platform.Instant
+import qbit.platform.Instants
+import qbit.platform.ZoneIds
+import qbit.platform.ZonedDateTime
+import qbit.platform.ZonedDateTimes
+import kotlin.reflect.KCallable
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty1
+import kotlin.reflect.KType
 
 fun findMutableProperties(type: KClass<*>): List<KCallable<*>> {
     return findProperties(type).filterIsInstance<KMutableProperty1<*, *>>()
@@ -90,9 +102,6 @@ fun setableProps(type: KClass<*>): List<KMutableProperty1<Any, Any>> {
 
 fun KClass<*>.propertyFor(attr: Attr<*>) =
         findProperties(this).firstOrNull { attr.name.endsWith(it.name) }
-
-val Any.tombstone
-    get() = Tombstone(this.gid!!)
 
 @Suppress("UNCHECKED_CAST")
 fun <T : Any> getListElementClass(type: KType) = type.arguments[0].type!!.classifier as KClass<T>

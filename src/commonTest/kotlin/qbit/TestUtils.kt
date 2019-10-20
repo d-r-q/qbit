@@ -1,15 +1,17 @@
 package qbit
 
+import qbit.api.*
+import qbit.api.db.Db
+import qbit.api.db.Fetch
+import qbit.api.db.QueryPred
+import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
+import qbit.api.model.*
 import qbit.factorization.destruct
 import qbit.factorization.types
-import qbit.index.Db
 import qbit.index.Index
 import qbit.index.IndexDb
-import qbit.model.*
-import qbit.model.impl.QBitException
 import qbit.platform.*
-import qbit.query.Fetch
-import qbit.query.QueryPred
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
 import kotlin.random.Random
@@ -26,7 +28,7 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
     return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 
-object EmptyDb : Db {
+object EmptyDb : Db() {
 
     override fun pull(gid: Gid): StoredEntity? = null
 
@@ -44,7 +46,7 @@ object EmptyDb : Db {
 
 }
 
-class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db {
+class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db() {
 
     override fun pull(gid: Gid): StoredEntity? {
         return map[gid]

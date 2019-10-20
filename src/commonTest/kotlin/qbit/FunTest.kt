@@ -1,13 +1,14 @@
 package qbit
 
+import qbit.api.*
+import qbit.api.db.Eager
+import qbit.api.db.attrIs
+import qbit.api.db.hasAttr
+import qbit.api.gid.Gid
+import qbit.model.gid
+import qbit.api.system.Instance
 import qbit.index.pullT
 import qbit.index.queryT
-import qbit.model.*
-import qbit.model.impl.QBitException
-import qbit.query.Eager
-import qbit.query.attrIs
-import qbit.query.hasAttr
-import qbit.reflection.tombstone
 import qbit.serialization.NodeRef
 import qbit.serialization.NodesStorage
 import qbit.storage.MemStorage

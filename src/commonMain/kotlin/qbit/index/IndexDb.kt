@@ -1,13 +1,26 @@
 package qbit.index
 
-import qbit.model.*
-import qbit.model.Attrs.list
-import qbit.model.Attrs.name
-import qbit.model.Attrs.type
-import qbit.model.Attrs.unique
+import qbit.AttachedEntity
+import qbit.api.Attrs.list
+import qbit.api.Attrs.name
+import qbit.api.Attrs.type
+import qbit.api.Attrs.unique
+import qbit.api.db.Db
+import qbit.api.db.Eager
+import qbit.api.db.Fetch
+import qbit.api.db.Lazy
+import qbit.api.db.QueryPred
+import qbit.api.db.hasAttr
+import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.Eav
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
+import qbit.model.AttachedEntity
 import qbit.platform.WeakHashMap
 import qbit.platform.set
-import qbit.query.*
+import qbit.query.EagerQuery
+import qbit.query.GraphQuery
 import qbit.typing.Typing
 import kotlin.reflect.KClass
 
@@ -22,7 +35,7 @@ inline fun <reified R : Any> Db.pullT(eid: Long): R? {
 inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred, fetch: Fetch = Lazy): Sequence<R> =
         this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }
 
-internal class IndexDb(internal val index: Index) : Db {
+internal class IndexDb(internal val index: Index) : Db() {
 
     private val schema = loadAttrs(index)
 

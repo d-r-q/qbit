@@ -3,7 +3,10 @@ package qbit
 import kotlinx.io.core.EOFException
 import kotlinx.io.core.ExperimentalIoApi
 import kotlinx.io.core.Input
-import qbit.model.*
+import qbit.api.gid.Gid
+import qbit.api.model.*
+import qbit.api.system.DbUuid
+import qbit.api.gid.Iid
 import qbit.platform.*
 import qbit.serialization.*
 import kotlin.random.Random

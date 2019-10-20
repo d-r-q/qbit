@@ -1,6 +1,6 @@
 package qbit.factorization
 
-import qbit.model.Eav
+import qbit.api.model.Eav
 import qbit.platform.IdentityHashMap
 
 
