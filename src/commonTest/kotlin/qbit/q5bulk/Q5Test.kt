@@ -1,29 +1,51 @@
 package qbit.q5bulk
 
-import qbit.*
-import qbit.model.*
-import qbit.ns.Namespace
+import qbit.query.attrIn
+import qbit.query.attrIs
+import qbit.model.gid
+import qbit.typing.schema
 import qbit.platform.*
+import qbit.q5bulk.Trxes.dateTime
 import qbit.storage.FileSystemStorage
+import qbit.db.Conn
+import qbit.db.qbit
+import qbit.factorization.attrName
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-val cat = Namespace.of("q5", "category")
-val trx = Namespace.of("q5", "transaction")
-val trxSum = ScalarAttr(trx["sum"], QLong)
-val trxDateTime = ScalarAttr(trx["dateTime"], QLong)
-val trxCategory = RefAttr(trx["category"])
-val trxComment = ScalarAttr(trx["comment"], QString)
-val trxSource = ScalarAttr(trx["source"], QString)
-val trxDevice = ScalarAttr(trx["device"], QString)
-val catName = ScalarAttr(cat["name"], QString, true)
 
 const val datePattern = "dd.MM.yyyy"
 const val timePattern = "HH:mm"
 
 val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 val dateTimeFormatV1 = SimpleDateFormat("yy.MM.dd HH:mm")
+
+data class Category(val id: Long?, val name: String)
+
+data class Trx(val id: Long?, val sum: Long, val dateTime: ZonedDateTime, val category: Category, val comment: String, val source: String, val device: String)
+
+val q5Schema = schema {
+    entity(Category::class) {
+        uniqueString(it::name)
+    }
+    entity(Trx::class)
+}
+
+val schemaMap = q5Schema.map { it.name to it}.toMap()
+
+object Trxes {
+
+    val dateTime = schemaMap.getValue(Trx::class.attrName(Trx::dateTime))
+    val device = schemaMap.getValue(Trx::class.attrName(Trx::device))
+
+}
+
+object Cats {
+
+    val name = schemaMap.getValue(Category::class.attrName(Category::name))
+
+}
 
 class Q5Test {
 
@@ -43,8 +65,8 @@ class Q5Test {
 
         val conn = qbit(FileSystemStorage(dbDir))
 
-        conn.persist(trxSum, trxDateTime, trxCategory, trxComment, trxSource, trxDevice, catName)
-        val categories = HashMap<String, Entity<*>>()
+        q5Schema.forEach { conn.persist(it) }
+        val categories = HashMap<String, Category>()
 
         dataFiles
                 .filter { it.isFile() }
@@ -58,52 +80,53 @@ class Q5Test {
                     var device = ""
                     val fileDate = ZonedDateTimes.parse(file.getName().substringBefore("-") + "010000+0700", DateTimeFormatters.ofPattern("yyMMddHHmm[X]"))
                     val nextDate = fileDate.plusMonths(1)
-                    val trxes = ArrayList<RoEntity<EID?>>()
+                    val trxes = ArrayList<Trx>()
                     file.forEachLine { line ->
                         val data = parse(line, categories)
-                        data?.let { (trx, cat) ->
+                        data?.let { trx ->
                             // actually it compiles
-                            if (ZonedDateTimes.ofInstant(Instants.ofEpochMilli(trx[trxDateTime]), ZoneOffsets.ofHours(7)) in fileDate.rangeTo(nextDate)) {
+                            if (trx.dateTime in fileDate.rangeTo(nextDate)) {
                                 trxes.add(trx)
                                 lines++
                             }
-                            device = trx[trxDevice]
-                            assertNotNull(conn.db.query(attrIs(trxDateTime, trx[trxDateTime]), attrIs(trxDevice, trx[trxDevice])).firstOrNull())
-                            assertNotNull(conn.db.query(attrIs(catName, cat[catName])).firstOrNull())
+                            device = trx.device
+                            assertNotNull(conn.db().query(attrIs(dateTime, trx.dateTime), attrIs(Trxes.device, trx.device)).firstOrNull())
+                            assertNotNull(conn.db().query(attrIs(Cats.name, trx.category.name)).firstOrNull())
                         }
                     }
-                    assertTrue(lines <= conn.db.query(attrIn(trxDateTime, fileDate.toInstant().toEpochMilli(), nextDate.toInstant().toEpochMilli()), attrIs(trxDevice, device)).count())
+                    val trx = conn.db().query(attrIn(dateTime, fileDate, nextDate), attrIs(Trxes.device, device)).count()
+                    assertTrue(lines <= trx, "$lines lines were imported, but $trx trxes found")
                 }
 
     }
 
-    private fun loadInSingleTrx(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
-        val trxes = ArrayList<RoEntity<EID?>>()
+    private fun loadInSingleTrx(it: File, categories: HashMap<String, Category>, conn: Conn) {
+        val trxes = ArrayList<Trx>()
         it.forEachLine { line ->
-            parse(line, categories)?.let { (trx, cat) ->
-                val catName = trx[trxCategory][catName]
+            parse(line, categories)?.let { trx ->
+                val catName = trx.category.name
                 if (catName !in categories) {
-                    categories[catName] = cat
+                    categories[catName] = conn.persist(trx.category).persisted!!
                 }
-                trxes.add(trx)
+                trxes.add(trx.copy(category = categories[catName]!!))
             }
         }
-        trxes.addAll(categories.values)
-        conn.persist(trxes).persistedEntities
-                .filter { it.tryGet(catName) != null }
-                .forEach {
-                    categories[it[catName]] = it
-                }
+        categories.values.forEach { conn.persist(it)}
+        val storedTrxes = trxes.map { conn.persist(it).persisted!! }.toList()
+        storedTrxes.forEach {
+            assertNotNull(it.category)
+            categories[it.category.name] = it.category
+        }
     }
 
-    private fun loadInThreeTrxes(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
-        var trxes1 = ArrayList<Entity<EID?>>()
-        var trxes2 = ArrayList<Entity<EID?>>()
+    private fun loadInThreeTrxes(it: File, categories: HashMap<String, Category>, conn: Conn) {
+        var trxes1 = ArrayList<Trx>()
+        var trxes2 = ArrayList<Trx>()
         it.forEachLine { line ->
-            parse(line, categories)?.let { (trx, cat) ->
-                val catName = trx[trxCategory][catName]
+            parse(line, categories)?.let { trx ->
+                val catName = trx.category.name
                 if (catName !in categories) {
-                    categories[catName] = cat
+                    categories[catName] = trx.category
                 }
                 if (trxes1.size <= trxes2.size) {
                     trxes1.add(trx)
@@ -113,42 +136,38 @@ class Q5Test {
             }
         }
         val trx = conn.trx()
-        val persistedCategories = trx.persist(categories.values).persistedEntities
-        persistedCategories.forEach {
-            categories[it[catName]] = it
-        }
         categories.values.forEach {
-            assertNotNull(trx.db.pull((it as AttachedEntity).eid))
+            val (cat) = trx.persist(it)
+            categories[cat!!.name] = cat
+            assertNotNull(trx.db().pull(cat.gid!!))
         }
         trxes1 = trxes1.map {
-            val catName = it[trxCategory][catName]
-            it.with(trxCategory eq categories[catName]!!)
+            it.copy(category = categories[it.category.name]!!)
         }.toCollection(ArrayList())
         trxes2 = trxes2.map {
-            val catName = it[trxCategory][catName]
-            it.with(trxCategory eq categories[catName]!!)
+            it.copy(category = categories[it.category.name]!!)
         }.toCollection(ArrayList())
-        trx.persist(trxes1)
-        trx.persist(trxes2)
+        trxes1.forEach { trx.persist(it) }
+        trxes2.forEach { trx.persist(it) }
         trx.commit()
         categories.values.forEach {
-            assertNotNull(conn.db.pull((it as AttachedEntity).eid))
+            assertNotNull(conn.db().pull(it.gid!!))
         }
     }
 
-    private fun loadInTrxPerLine(it: File, categories: HashMap<String, Entity<*>>, conn: LocalConn) {
+    private fun loadInTrxPerLine(it: File, categories: HashMap<String, Category>, conn: Conn) {
         it.forEachLine { line ->
-            parse(line, categories)?.let { (trx, cat) ->
-                val catName = trx[trxCategory][catName]
-                val (_, _, scat) = conn.persist(cat, trx)
+            parse(line, categories)?.let { trx ->
+                val catName = trx.category.name
+                val (storedTrx) = conn.persist(trx)
                 if (catName !in categories) {
-                    categories[catName] = scat
+                    categories[catName] = storedTrx!!.category
                 }
             }
         }
     }
 
-    private fun parse(sourceLine: String, categories: Map<String, Entity<*>>): Pair<Entity<EID?>, Entity<EID?>>? {
+    private fun parse(sourceLine: String, categories: Map<String, Category>): Trx? {
         val fieldsV1 = sourceLine
                 .replace("\uFEFF", "") // Remove BOM
                 .split("\",\"".toRegex())
@@ -169,18 +188,20 @@ class Q5Test {
         val cat = if (fields.size > 3) fields[3] else return null
         var catSe = categories[cat]
         if (catSe == null) {
-            catSe = Entity(catName eq cat)
+            catSe = Category(null, cat)
         }
         val comment = if (fields.size > 4) fields[4].replace("\"\"", "\"") else return null
         val device = if (fields.size > 5) fields[5] else return null
         val source = if (fields.size > 6) fields[6] else return null
-        val e = Entity(trxDateTime eq dateTime,
-                trxSum eq (sum.replace(",", ".").toDouble() * 100).toLong(),
-                trxCategory eq catSe,
-                trxComment eq comment,
-                trxDevice eq device,
-                trxSource eq source)
-        return e to catSe
+        val e = Trx(null,
+                (sum.replace(",", ".").toDouble() * 100).toLong(),
+                ZonedDateTimes.ofInstant(Instants.ofEpochMilli(dateTime), ZoneIds.of("Asia/Novosibirsk")),
+                catSe,
+                comment,
+                source,
+                device
+        )
+        return e
     }
 
 }

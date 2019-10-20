@@ -1,129 +1,105 @@
 package qbit
 
-import qbit.model.*
-import qbit.ns.root
+import qbit.Scientists.country
+import qbit.Scientists.extId
+import qbit.Scientists.name
+import qbit.Scientists.nicks
+import qbit.Scientists.reviewer
+import qbit.factorization.destruct
+import qbit.model.gid
+import qbit.model.Gid
+import qbit.model.Iid
+import qbit.model.toFacts
 import qbit.platform.currentTimeMillis
+import qbit.system.DbUuid
+import qbit.index.Indexer
+import qbit.query.Eager
+import qbit.query.attrIn
+import qbit.query.attrIs
+import qbit.serialization.*
+import qbit.util.Hash
 import kotlin.test.Test
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class DbTest {
 
     @Test
     fun testSearchByAttrRangeAndAttrValue() {
-        val dbUuid = DbUuid(IID(0, 1))
+        val dbUuid = DbUuid(Iid(0, 1))
         val time1 = currentTimeMillis()
-        val eid2 = EID(0, 4)
-        val eids = EID(0, 0).nextEids()
 
-        val _date = ScalarAttr(root["date"], QLong)
-        val _cat = ScalarAttr(root["cat"], QString)
-
-        val date = Entity(Attrs.name eq _date.str(), Attrs.type eq QLong.code)
-        val cat = Entity(Attrs.name eq _cat.str(), Attrs.type eq QString.code)
-        val e1 = Entity(_date eq 1L, _cat eq "C1")
-        val e2 = Entity(_date eq 2L, _cat eq "C1")
-        val e3 = Entity(_date eq 3L, _cat eq "C2")
-        val e4 = Entity(_date eq 4L, _cat eq "C2")
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((date.toFacts(eids.next()) + cat.toFacts(eids.next()) + e1.toFacts(eids.next()) + e2.toFacts(eids.next()) + e3.toFacts(eids.next()) + e4.toFacts(eids.next())).toTypedArray()))
-        val index = Index(Graph { null }, root)
-
-        val db = IndexDb(index, root.hash)
-        assertArrayEquals(arrayOf(eid2), db.query(attrIn(_date, 1L, 3L), attrIs(_cat, "C2")).map { it.eid }.toList().toTypedArray())
+        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                schemaMap.values.flatMap { it.toFacts() } + eCodd.toFacts() + pChen.toFacts() + mStonebreaker.toFacts() + eBrewer.toFacts()).toTypedArray()))
+        val db = Indexer(null, null, identityNodeResolver).index(root)
+        assertArrayEquals(arrayOf(Gid(pChen.id!!)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.gid }.toList().toTypedArray())
     }
 
     @Test
-    fun testFetchEidsDeduplication() {
-        val dbUuid = DbUuid(IID(0, 1))
-        val time1 = currentTimeMillis()
-        val eids = EID(0, 0).nextEids()
+    fun `Entity with multiple values of list attribute should be returned from query only once`() {
+        val dbUuid = DbUuid(Iid(0, 1))
 
-        val _cat = ListAttr(root["cat"], QString)
-
-        val e1 = Entity(_cat eq listOf("C1", "C2"))
-        val theEid = eids.next()
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((_cat.toFacts(eids.next()) + e1.toFacts(theEid)).toTypedArray()))
-        val index = Index(Graph { null }, root)
-
-        val db = IndexDb(index, root.hash)
-        assertArrayEquals(arrayOf(theEid), db.query(attrIn(_cat, "C1", "C3")).map { it.eid }.toList().toTypedArray())
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                schemaMap.values.flatMap { it.toFacts() } + eCodd.toFacts()).toTypedArray()))
+        val db = Indexer(null, null, identityNodeResolver).index(root)
+        assertArrayEquals(arrayOf(eCodd.gid), db.query(attrIn(nicks, "n", "u")).map { it.gid }.toList().toTypedArray())
     }
 
     @Test
-    fun testIndexMultipleTransactions() {
-        val dbUuid = DbUuid(IID(0, 1))
-        val attr = ScalarAttr(root["aattr"], QString)
-        val eids = EID(0, 0).nextEids()
+    fun `Indexer can index multiple transactions`() {
+        val dbUuid = DbUuid(Iid(0, 1))
 
-        val e1 = Entity(attr eq "avalue1")
-        val eid1 = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
+        val gids = eBrewer.gid!!.nextGids()
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                testSchema.flatMap { destruct(it, bootstrapSchema::get, gids) } +
+                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
-        val graph = Graph { nodes[it.hash] }
-        var indexDb = IndexDb(Index(graph, root), root.hash)
+        val nodeResolver = mapNodeResolver(nodes)
 
-        val e2 = Entity(attr eq "avalue2")
-        val eid2 = eids.next()
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
+        var db = Indexer(null, null, nodeResolver).index(root)
+
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
         nodes[n1.hash] = n1
 
-        val e3 = Entity(attr eq "avalue3")
-        val eid3 = eids.next()
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((e3.toFacts(eid3)).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(mStonebreaker.toFacts().toList().toTypedArray()))
         nodes[n2.hash] = n2
 
-        indexDb = db(graph, indexDb, n2)
-        assertNotNull(indexDb.pull(eid1))
-        assertNotNull(indexDb.pull(eid2))
-        assertNotNull(indexDb.pull(eid3))
+        db = Indexer(db, root.hash, nodeResolver).index(n2)
+        assertNotNull(db.pull(eCodd.gid!!))
+        assertNotNull(db.pull(pChen.gid!!))
+        assertNotNull(db.pull(mStonebreaker.gid!!))
     }
 
     @Test
-    fun testUpdateInTrx() {
-        val dbUuid = DbUuid(IID(0, 1))
-        val attr = ScalarAttr(root["aattr"], QString)
-        val eids = EID(0, 0).nextEids()
+    fun `Indexer can index updates`() {
+        val dbUuid = DbUuid(Iid(0, 1))
 
-        val e1 = Entity(attr eq "avalue1")
-        val eid1 = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((attr.toFacts(eids.next()) + e1.toFacts(eid1)).toTypedArray()))
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
-        val graph = Graph { nodes[it.hash] }
-        var indexDb = IndexDb(Index(graph, root), root.hash)
+        val nodeResolver = mapNodeResolver(nodes)
+        var db = Indexer(null, null, nodeResolver).index(root)
 
-        val e2 = Entity(attr eq "avalue2")
-        val eid2 = eids.next()
-        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData((e2.toFacts(eid2)).toTypedArray()))
+        val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
         nodes[n1.hash] = n1
 
-        val e3 = Entity(attr eq "avalue2.1")
-        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData((e3.toFacts(eid2)).toTypedArray()))
+        val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(pChen.copy( externalId = 5).toFacts().toList().toTypedArray()))
         nodes[n2.hash] = n2
 
-        indexDb = db(graph, indexDb, n2)
-        assertNotNull(indexDb.pull(eid1))
-        assertNotNull(indexDb.pull(eid2))
-        assertNotNull(indexDb.query(attrIs(attr, "avalue2.1")).firstOrNull())
+        db = Indexer(db, root.hash, nodeResolver).index(n2)
+        assertNotNull(db.query(attrIs(extId, 5)))
     }
 
     @Test
-    fun testPullNotExistingEntity() {
-        val dbUuid = DbUuid(IID(0, 1))
-        val ref = RefAttr(root["ref"])
-        val eids = EID(0, 0).nextEids()
+    fun `pull with fetch = Eager should fetch nullable refs`() {
+        val dbUuid = DbUuid(Iid(0, 1))
 
-        val e1 = Entity(eids.next(), emptyList(), emptyDb)
-        val e2 = Entity(ref eq e1)
-        val e2eid = eids.next()
-        val root = Root(Hash(byteArrayOf(0)), dbUuid, currentTimeMillis(), NodeData((ref.toFacts(eids.next()) + e2.toFacts(e2eid)).toTypedArray()))
+        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + reviewer.toFacts() + country.toFacts() +
+                Countries.name.toFacts() + Countries.population.toFacts() +
+                eCodd.copy(reviewer = pChen).toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
-        val graph = Graph { nodes[it.hash] }
-
-        val indexDb = IndexDb(Index(graph, root), root.hash)
-        val e2Pulled = indexDb.pull(e2eid)!!
-        assertNotNull(e2Pulled)
-        assertNull(e2Pulled.tryGet(ref))
-        // todo: add check, that pull isn't called second time
-        assertNull(e2Pulled.tryGet(ref))
+        val nodeResolver = mapNodeResolver(nodes)
+        val db = Indexer(null, null, nodeResolver).index(root)
+        val pc = db.pull(eCodd.gid!!, Scientist::class, Eager)!!
+        assertNotNull(pc.reviewer)
     }
+
 }
