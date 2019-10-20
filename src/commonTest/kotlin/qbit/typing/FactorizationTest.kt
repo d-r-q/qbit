@@ -8,9 +8,7 @@ import qbit.model.*
 import qbit.model.impl.QBitException
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
-import qbit.reflection.default
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty0
+import qbit.schema.schema
 import kotlin.test.*
 
 data class Addr(val id: Long?, val addr: String)
@@ -315,37 +313,5 @@ class MappingTest {
         val rg = ResearchGroup(null, listOf(s1, s2))
         assertEquals(1, destruct(rg, db::attr, gids).filter { it.gid == Gid(0) && it.attr == Scientists.extId.name }.size)
     }
-}
-
-fun schema(body: SchemaBuilder.() -> Unit): List<Attr<Any>> {
-    val scb = SchemaBuilder()
-    scb.body()
-    return scb.attrs
-}
-
-class SchemaBuilder {
-
-    internal val attrs: MutableList<Attr<Any>> = ArrayList()
-
-    fun <T : Any> entity(type: KClass<T>, body: EntityBuilder.(T) -> Unit = {}) {
-        val eb = EntityBuilder(type)
-        eb.body(default(type))
-        attrs.addAll(schemaFor(type, eb.uniqueProps))
-    }
-
-}
-
-class EntityBuilder(private val type: KClass<*>) {
-
-    internal val uniqueProps = HashSet<String>()
-
-    fun uniqueInt(prop: KProperty0<Int>) {
-        uniqueProps.add(type.attrName(prop))
-    }
-
-    fun uniqueString(prop: KProperty0<String>) {
-        uniqueProps.add(type.attrName(prop))
-    }
-
 }
 

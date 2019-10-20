@@ -1,6 +1,6 @@
 package qbit.q5bulk
 
-import qbit.Conn
+import qbit.api.Conn
 import qbit.factorization.attrName
 import qbit.model.gid
 import qbit.platform.*
@@ -9,7 +9,7 @@ import qbit.qbit
 import qbit.query.attrIn
 import qbit.query.attrIs
 import qbit.storage.FileSystemStorage
-import qbit.typing.schema
+import qbit.schema.schema
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertNotNull
