@@ -1,8 +1,9 @@
-package qbit.typing
+package qbit.factorization
 
-import qbit.*
+import qbit.QBitException
 import qbit.model.*
 import qbit.platform.*
+import qbit.reflection.findProperties
 import kotlin.reflect.*
 
 
@@ -25,32 +26,6 @@ val types: Map<KClass<*>, DataType<*>> = mapOf(
 val valueTypes = types.values
         .filter { it.value() }
         .map { it.typeClass() }
-
-interface Query<T> {
-
-    fun shouldFetch(attr: Attr<*>): Boolean
-
-    fun <ST : Any> subquery(subType: KClass<ST>): Query<ST>
-
-}
-
-class EagerQuery<T> : Query<T> {
-
-    override fun shouldFetch(attr: Attr<*>): Boolean = true
-
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = this as Query<ST>
-
-}
-
-data class GraphQuery<R : Any>(val type: KClass<R>, val links: Map<String, GraphQuery<*>?>) : Query<R> {
-
-    override fun shouldFetch(attr: Attr<*>): Boolean {
-        return attr.name in links || type.propertyFor(attr)?.returnType?.isMarkedNullable == false
-    }
-
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = GraphQuery(subType, links)
-
-}
 
 fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Gid>) {
     if (idMap[root] != null) {
@@ -96,9 +71,6 @@ fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<A
 
 }
 
-internal fun isListOfVals(list: List<Any>?) =
-        list == null || list.isEmpty() || list.firstOrNull()?.let { e -> e::class } in valueTypes
-
 internal fun findGidProp(root: Any): KCallable<*> =
         root::class.members
                 .firstOrNull {
@@ -108,17 +80,17 @@ internal fun findGidProp(root: Any): KCallable<*> =
 
 fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
     if (e is Tombstone) {
-        val entityFacts = IdentityHashMap<Any, List<Fact>>().apply {
+        val entityFacts = IdentityHashMap<Any, List<Eav>>().apply {
             this[e] = e.toFacts()
         }
         return EntityGraphFactorization(entityFacts)
     }
 
-    val res = IdentityHashMap<Any, List<Fact>>()
+    val res = IdentityHashMap<Any, List<Eav>>()
     val idMap = IdentityHashMap<Any, Gid>()
     val entities = HashMap<Gid, Any>()
 
-    fun body(e: Any): List<Fact> {
+    fun body(e: Any): List<Eav> {
         if (res.containsKey(e)) {
             return res[e]!!
         } else {
@@ -135,14 +107,14 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityG
             // different instance with the same state
             return emptyList()
         }
-        val facts: List<Fact> = attrs.flatMap {
+        val facts: List<Eav> = attrs.flatMap {
             val attr: Attr<*> = schema(e::class.attrName(it))
                     ?: throw QBitException("Attribute for property ${e::class.attrName(it)} isn't defined")
             when (it.returnType.classifier) {
                 in valueTypes -> {
                     val value = it.call(e)
                     if (value != null) {
-                        listOf(Fact(gid, attr.name, value))
+                        listOf(Eav(gid, attr.name, value))
                     } else {
                         emptyList()
                     }
@@ -150,18 +122,18 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityG
                 in collectionTypes -> {
                     ((it.call(e) as List<*>?) ?: emptyList<Any>()).flatMap { v ->
                         when (v!!::class) {
-                            in valueTypes -> listOf(Fact(gid, attr.name, v))
+                            in valueTypes -> listOf(Eav(gid, attr.name, v))
                             else -> {
                                 body(v)
-                                listOf(Fact(gid, attr.name, idMap[v]!!))
+                                listOf(Eav(gid, attr.name, idMap[v]!!))
                             }
                         }
                     }
                 }
                 else -> {
-                    val value = it.call(e) ?: return@flatMap emptyList<Fact>()
+                    val value = it.call(e) ?: return@flatMap emptyList<Eav>()
 
-                    val fs = arrayListOf(Fact(gid, attr.name, idMap[value]!!))
+                    val fs = arrayListOf(Eav(gid, attr.name, idMap[value]!!))
                     body(value)
                     fs
                 }
@@ -195,24 +167,6 @@ fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
     }
 }
 
-val Any.gid: Gid?
-    get() {
-        if (this is Entity) {
-            return this.gid
-        }
-
-        val id = this::class.members
-                .filterIsInstance<KProperty1<Any, *>>()
-                .firstOrNull { it.name == "id" }
-                ?.get(this)
-        return when (id) {
-            null -> null
-            is Long -> Gid(id)
-            is Gid -> id
-            else -> throw QBitException("Unsupported id type: $id of entity $this")
-        }
-    }
-
 fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
     val getters = type.members.filterIsInstance<KProperty1<*, *>>()
     val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
@@ -233,3 +187,10 @@ fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
         }
     }
 }
+
+fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
+        "." + this.qualifiedName!! + "/" + prop.name
+
+fun KClass<*>.attrName(prop: KProperty0<*>): String =
+        "." + this.qualifiedName!! + "/" + prop.name
+

@@ -1,10 +1,10 @@
 package qbit.serialization
 
-import qbit.Hash
-import qbit.model.Fact
-import qbit.db.DbUuid
+import qbit.util.Hash
+import qbit.model.Eav
+import qbit.system.DbUuid
 
-class NodeData(val trx: Array<out Fact>)
+class NodeData(val trxes: Array<out Eav>)
 
 sealed class Node<out H : Hash?>(val hash: H)
 

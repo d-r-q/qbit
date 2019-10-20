@@ -2,11 +2,8 @@
 
 package qbit.model
 
-import qbit.index.Db
 import qbit.QBitException
-import qbit.typing.gid
-import qbit.typing.isListOfVals
-import qbit.tombstone as tsAttr
+import qbit.model.tombstone as tsAttr
 
 interface AttrValue<A : Attr<T>, T : Any> {
 
@@ -29,8 +26,8 @@ fun Entity(gid: Gid, vararg entries: Any): Entity {
     return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
 }
 
-fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, db: Db): StoredEntity {
-    return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v)}.toMap(), db::pull)
+fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
+    return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v)}.toMap(), resolveGid)
 }
 
 private fun entity2gid(e: Any): Any {
@@ -168,7 +165,7 @@ private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, A
 
 }
 
-internal fun Entity.toFacts(): Collection<Fact> =
+internal fun Entity.toFacts(): Collection<Eav> =
         this.entries.flatMap { (attr: Attr<Any>, value) ->
             val type = DataType.ofCode(attr.type)!!
             when {
@@ -199,5 +196,3 @@ private fun eidOf(a: Any): Gid? =
             else -> null
         }
 
-val Any.tombstone
-    get() = Tombstone(this.gid!!)

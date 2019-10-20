@@ -1,5 +1,7 @@
 package qbit.model
 
+import qbit.Attr
+import qbit.ListAttr
 import qbit.assertArrayEquals
 import qbit.ns.Namespace
 import kotlin.test.*

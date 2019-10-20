@@ -3,38 +3,39 @@ package qbit.index
 import qbit.collections.firstMatchIdx
 import qbit.collections.merge
 import qbit.collections.subList
-import qbit.model.Fact
+import qbit.model.Eav
 import qbit.model.Gid
-import qbit.tombstone
+import qbit.model.tombstone
+import qbit.query.QueryPred
 
-typealias RawEntity = Pair<Gid, List<Fact>>
+typealias RawEntity = Pair<Gid, List<Eav>>
 
 internal fun Index(entities: List<RawEntity>): Index =
         Index().add(entities)
 
-internal fun eidPattern(eid: Gid) = { other: Fact -> other.eid.compareTo(eid) }
+internal fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
 
-internal fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
+internal fun attrPattern(attr: String) = { fact: Eav -> fact.attr.compareTo(attr) }
 
-internal fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
+internal fun valuePattern(value: Any) = { fact: Eav -> compareValues(fact.value, value) }
 
 internal fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
 
-internal fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
+internal fun composeComparable(vararg cmps: (Eav) -> Int) = { fact: Eav ->
     cmps.asSequence()
             .map { it(fact) }
             .dropWhile { it == 0 }
             .firstOrNull() ?: 0
 }
 
-internal val aveCmp = Comparator<Fact> { o1, o2 ->
+internal val aveCmp = Comparator<Eav> { o1, o2 ->
 
     var res = o1.attr.compareTo(o2.attr)
     if (res == 0) {
         res = compareValues(o1.value, o2.value)
     }
     if (res == 0) {
-        res = o1.eid.compareTo(o2.eid)
+        res = o1.gid.compareTo(o2.gid)
     }
     res
 }
@@ -46,25 +47,25 @@ internal fun compareValues(v1: Any, v2: Any): Int {
 
 internal class Index(
         val entities: Map<Gid, RawEntity> = HashMap(),
-        val index: List<Fact> = ArrayList()
+        val indices: List<Eav> = ArrayList()
 ) {
 
-    fun addFacts(facts: List<Fact>): Index =
-            addFacts(facts as Iterable<Fact>)
+    fun addFacts(facts: List<Eav>): Index =
+            addFacts(facts as Iterable<Eav>)
 
-    fun addFacts(facts: Iterable<Fact>): Index {
+    fun addFacts(facts: Iterable<Eav>): Index {
         val entities = facts
-                .groupBy { it.eid }
+                .groupBy { it.gid }
                 .map { it.key to it.value }
         return add(entities)
     }
 
     fun add(entities: List<RawEntity>): Index {
         val newEntities = HashMap(this.entities)
-        val newIndex = ArrayList(index)
+        val newIndex = ArrayList(indices)
 
-        val toRemove = ArrayList<Fact>()
-        val toAdd = ArrayList<Fact>()
+        val toRemove = ArrayList<Eav>()
+        val toAdd = ArrayList<Eav>()
         for (e in entities) {
             val prev = if (e.second[0].attr != tombstone.name) {
                 newEntities.put(e.first, e)
@@ -78,7 +79,7 @@ internal class Index(
         }
         toAdd.sortWith(aveCmp)
 
-        val filteredIndex = ArrayList<Fact>(toAdd.size)
+        val filteredIndex = ArrayList<Eav>(toAdd.size)
         var filterIdx = 0
         newIndex.forEach {
             val cmp = if (filterIdx < toRemove.size) {
@@ -118,20 +119,20 @@ internal class Index(
                     }
 
     fun eidsByPred(pred: QueryPred): Sequence<Gid> {
-        val fromIdx = index.firstMatchIdx {
+        val fromIdx = indices.firstMatchIdx {
             if (it.attr == pred.attrName) {
                 pred.compareTo(it.value)
             } else {
                 it.attr.compareTo(pred.attrName)
             }
         }
-        if (fromIdx < 0 || fromIdx == index.size) {
+        if (fromIdx < 0 || fromIdx == indices.size) {
             return emptySequence()
         }
-        return index.subList(fromIdx)
+        return indices.subList(fromIdx)
                 .asSequence()
                 .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
-                .map { it.eid }
+                .map { it.gid }
     }
 
 }

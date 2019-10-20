@@ -1,9 +1,11 @@
-package qbit.storage
+package qbit.serialization
 
 import qbit.*
 import qbit.ns.Namespace
 import qbit.platform.asInput
-import qbit.serialization.*
+import qbit.storage.Storage
+import qbit.util.Hash
+import qbit.util.hash
 
 private val nodes = Namespace("nodes")
 

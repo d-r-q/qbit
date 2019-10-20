@@ -1,7 +1,6 @@
 package qbit
 
-import qbit.typing.attrName
-import qbit.typing.destruct
+import qbit.factorization.destruct
 import qbit.typing.schema
 import qbit.model.Attr
 import qbit.model.Gid
@@ -13,6 +12,7 @@ import qbit.storage.Storage
 import qbit.db.Conn
 import qbit.collections.EmptyIterator
 import qbit.db.qbit
+import qbit.factorization.attrName
 
 data class IntEntity(val id: Long?, val int: Int)
 

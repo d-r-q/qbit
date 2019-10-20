@@ -7,12 +7,9 @@ import qbit.Attrs.unique
 import qbit.Instances.forks
 import qbit.Instances.iid
 import qbit.Instances.nextEid
-import qbit.db.Instance
+import qbit.factorization.attrName
 import qbit.model.*
-import qbit.ns.Namespace
-import qbit.typing.attrName
-
-val qbitNs = Namespace.of("qbit")
+import qbit.system.Instance
 
 object Attrs {
 
@@ -31,9 +28,7 @@ object Instances {
 
 }
 
-val tombstone = Attr<Boolean>(Gid(IID(1, 4), 7), qbitNs["tombstone"].toStr(), QBoolean.code, unique = false, list = false)
-
-internal val theInstanceGid = Gid(IID(1, 4), 8)
+internal val theInstanceGid = Gid(Iid(1, 4), 8)
 internal val theInstanceEid = theInstanceGid.eid
 
 internal const val firstInstanceEid = 9

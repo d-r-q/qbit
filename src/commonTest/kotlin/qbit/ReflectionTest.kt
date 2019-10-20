@@ -2,8 +2,9 @@ package qbit
 
 import qbit.model.Gid
 import qbit.model.QTombstone
+import qbit.model.gid
 import qbit.platform.*
-import qbit.typing.*
+import qbit.reflection.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

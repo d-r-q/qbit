@@ -1,8 +1,8 @@
 package qbit.serialization
 
 import kotlinx.io.core.Input
-import qbit.*
-import qbit.db.DbUuid
+import qbit.system.DbUuid
+import qbit.util.Hash
 
 interface Serialization {
     fun serializeNode(n: NodeVal<Hash?>): ByteArray

@@ -4,80 +4,13 @@ import qbit.Attrs.list
 import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
-import qbit.typing.EagerQuery
-import qbit.typing.GraphQuery
 import qbit.typing.Typing
 import qbit.model.*
 import qbit.platform.WeakHashMap
 import qbit.platform.set
+import qbit.query.*
+import qbit.trx.Db
 import kotlin.reflect.KClass
-
-sealed class Fetch
-
-object Eager : Fetch()
-
-object Lazy : Fetch()
-
-interface QueryPred {
-    val attrName: String
-
-    fun compareTo(another: Any): Int
-}
-
-fun hasAttr(attr: Attr<*>): QueryPred =
-        AttrPred(attr.name)
-
-fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
-        AttrValuePred(attr.name, value)
-
-fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
-        AttrRangePred(attr.name, from, to)
-
-internal data class AttrPred(override val attrName: String) : QueryPred {
-
-    override fun compareTo(another: Any): Int = 0
-
-}
-
-internal data class AttrValuePred(override val attrName: String, val value: Any) : QueryPred {
-
-    override fun compareTo(another: Any): Int =
-            compareValues(another, value)
-
-}
-
-internal data class AttrRangePred(override val attrName: String, val from: Any, val to: Any) : QueryPred {
-
-    override fun compareTo(another: Any): Int {
-        val r1 = compareValues(another, from)
-        if (r1 < 0) {
-            return r1
-        }
-        val r2 = compareValues(another, to)
-        if (r2 > 0) {
-            return r2
-        }
-        return 0
-    }
-
-}
-
-interface Db {
-
-    fun pull(gid: Gid): StoredEntity?
-
-    fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch = Lazy): R?
-
-    // Todo: add check that attrs are presented in schema
-    fun query(vararg preds: QueryPred): Sequence<Entity>
-
-    fun attr(attr: String): Attr<Any>?
-
-    fun with(facts: Iterable<Fact>): Db
-
-    fun queryGids(vararg preds: QueryPred): Sequence<Gid>
-
-}
 
 inline fun <reified R : Any> Db.pullT(eid: Gid): R? {
     return this.pull(eid, R::class)
@@ -94,13 +27,13 @@ internal class IndexDb(internal val index: Index) : Db {
 
     private val schema = loadAttrs(index)
 
-    private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this)
+    private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this::pull)
 
     private val entityCache = WeakHashMap<Gid, StoredEntity>()
 
     private val dcCache = WeakHashMap<Entity, Any>()
 
-    override fun with(facts: Iterable<Fact>): Db {
+    override fun with(facts: Iterable<Eav>): Db {
         return IndexDb(index.addFacts(facts))
     }
 
@@ -123,7 +56,7 @@ internal class IndexDb(internal val index: Index) : Db {
             require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
             attr to if (attr.list) it.value else it.value[0]
         }
-        val entity = AttachedEntity(gid, attrValues, this)
+        val entity = AttachedEntity(gid, attrValues, this::pull)
         entityCache[gid] = entity
         return entity
     }

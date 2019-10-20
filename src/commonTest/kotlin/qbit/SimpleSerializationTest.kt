@@ -5,7 +5,10 @@ import kotlinx.io.core.Input
 import qbit.model.*
 import qbit.platform.*
 import qbit.serialization.*
-import qbit.db.DbUuid
+import qbit.system.DbUuid
+import qbit.util.HASH_LEN
+import qbit.util.Hash
+import qbit.util.nullHash
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -120,43 +123,43 @@ class SimpleSerializationTest {
 
     @Test
     fun testRoot() {
-        val iid = IID(1, 4)
-        val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(Gid(iid, 1), "test", 0))))
+        val iid = Iid(1, 4)
+        val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput())
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
-        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
-        assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+        assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
+        assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
+        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
     }
 
     @Test
     fun testLeaf() {
-        val iid = IID(0, 4)
-        val root = Leaf(null, NodeRef(Hash(randomBytes(HASH_LEN, random))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(Gid(iid, 1), "test", 0))))
+        val iid = Iid(0, 4)
+        val root = Leaf(null, NodeRef(Hash(randomBytes(HASH_LEN, random))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Leaf
         assertEquals(root.hash, res.hash)
         assertEquals(root.parent.hash, res.parent.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
-        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
-        assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+        assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
+        assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
+        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
     }
 
     @Test
     fun testMerge() {
-        val iid = IID(0, 4)
-        val root = Merge(null, NodeRef(Hash(randomBytes(HASH_LEN, random))), NodeRef(Hash(randomBytes(HASH_LEN, random))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Fact(Gid(iid, 1), "test", 0))))
+        val iid = Iid(0, 4)
+        val root = Merge(null, NodeRef(Hash(randomBytes(HASH_LEN, random))), NodeRef(Hash(randomBytes(HASH_LEN, random))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
         val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Merge
         assertEquals(root.parent1.hash, res.parent1.hash)
         assertEquals(root.parent2.hash, res.parent2.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
-        assertEquals(root.data.trx[0].eid, res.data.trx[0].eid)
-        assertEquals(root.data.trx[0].attr, res.data.trx[0].attr)
-        assertEquals(root.data.trx[0].value, res.data.trx[0].value)
+        assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
+        assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
+        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
     }
 
     @Test

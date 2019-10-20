@@ -1,9 +1,7 @@
-package qbit.db
+package qbit.index
 
-import qbit.Hash
+import qbit.util.Hash
 import qbit.QBitException
-import qbit.index.Index
-import qbit.index.IndexDb
 import qbit.serialization.*
 
 internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
@@ -29,8 +27,8 @@ internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, 
                 ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
         val nodes = nodesBetween(fromVal, baseHash)
         return nodes.fold(base ?: IndexDb(Index())) { db, n ->
-            val entities = n.data.trx.toList()
-                    .groupBy { it.eid }
+            val entities = n.data.trxes.toList()
+                    .groupBy { it.gid }
                     .map { it.key to it.value }
             IndexDb(db.index.add(entities))
         }

@@ -1,9 +1,10 @@
 package qbit
 
 import qbit.db.Conn
-import qbit.db.DbUuid
-import qbit.index.Db
+import qbit.system.DbUuid
+import qbit.trx.Db
 import qbit.trx.*
+import qbit.util.Hash
 
 internal class FakeConn : Conn, CommitHandler {
 

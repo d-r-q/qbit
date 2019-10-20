@@ -1,11 +1,16 @@
 package qbit
 
 import qbit.index.*
-import qbit.typing.destruct
+import qbit.factorization.destruct
 import qbit.model.*
 import qbit.platform.*
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
+import qbit.factorization.types
+import qbit.query.Fetch
+import qbit.query.QueryPred
+import qbit.trx.Db
+import qbit.util.Hash
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -17,7 +22,7 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
             .map { it.name to it }
             .toMap()
     val facts = entities.flatMap { destruct(it, (bootstrapSchema + addedAttrs)::get, eids) }
-    return IndexDb(Index(facts.groupBy { it.eid }.map { it.key to it.value }))
+    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 
 object emptyDb : Db {
@@ -32,7 +37,7 @@ object emptyDb : Db {
 
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
-    override fun with(facts: Iterable<Fact>): Db {
+    override fun with(facts: Iterable<Eav>): Db {
         return IndexDb(Index().addFacts(facts))
     }
 
@@ -56,7 +61,7 @@ class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db {
         TODO("not implemented")
     }
 
-    override fun with(facts: Iterable<Fact>): Db {
+    override fun with(facts: Iterable<Eav>): Db {
         TODO("not implemented")
     }
 
@@ -72,6 +77,28 @@ val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash
 
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
 
+inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr<T> =
+        Attr(null, name, unique)
+
+inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
+    return Attr<L>(
+            id,
+            name,
+            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+            unique,
+            false
+    )
+}
+
+inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true): Attr<T> {
+    return Attr<T>(
+            id,
+            name,
+            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+            unique,
+            false
+    )
+}
 
 fun assertArrayEquals(arr1: Array<*>?, arr2: Array<*>?) {
     arr1!!; arr2!!

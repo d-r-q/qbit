@@ -1,9 +1,13 @@
 package qbit.typing
 
 import qbit.*
+import qbit.factorization.*
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.model.*
+import qbit.query.EagerQuery
+import qbit.query.GraphQuery
+import qbit.reflection.default
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.test.*
@@ -46,7 +50,7 @@ class MappingTest {
 
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val se = db2.pull(facts.entityFacts[user]!!.first().eid)
+        val se = db2.pull(facts.entityFacts[user]!!.first().gid)
         val lazyTyping = Typing(se!!, GraphQuery(MUser::class, emptyMap()), MUser::class)
         val u = lazyTyping.instantiate(se, MUser::class)
         assertEquals("login", u.login)
@@ -85,7 +89,7 @@ class MappingTest {
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
 
-        val se = db2.pull(facts.entityFacts[user]!!.first().eid)!!
+        val se = db2.pull(facts.entityFacts[user]!!.first().gid)!!
         val eagerTyping = Typing(se, EagerQuery(), MUser::class)
         val fullUser = eagerTyping.instantiate(se, MUser::class)
 
@@ -308,7 +312,7 @@ class MappingTest {
         val s1 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
         val s2 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
         val rg = ResearchGroup(null, listOf(s1, s2))
-        assertEquals(1, destruct(rg, db::attr, gids).filter { it.eid == Gid(0) && it.attr == Scientists.extId.name }.size)
+        assertEquals(1, destruct(rg, db::attr, gids).filter { it.gid == Gid(0) && it.attr == Scientists.extId.name }.size)
     }
 }
 

@@ -1,11 +1,11 @@
-package qbit
+package qbit.trx
 
-import qbit.index.Db
-import qbit.index.attrIs
+import qbit.QBitException
+import qbit.query.attrIs
 import qbit.model.Attr
-import qbit.model.Fact
+import qbit.model.Eav
 
-fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
+fun validate(db: Db, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.name }
     val factAttrs = facts.map { it.attr to (db.attr(it.attr) ?: newAttrsByName[it.attr]) }.toMap()
 
@@ -23,21 +23,21 @@ fun validate(db: Db, facts: List<Fact>, newAttrs: List<Attr<*>> = emptyList()) {
             .filter { factAttrs.getValue(it.attr)?.unique ?: false }
             .groupBy { it.attr to it.value }
             .filterValues { it.size > 1 }
-            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}, entities: ${it.value.map { f -> f.eid }}") }
+            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}, entities: ${it.value.map { f -> f.gid }}") }
 
     // within db
     facts.forEach {
         val attr: Attr<*> = factAttrs.getValue(it.attr)!!
         if (attr.unique) {
             val eids = db.query(attrIs(attr as Attr<Any>, it.value)).map { f -> f.gid }.distinct().toList()
-            if (eids.isNotEmpty() && eids != listOf(it.eid)) {
+            if (eids.isNotEmpty() && eids != listOf(it.gid)) {
                 throw QBitException("Duplicate fact $it for unique attribute")
             }
         }
     }
 
     // check that scalar attrs has single fact
-    facts.groupBy { it.eid to it.attr }
+    facts.groupBy { it.gid to it.attr }
             .filter { !factAttrs.getValue(it.key.second)!!.list }
             .forEach {
                 if (it.value.size > 1) {

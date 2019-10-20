@@ -1,8 +1,10 @@
-package qbit.typing
+package qbit.reflection
 
 import qbit.QBitException
 import qbit.model.Attr
 import qbit.model.Gid
+import qbit.model.Tombstone
+import qbit.model.gid
 import qbit.platform.*
 import kotlin.reflect.*
 
@@ -91,8 +93,5 @@ fun setableProps(type: KClass<*>): List<KMutableProperty1<*, *>> {
 fun KClass<*>.propertyFor(attr: Attr<*>) =
         findProperties(this).firstOrNull { attr.name.endsWith(it.name) }
 
-fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
-        "." + this.qualifiedName!! + "/" + prop.name
-
-fun KClass<*>.attrName(prop: KProperty0<*>): String =
-        "." + this.qualifiedName!! + "/" + prop.name
+val Any.tombstone
+    get() = Tombstone(this.gid!!)

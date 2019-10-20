@@ -1,13 +1,16 @@
 package qbit
 
-import qbit.db.Instance
-import qbit.typing.gid
+import qbit.system.Instance
+import qbit.model.gid
 import qbit.model.Gid
-import qbit.model.tombstone
+import qbit.reflection.tombstone
 import qbit.storage.MemStorage
-import qbit.storage.NodesStorage
+import qbit.serialization.NodesStorage
 import qbit.db.qbit
 import qbit.index.*
+import qbit.query.Eager
+import qbit.query.attrIs
+import qbit.query.hasAttr
 import qbit.serialization.NodeRef
 import kotlin.test.*
 
@@ -107,7 +110,7 @@ class FunTest {
         val conn = setupTestData(storage)
         conn.persist(Region(null, "Kemerovskaya obl.", ru))
 
-        assertEquals(5, NodesStorage(storage).load(NodeRef(conn.head))!!.data.trx.size, "5 facts (2 for region and 3 for instance) expected")
+        assertEquals(5, NodesStorage(storage).load(NodeRef(conn.head))!!.data.trxes.size, "5 facts (2 for region and 3 for instance) expected")
     }
 
     @Test

@@ -1,15 +1,16 @@
 package qbit
 
-import qbit.db.Instance
+import qbit.system.Instance
 import qbit.model.Attr
-import qbit.model.IID
+import qbit.model.Iid
 import qbit.ns.Namespace
 import qbit.storage.MemStorage
-import qbit.db.DbUuid
+import qbit.system.DbUuid
 import qbit.db.bootstrap
 import qbit.db.qbit
-import qbit.index.attrIs
+import qbit.query.attrIs
 import qbit.index.queryT
+import qbit.model.tombstone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -20,7 +21,7 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(IID(1, 4)))
+    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)))
 
     @Test
     fun testInit() {

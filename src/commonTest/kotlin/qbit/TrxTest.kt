@@ -2,15 +2,15 @@ package qbit
 
 import qbit.Scientists.extId
 import qbit.Scientists.name
-import qbit.db.Instance
-import qbit.typing.gid
+import qbit.system.Instance
+import qbit.model.gid
 import qbit.model.Gid
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
 import qbit.trx.QTrx
 import qbit.db.qbit
-import qbit.index.attrIs
+import qbit.query.attrIs
 import qbit.index.pullT
 import kotlin.test.*
 

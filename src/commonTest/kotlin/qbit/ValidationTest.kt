@@ -2,6 +2,7 @@ package qbit
 
 import qbit.Scientists.extId
 import qbit.model.*
+import qbit.trx.validate
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 

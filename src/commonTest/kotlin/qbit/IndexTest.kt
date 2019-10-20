@@ -1,26 +1,33 @@
 package qbit
 
 import qbit.Scientists.extId
-import qbit.db.DbUuid
-import qbit.db.Indexer
+import qbit.system.DbUuid
+import qbit.index.Indexer
 import qbit.index.*
 import qbit.model.*
 import qbit.platform.currentTimeMillis
+import qbit.query.AttrPred
+import qbit.query.AttrValuePred
+import qbit.query.attrIn
+import qbit.query.attrIs
 import qbit.serialization.*
+import qbit.util.Hash
+import qbit.util.hash
+import qbit.util.nullHash
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import qbit.Scientists.name as userName
-import qbit.tombstone as tsAttr
+import qbit.model.tombstone as tsAttr
 
 class IndexTest {
 
     @Test
     fun testVaet() {
-        val f1 = Fact(Gid(1, 0), "attr1", "value1")
-        val f2 = Fact(Gid(2, 0), "attr2", "value2")
-        val f3 = Fact(Gid(3, 0), "attr3", "value3")
+        val f1 = Eav(Gid(1, 0), "attr1", "value1")
+        val f2 = Eav(Gid(2, 0), "attr2", "value2")
+        val f3 = Eav(Gid(3, 0), "attr3", "value3")
 
         assertEquals(0, attrValuePattern("attr2", "value2").invoke(f2))
         assertFalse(attrValuePattern("attr2", "value2").invoke(f1) == 0)
@@ -84,7 +91,7 @@ class IndexTest {
 
     @Test
     fun testCreateIndex() {
-        val dbUuid = DbUuid(IID(0, 1))
+        val dbUuid = DbUuid(Iid(0, 1))
         val time1 = currentTimeMillis()
         val eid = Gid(0, 0)
 
@@ -92,16 +99,16 @@ class IndexTest {
         val _attr2 = "/attr2"
         val _attr3 = "/attr3"
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
+        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1,
                 NodeData(arrayOf(
-                        Fact(eid, _attr1, 1),
-                        Fact(eid, _attr2, 0))))
+                        Eav(eid, _attr1, 1),
+                        Eav(eid, _attr2, 0))))
         val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2,
                 NodeData(arrayOf(
-                        Fact(eid, _attr1, 2),
-                        Fact(eid, _attr2, 1),
-                        Fact(eid, _attr3, 0))))
+                        Eav(eid, _attr1, 2),
+                        Eav(eid, _attr2, 1),
+                        Eav(eid, _attr3, 0))))
 
         val index = Indexer(null, null, identityNodeResolver).index(n3).index
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
@@ -115,7 +122,7 @@ class IndexTest {
 
     @Test
     fun testRangeSearch() {
-        val dbUuid = DbUuid(IID(0, 1))
+        val dbUuid = DbUuid(Iid(0, 1))
         val time1 = currentTimeMillis()
         val eid0 = Gid(0, 0)
         val eid1 = Gid(0, 1)
@@ -149,7 +156,7 @@ class IndexTest {
 
     @Test
     fun testLoadTombstones() {
-        val dbUuid = DbUuid(IID(0, 1))
+        val dbUuid = DbUuid(Iid(0, 1))
         val time1 = currentTimeMillis()
         val eid = Gid(0, 0)
         val _attr1 = Attr<Int>("attr1")
@@ -164,11 +171,11 @@ class IndexTest {
 
     @Test
     fun `Test putting tombstone into index should filter all facts of correspondingEntity`() {
-        val idx = Index(listOf(Gid(0, 0) to listOf(Fact(Gid(0, 0), "any", "any")),
-                Gid(0, 1) to listOf(Fact(Gid(0, 1), "to-keep", "any"))))
-        val filtered = idx.addFacts(listOf(Fact(Gid(0, 0), qbit.tombstone.name, true)))
+        val idx = Index(listOf(Gid(0, 0) to listOf(Eav(Gid(0, 0), "any", "any")),
+                Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))))
+        val filtered = idx.addFacts(listOf(Eav(Gid(0, 0), qbit.model.tombstone.name, true)))
         assertEquals(1, filtered.entities.size)
-        assertEquals(2, filtered.index.size)
+        assertEquals(2, filtered.indices.size)
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
@@ -181,6 +188,6 @@ class IndexTest {
         }
     }
 
-    private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Fact(Gid(0, eid), attr.name, value)
+    private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Eav(Gid(0, eid), attr.name, value)
 
 }

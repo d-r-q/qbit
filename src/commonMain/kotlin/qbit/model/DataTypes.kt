@@ -51,7 +51,8 @@ sealed class DataType<out T : Any> {
             is Instant -> QInstant as DataType<T>
             is ZonedDateTime -> QZonedDateTime as DataType<T>
             is BigDecimal -> QDecimal as DataType<T>
-            else -> null
+            is List<*> -> value.firstOrNull()?.let { ofValue(it)?.list() } as DataType<T>
+            else -> QRef as DataType<T>
         }
     }
 
@@ -157,3 +158,6 @@ object QGid : DataType<Gid>() {
     override val code = 19.toByte()
 
 }
+
+internal fun isListOfVals(list: List<Any>?) =
+        list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value()  }?: true

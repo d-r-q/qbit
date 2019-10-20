@@ -1,7 +1,5 @@
 package qbit.trx
 
-import qbit.index.Db
-
 
 internal interface CommitHandler {
 

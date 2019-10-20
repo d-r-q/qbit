@@ -1,15 +1,15 @@
 package qbit.q5bulk
 
-import qbit.index.attrIn
-import qbit.index.attrIs
-import qbit.typing.attrName
-import qbit.typing.gid
+import qbit.query.attrIn
+import qbit.query.attrIs
+import qbit.model.gid
 import qbit.typing.schema
 import qbit.platform.*
 import qbit.q5bulk.Trxes.dateTime
 import qbit.storage.FileSystemStorage
 import qbit.db.Conn
 import qbit.db.qbit
+import qbit.factorization.attrName
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

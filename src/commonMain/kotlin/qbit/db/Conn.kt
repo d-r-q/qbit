@@ -2,21 +2,26 @@ package qbit.db
 
 import qbit.*
 import qbit.collections.EmptyIterator
-import qbit.index.Db
+import qbit.trx.Db
+import qbit.index.Indexer
 import qbit.index.pullT
-import qbit.typing.destruct
+import qbit.factorization.destruct
 import qbit.model.Gid
-import qbit.model.IID
+import qbit.model.Iid
 import qbit.model.toFacts
+import qbit.model.tombstone
 import qbit.ns.Namespace
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
-import qbit.storage.NodesStorage
+import qbit.serialization.NodesStorage
 import qbit.storage.Storage
+import qbit.system.DbUuid
+import qbit.system.Instance
 import qbit.trx.*
+import qbit.util.Hash
 
 fun qbit(storage: Storage): Conn {
-    val iid = IID(1, 4)
+    val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
     return if (headHash != null) {
@@ -97,7 +102,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
 internal fun bootstrap(storage: Storage, dbUuid: DbUuid): Conn {
     val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
             .flatMap { it.toFacts() }
-            .plus(destruct(Instance(Gid(IID(1, 4), theInstanceEid), 1, 0, firstInstanceEid), bootstrapSchema::get, EmptyIterator))
+            .plus(destruct(Instance(Gid(Iid(1, 4), theInstanceEid), 1, 0, firstInstanceEid), bootstrapSchema::get, EmptyIterator))
 
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)

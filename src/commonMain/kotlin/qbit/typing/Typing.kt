@@ -1,7 +1,13 @@
 package qbit.typing
 
-import qbit.*
+import qbit.QBitException
+import qbit.factorization.*
 import qbit.model.*
+import qbit.query.Query
+import qbit.reflection.findPrimaryConstructor
+import qbit.reflection.isId
+import qbit.reflection.propertyFor
+import qbit.reflection.setableProps
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter

@@ -4,10 +4,11 @@ import kotlinx.io.charsets.Charset
 import kotlinx.io.charsets.decode
 import kotlinx.io.charsets.encode
 import kotlinx.io.core.*
-import qbit.*
 import qbit.model.*
 import qbit.platform.*
-import qbit.db.DbUuid
+import qbit.system.DbUuid
+import qbit.util.Hash
+import qbit.util.nullHash
 
 object SimpleSerialization : Serialization {
 
@@ -34,13 +35,13 @@ object SimpleSerialization : Serialization {
             val eid = deserialize(ins, QGid) as Gid
             val attr = deserialize(ins, QString) as String
             val value = deserialize(ins)
-            Fact(eid, attr, value)
+            Eav(eid, attr, value)
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
-            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
-            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(IID(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
+            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
             else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
@@ -58,8 +59,8 @@ internal fun serialize(vararg anys: Any): ByteArray {
             is Int -> byteArray(QInt.code, serializeInt(a))
             is Long -> byteArray(QLong.code, serializeLong(a))
             is String -> byteArray(QString.code, byteArray(a))
-            is NodeData -> byteArray(serialize(a.trx.size), *a.trx.map { serialize(it) }.toTypedArray())
-            is Fact -> serialize(a.eid, a.attr, a.value)
+            is NodeData -> byteArray(serialize(a.trxes.size), *a.trxes.map { serialize(it) }.toTypedArray())
+            is Eav -> serialize(a.gid, a.attr, a.value)
             is Gid -> byteArray(QGid.code, serializeLong(a.value()))
             is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
             is Instant -> byteArray(QInstant.code, serializeLong(a.toEpochMilli()))

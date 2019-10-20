@@ -1,12 +1,11 @@
 package qbit.trx
 
-import qbit.*
+import qbit.QBitException
 import qbit.collections.EmptyIterator
-import qbit.db.Instance
-import qbit.index.Db
-import qbit.typing.destruct
-import qbit.typing.gid
-import qbit.model.Fact
+import qbit.system.Instance
+import qbit.factorization.destruct
+import qbit.model.gid
+import qbit.model.Eav
 import qbit.model.Gid
 import qbit.model.toFacts
 
@@ -27,7 +26,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
 
     private var curDb: Db? = null
 
-    private val factsBuffer = ArrayList<Fact>()
+    private val factsBuffer = ArrayList<Eav>()
 
     private val gids = Gid(inst.iid, inst.nextEid).nextGids()
 
@@ -42,12 +41,12 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?> {
         ensureReady()
         val facts = destruct(entityGraphRoot, db::attr, gids)
-        val entities = facts.map { it.eid }
+        val entities = facts.map { it.gid }
                 .distinct()
                 .mapNotNull { db.pull(it)?.toFacts()?.toList() }
-                .map { it[0].eid to it }
+                .map { it[0].gid to it }
                 .toMap()
-        val updatedFacts = facts.groupBy { it.eid }
+        val updatedFacts = facts.groupBy { it.gid }
                 .filter { ue ->
                     ue.value != entities[ue.key]
                 }
@@ -63,7 +62,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
         val res = if (entityGraphRoot.gid != null) {
             entityGraphRoot
         } else {
-            facts.entityFacts[entityGraphRoot]?.get(0)?.eid?.let { db.pull(it, entityGraphRoot::class) }
+            facts.entityFacts[entityGraphRoot]?.get(0)?.gid?.let { db.pull(it, entityGraphRoot::class) }
         }
         return QbitWriteResult(res, curDb!!)
     }

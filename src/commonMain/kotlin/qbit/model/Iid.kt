@@ -2,9 +2,9 @@ package qbit.model
 
 import qbit.QBitException
 
-data class IID(val value: Int, val instanceBits: Byte) {
+data class Iid(val value: Int, val instanceBits: Byte) {
 
-    fun fork(forkNum: Int): IID {
+    fun fork(forkNum: Int): Iid {
         if (forkNum <= 0) {
             throw QBitException("Fork num is not positive $forkNum")
         }
@@ -23,7 +23,7 @@ data class IID(val value: Int, val instanceBits: Byte) {
             pos++
         }
 
-        return IID(value or ((forkNum and mask) shl (pos * instanceBits)), instanceBits)
+        return Iid(value or ((forkNum and mask) shl (pos * instanceBits)), instanceBits)
     }
 
 }
