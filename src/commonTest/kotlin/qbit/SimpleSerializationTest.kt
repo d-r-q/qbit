@@ -1,6 +1,7 @@
 package qbit
 
 import kotlinx.io.core.EOFException
+import kotlinx.io.core.ExperimentalIoApi
 import kotlinx.io.core.Input
 import qbit.model.*
 import qbit.platform.*
@@ -13,6 +14,7 @@ import kotlin.test.fail
 
 val random = Random(1)
 
+@UseExperimental(ExperimentalIoApi::class)
 class SimpleSerializationTest {
 
     private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())

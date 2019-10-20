@@ -49,6 +49,9 @@ kotlin {
     }
     
     sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+        }
         commonMain {
             dependencies {
                 implementation kotlin("stdlib")

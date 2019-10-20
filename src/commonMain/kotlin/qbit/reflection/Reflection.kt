@@ -51,15 +51,16 @@ fun <T : Any> findPrimaryConstructor(type: KClass<T>): KFunction<T> {
 
 val defaults = hashMapOf<KClass<*>, Any>()
 
+@Suppress("UNCHECKED_CAST")
 fun <T : Any> default(type: KClass<T>): T =
         defaults.getOrPut(type) {
             when (type) {
-                Boolean::class -> false as T
-                String::class -> "" as T
-                Byte::class -> 0.toByte() as T
-                Int::class -> 0 as T
-                Long::class -> 0L as T
-                List::class -> listOf<Any>() as T
+                Boolean::class -> false
+                String::class -> ""
+                Byte::class -> 0.toByte()
+                Int::class -> 0
+                Long::class -> 0L
+                List::class -> listOf<Any>()
                 Instant::class -> Instants.ofEpochMilli(0)
                 ZonedDateTime::class -> ZonedDateTimes.of(0, 1, 1, 0, 0, 0, 0, ZoneIds.of("UTC"))
                 BigDecimal::class -> BigDecimal(0)
@@ -82,8 +83,8 @@ fun <T : Any> default(type: KClass<T>): T =
 fun KParameter.isId() =
         this.name == "id" && (this.type.classifier == Long::class || this.type.classifier == Gid::class)
 
-fun setableProps(type: KClass<*>): List<KMutableProperty1<*, *>> {
-    return findProperties(type).filterIsInstance<KMutableProperty1<*, *>>()
+fun setableProps(type: KClass<*>): List<KMutableProperty1<Any, Any>> {
+    return findProperties(type).filterIsInstance<KMutableProperty1<Any, Any>>()
 }
 
 fun KClass<*>.propertyFor(attr: Attr<*>) =
@@ -91,3 +92,6 @@ fun KClass<*>.propertyFor(attr: Attr<*>) =
 
 val Any.tombstone
     get() = Tombstone(this.gid!!)
+
+@Suppress("UNCHECKED_CAST")
+fun <T : Any> getListElementClass(type: KType) = type.arguments[0].type!!.classifier as KClass<T>

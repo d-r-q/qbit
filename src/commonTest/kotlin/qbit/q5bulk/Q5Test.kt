@@ -10,6 +10,7 @@ import qbit.query.attrIn
 import qbit.query.attrIs
 import qbit.storage.FileSystemStorage
 import qbit.typing.schema
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -49,6 +50,7 @@ object Cats {
 
 class Q5Test {
 
+    @Ignore
     @Test
     fun test() {
         val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")

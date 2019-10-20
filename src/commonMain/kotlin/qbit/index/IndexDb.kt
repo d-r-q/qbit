@@ -72,7 +72,7 @@ internal class IndexDb(internal val index: Index) : Db {
 
         val query = when (fetch) {
             Lazy -> GraphQuery(type, emptyMap())
-            Eager -> EagerQuery<R>()
+            Eager -> EagerQuery()
         }
 
         val typing = Typing(entity, query, type)

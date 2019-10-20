@@ -27,6 +27,7 @@ class MemStorage : Storage {
 
     override fun load(key: Key): ByteArray? = data[key.ns]?.get(key)
 
+    @Suppress("UNCHECKED_CAST")
     override fun keys(namespace: Namespace): Collection<Key> = (data[namespace]?.keys as? Collection<Key>) ?: setOf()
 
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> =

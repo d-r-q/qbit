@@ -54,28 +54,28 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 }
 
-interface Query<T> {
+interface Query {
 
     fun shouldFetch(attr: Attr<*>): Boolean
 
-    fun <ST : Any> subquery(subType: KClass<ST>): Query<ST>
+    fun <ST : Any> subquery(subType: KClass<ST>): Query
 
 }
 
-class EagerQuery<T> : Query<T> {
+class EagerQuery : Query {
 
     override fun shouldFetch(attr: Attr<*>): Boolean = true
 
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = this as Query<ST>
+    override fun <ST : Any> subquery(subType: KClass<ST>): Query = this
 
 }
 
-data class GraphQuery<R : Any>(val type: KClass<R>, val links: Map<String, GraphQuery<*>?>) : Query<R> {
+data class GraphQuery(val type: KClass<*>, val links: Map<String, GraphQuery?>) : Query {
 
     override fun shouldFetch(attr: Attr<*>): Boolean {
         return attr.name in links || type.propertyFor(attr)?.returnType?.isMarkedNullable == false
     }
 
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query<ST> = GraphQuery(subType, links)
+    override fun <ST : Any> subquery(subType: KClass<ST>): Query = GraphQuery(subType, links)
 
 }

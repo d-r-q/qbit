@@ -286,9 +286,9 @@ val schemaMap: Map<String, Attr<Any>> = testSchema
 
 object Scientists {
 
-    val extId: Attr<Int> = schemaMap.getValue(Scientist::class.attrName(Scientist::externalId)) as Attr<Int>
-    val name: Attr<String> = schemaMap.getValue(Scientist::class.attrName(Scientist::name)) as Attr<String>
-    val nicks: Attr<List<String>> = schemaMap.getValue(Scientist::class.attrName(Scientist::nicks)) as Attr<List<String>>
+    val extId = schemaMap.getValue(Scientist::class.attrName(Scientist::externalId))
+    val name = schemaMap.getValue(Scientist::class.attrName(Scientist::name))
+    val nicks = schemaMap.getValue(Scientist::class.attrName(Scientist::nicks))
     val reviewer = schemaMap.getValue(Scientist::class.attrName(Scientist::reviewer))
     val country = schemaMap.getValue(Scientist::class.attrName(Scientist::country))
 }

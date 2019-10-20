@@ -72,7 +72,7 @@ class TypingTest {
     fun `Test instantiation of entity with missed fact`() {
         val gids = Gid(0, 0).nextGids()
         val sLebedevGid = gids.next()
-        val aLaypunov = AttachedEntity(gids.next(), mapOf(/* no externalId */ Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid), { gid -> null })
+        val aLaypunov = AttachedEntity(gids.next(), mapOf(/* no externalId */ Scientists.name to "Aleksey Lyapunov", Scientists.reviewer to sLebedevGid)) { _ -> null }
         val typing = Typing(aLaypunov, EagerQuery(), Scientist::class)
         assertFailsWith<QBitException> {
             typing.instantiate(aLaypunov, Scientist::class)
@@ -172,7 +172,8 @@ class TypingTest {
         map[ru.gid] = ru
         val typing = Typing(aErshov, EagerQuery(), Scientist::class)
         val typedErshov = typing.instantiate(aErshov, Scientist::class)
-        assertEquals(aLaypunov[Scientists.name], typedErshov.reviewer?.name)
+        @Suppress("UNCHECKED_CAST")
+        assertEquals(aLaypunov[Scientists.name as Attr<String>], typedErshov.reviewer?.name)
     }
 
     @Test
@@ -266,7 +267,7 @@ class TypingTest {
         map[r.gid] = r
         val ex = assertFailsWith<QBitException> {
             val typing = Typing(r, EagerQuery(), NullableRef::class)
-            val ns = typing.instantiate(r, NullableRef::class)
+            typing.instantiate(r, NullableRef::class)
         }
         assertEquals("", ex.message)
     }
