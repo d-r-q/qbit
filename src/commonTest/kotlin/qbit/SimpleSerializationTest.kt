@@ -5,6 +5,7 @@ import kotlinx.io.core.Input
 import qbit.model.*
 import qbit.platform.*
 import qbit.serialization.*
+import qbit.db.DbUuid
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals

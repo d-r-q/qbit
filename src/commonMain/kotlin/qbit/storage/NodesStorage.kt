@@ -3,7 +3,7 @@ package qbit.storage
 import qbit.*
 import qbit.ns.Namespace
 import qbit.platform.asInput
-import qbit.serialization.SimpleSerialization
+import qbit.serialization.*
 
 private val nodes = Namespace("nodes")
 

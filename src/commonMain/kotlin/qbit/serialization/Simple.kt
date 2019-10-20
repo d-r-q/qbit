@@ -7,6 +7,7 @@ import kotlinx.io.core.*
 import qbit.*
 import qbit.model.*
 import qbit.platform.*
+import qbit.db.DbUuid
 
 object SimpleSerialization : Serialization {
 

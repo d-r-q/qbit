@@ -1,12 +1,14 @@
 package qbit
 
-import qbit.mapping.gid
+import qbit.db.Instance
+import qbit.typing.gid
 import qbit.model.Gid
 import qbit.model.tombstone
 import qbit.storage.MemStorage
 import qbit.storage.NodesStorage
-import qbit.trx.Instance
-import qbit.trx.qbit
+import qbit.db.qbit
+import qbit.index.*
+import qbit.serialization.NodeRef
 import kotlin.test.*
 
 

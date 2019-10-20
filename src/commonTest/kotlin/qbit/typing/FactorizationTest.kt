@@ -1,6 +1,8 @@
-package qbit.mapping
+package qbit.typing
 
 import qbit.*
+import qbit.index.Index
+import qbit.index.IndexDb
 import qbit.model.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0

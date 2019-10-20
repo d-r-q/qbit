@@ -1,14 +1,9 @@
 package qbit.model
 
 import qbit.Attrs
-import qbit.Attrs.name
-import qbit.Attrs.type
-import qbit.Attrs.unique
-import qbit.Fact
 import qbit.QBitException
-import qbit.mapping.types
+import qbit.typing.types
 import qbit.ns.Key
-import kotlin.reflect.KClass
 
 // Interface
 

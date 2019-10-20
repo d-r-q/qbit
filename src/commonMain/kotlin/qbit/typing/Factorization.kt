@@ -1,4 +1,4 @@
-package qbit.mapping
+package qbit.typing
 
 import qbit.*
 import qbit.model.*
@@ -212,12 +212,6 @@ val Any.gid: Gid?
             else -> throw QBitException("Unsupported id type: $id of entity $this")
         }
     }
-
-fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
-        "." + this.qualifiedName!! + "/" + prop.name
-
-fun KClass<*>.attrName(prop: KProperty0<*>): String =
-        "." + this.qualifiedName!! + "/" + prop.name
 
 fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
     val getters = type.members.filterIsInstance<KProperty1<*, *>>()

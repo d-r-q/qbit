@@ -1,22 +1,14 @@
 package qbit.trx
 
 import qbit.*
-import qbit.Attrs.list
-import qbit.Attrs.name
-import qbit.Attrs.type
-import qbit.Attrs.unique
-import qbit.Instances.forks
-import qbit.Instances.nextEid
-import qbit.mapping.destruct
-import qbit.mapping.gid
+import qbit.collections.EmptyIterator
+import qbit.db.Instance
+import qbit.index.Db
+import qbit.typing.destruct
+import qbit.typing.gid
+import qbit.model.Fact
 import qbit.model.Gid
-import qbit.model.IID
 import qbit.model.toFacts
-import qbit.ns.Namespace
-import qbit.platform.currentTimeMillis
-import qbit.storage.NodesStorage
-import qbit.storage.Storage
-import qbit.Instances.iid as instIid
 
 
 interface Trx {
@@ -31,13 +23,13 @@ interface Trx {
 
 }
 
-internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, private var base: Db, private val conn: InternalConn) : Trx {
+internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: Db, private val commitHandler: CommitHandler) : Trx {
 
     private var curDb: Db? = null
 
     private val factsBuffer = ArrayList<Fact>()
 
-    private val eids = Gid(inst.iid, inst.nextEid).nextGids()
+    private val gids = Gid(inst.iid, inst.nextEid).nextGids()
 
     private var rollbacked = false
 
@@ -49,7 +41,7 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?> {
         ensureReady()
-        val facts = destruct(entityGraphRoot, db::attr, eids)
+        val facts = destruct(entityGraphRoot, db::attr, gids)
         val entities = facts.map { it.eid }
                 .distinct()
                 .mapNotNull { db.pull(it)?.toFacts()?.toList() }
@@ -82,10 +74,11 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
             return
         }
 
-        val newLog = trxLog.append(factsBuffer + destruct(inst.copy(nextEid = eids.next().eid), curDb!!::attr, EmptyIterator))
+        val instance = destruct(inst.copy(nextEid = gids.next().eid), curDb!!::attr, EmptyIterator)
+        val newLog = trxLog.append(factsBuffer + instance)
         try {
-            conn.update(trxLog, newLog)
-            base = curDb!!
+            base = curDb!!.with(instance)
+            commitHandler.update(trxLog, newLog, base)
             factsBuffer.clear()
         } catch (e: Throwable) {
             // todo clean up
@@ -105,166 +98,4 @@ internal class QbitTrx2(private val inst: Instance, private val trxLog: TrxLog, 
         }
     }
 
-}
-
-interface WriteResult<R> {
-
-    val persisted: R
-
-    val db: Db
-
-    operator fun component1(): R
-
-}
-
-internal data class QbitWriteResult<R>(
-        override val persisted: R,
-        override val db: Db
-) : WriteResult<R>
-
-internal interface TrxLog {
-
-    val hash: Hash
-
-    fun append(facts: Collection<Fact>): TrxLog
-
-}
-
-internal class QbitTrxLog(val head: NodeVal<Hash>, val writer: Writer) : TrxLog {
-
-    override val hash = head.hash
-
-    override fun append(facts: Collection<Fact>): TrxLog {
-        val newHead = writer.store(head, facts)
-        return QbitTrxLog(newHead, writer)
-    }
-
-}
-
-data class Instance(val id: Gid, val iid: Int, val forks: Int, val nextEid: Int)
-
-object EmptyIterator : Iterator<Nothing> {
-
-    override fun hasNext(): Boolean {
-        return false
-    }
-
-    override fun next(): Nothing {
-        throw NoSuchElementException("There is no elements in empty iterator")
-    }
-}
-
-interface Conn {
-
-    val dbUuid: DbUuid
-
-    fun db(): Db
-
-    fun db(body: (Db) -> Unit)
-
-    fun trx(): Trx
-
-    fun <R : Any> persist(e: R): WriteResult<R?>
-
-    val head: Hash
-
-}
-
-internal interface InternalConn : Conn {
-
-    fun update(trxLog: TrxLog, newLog: TrxLog)
-
-}
-
-internal class QbitConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : InternalConn {
-
-    private val nodesStorage = NodesStorage(storage)
-
-    private val graph = Graph(nodesStorage)
-
-    var trxLog: TrxLog = QbitTrxLog(head, Writer(nodesStorage, dbUuid))
-
-    private var db = IndexDb(Index(graph, head))
-
-    override val head
-        get() = trxLog.hash
-
-    override fun db() = db
-
-    override fun db(body: (Db) -> Unit) {
-        body(db)
-    }
-
-    override fun trx(): Trx {
-        return QbitTrx2(db.pullT(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
-    }
-
-    override fun <R : Any> persist(e: R): WriteResult<R?> {
-        return with (trx()) {
-            val wr = persist(e)
-            commit()
-            wr
-        }
-    }
-
-    override fun update(trxLog: TrxLog, newLog: TrxLog) {
-        if (this.trxLog != trxLog) {
-            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
-        }
-        this.trxLog = newLog
-        db = indexTrxLog(db, graph, NodeRef(newLog.hash), trxLog.hash)
-        storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
-    }
-
-}
-
-internal fun indexTrxLog(base: IndexDb, graph: Graph, from: Node<Hash>, upTo: Hash): IndexDb {
-    return if (from is Merge) {
-        IndexDb(Index(graph, from))
-    } else {
-        fun nodesBetween(from: NodeVal<Hash>, to: Hash): List<NodeVal<Hash>> {
-            return when {
-                from.hash == to -> emptyList()
-                from is Leaf -> nodesBetween(graph.resolveNode(from.parent), to) + from
-                from is Merge -> throw UnsupportedOperationException("Merges not yet supported")
-                else -> {
-                    check(from is Root)
-                    throw AssertionError("Should never happen")
-                }
-            }
-        }
-
-        val nodes = nodesBetween(graph.resolveNode(from), upTo)
-        return nodes.fold(base) { db, n ->
-            val entities = n.data.trx.toList()
-                    .groupBy { it.eid }
-                    .map { it.key to it.value }
-            IndexDb(db.index.add(entities))
-        }
-    }
-}
-
-fun qbit(storage: Storage): Conn {
-    val iid = IID(1, 4)
-    val dbUuid = DbUuid(iid)
-    val headHash = storage.load(Namespace("refs")["head"])
-    return if (headHash != null) {
-        val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
-                ?: throw QBitException("Corrupted head: no such node")
-        // TODO: fix dbUuid retrieving
-        QbitConn(dbUuid, storage, head)
-    } else {
-        bootstrap(dbUuid, storage)
-    }
-}
-
-fun bootstrap(dbUuid: DbUuid, storage: Storage): Conn {
-    val trx = listOf(name, type, unique, list, instIid, forks, nextEid, tombstone)
-            .flatMap { it.toFacts() }
-            .plus(destruct(Instance(Gid(IID(1, 4), theInstanceEid), 1, 0, firstInstanceEid), bootstrapSchema::get, EmptyIterator))
-
-    val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
-    val storedRoot = NodesStorage(storage).store(root)
-    storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
-    return QbitConn(dbUuid, storage, storedRoot)
 }

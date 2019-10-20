@@ -1,5 +1,6 @@
-package qbit
+package qbit.typing
 
+import qbit.QBitException
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.platform.*
@@ -89,3 +90,9 @@ fun setableProps(type: KClass<*>): List<KMutableProperty1<*, *>> {
 
 fun KClass<*>.propertyFor(attr: Attr<*>) =
         findProperties(this).firstOrNull { attr.name.endsWith(it.name) }
+
+fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
+        "." + this.qualifiedName!! + "/" + prop.name
+
+fun KClass<*>.attrName(prop: KProperty0<*>): String =
+        "." + this.qualifiedName!! + "/" + prop.name

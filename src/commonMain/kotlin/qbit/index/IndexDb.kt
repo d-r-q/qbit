@@ -1,12 +1,12 @@
-package qbit
+package qbit.index
 
 import qbit.Attrs.list
 import qbit.Attrs.name
 import qbit.Attrs.type
 import qbit.Attrs.unique
-import qbit.mapping.EagerQuery
-import qbit.mapping.GraphQuery
-import qbit.mapping.Typing
+import qbit.typing.EagerQuery
+import qbit.typing.GraphQuery
+import qbit.typing.Typing
 import qbit.model.*
 import qbit.platform.WeakHashMap
 import qbit.platform.set
@@ -90,7 +90,7 @@ inline fun <reified R : Any> Db.pullT(eid: Long): R? {
 inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred, fetch: Fetch = Lazy): Sequence<R> =
         this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }
 
-class IndexDb(internal val index: Index) : Db {
+internal class IndexDb(internal val index: Index) : Db {
 
     private val schema = loadAttrs(index)
 

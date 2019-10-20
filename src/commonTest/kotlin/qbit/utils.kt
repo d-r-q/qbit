@@ -1,8 +1,11 @@
 package qbit
 
-import qbit.mapping.destruct
+import qbit.index.*
+import qbit.typing.destruct
 import qbit.model.*
 import qbit.platform.*
+import qbit.serialization.Node
+import qbit.serialization.NodeVal
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -62,6 +65,13 @@ class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db {
     }
 
 }
+
+val nullNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { null }
+
+val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
+
+fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
+
 
 fun assertArrayEquals(arr1: Array<*>?, arr2: Array<*>?) {
     arr1!!; arr2!!

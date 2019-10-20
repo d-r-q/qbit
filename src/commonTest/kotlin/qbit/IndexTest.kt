@@ -1,9 +1,12 @@
 package qbit
 
 import qbit.Scientists.extId
+import qbit.db.DbUuid
+import qbit.db.Indexer
+import qbit.index.*
 import qbit.model.*
 import qbit.platform.currentTimeMillis
-import qbit.serialization.SimpleSerialization
+import qbit.serialization.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -92,15 +95,15 @@ class IndexTest {
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1,
                 NodeData(arrayOf(
-                Fact(eid, _attr1, 1),
-                Fact(eid, _attr2, 0))))
+                        Fact(eid, _attr1, 1),
+                        Fact(eid, _attr2, 0))))
         val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2,
                 NodeData(arrayOf(
-                Fact(eid, _attr1, 2),
-                Fact(eid, _attr2, 1),
-                Fact(eid, _attr3, 0))))
+                        Fact(eid, _attr1, 2),
+                        Fact(eid, _attr2, 1),
+                        Fact(eid, _attr3, 0))))
 
-        val index = Index(Graph { null }, n3)
+        val index = Indexer(null, null, identityNodeResolver).index(n3).index
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
@@ -126,7 +129,7 @@ class IndexTest {
         val e3 = Entity(eid2, _date eq 3L)
         val e4 = Entity(eid3, _date eq 4L)
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray()))
-        val index = Index(Graph { null }, root)
+        val index = Indexer(null, null, identityNodeResolver).index(root).index
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
         assertEquals(1, vRes.count())
@@ -155,8 +158,17 @@ class IndexTest {
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
                 Fact(eid, tsAttr, true)
         )))
-        val index = Index(Graph { null }, n2)
+        val index = Indexer(null, null, identityNodeResolver).index(n2).index
         assertNull(index.entityById(eid))
+    }
+
+    @Test
+    fun `Test putting tombstone into index should filter all facts of correspondingEntity`() {
+        val idx = Index(listOf(Gid(0, 0) to listOf(Fact(Gid(0, 0), "any", "any")),
+                Gid(0, 1) to listOf(Fact(Gid(0, 1), "to-keep", "any"))))
+        val filtered = idx.addFacts(listOf(Fact(Gid(0, 0), qbit.tombstone.name, true)))
+        assertEquals(1, filtered.entities.size)
+        assertEquals(2, filtered.index.size)
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {

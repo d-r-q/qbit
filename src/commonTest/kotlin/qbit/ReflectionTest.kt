@@ -1,9 +1,9 @@
 package qbit
 
-import qbit.mapping.gid
 import qbit.model.Gid
 import qbit.model.QTombstone
 import qbit.platform.*
+import qbit.typing.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

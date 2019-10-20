@@ -7,10 +7,10 @@ import qbit.Attrs.unique
 import qbit.Instances.forks
 import qbit.Instances.iid
 import qbit.Instances.nextEid
-import qbit.mapping.attrName
+import qbit.db.Instance
 import qbit.model.*
 import qbit.ns.Namespace
-import qbit.trx.Instance
+import qbit.typing.attrName
 
 val qbitNs = Namespace.of("qbit")
 

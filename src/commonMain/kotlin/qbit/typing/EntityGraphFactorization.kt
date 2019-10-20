@@ -1,6 +1,6 @@
-package qbit.mapping
+package qbit.typing
 
-import qbit.Fact
+import qbit.model.Fact
 import qbit.platform.IdentityHashMap
 
 

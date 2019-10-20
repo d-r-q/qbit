@@ -41,8 +41,8 @@ fun <E : Any> merge(arr: ArrayList<E>, el: E, cmp: Comparator<E>): ArrayList<E> 
         merge(arr, arrayListOf(el), cmp)
 
 fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>): ArrayList<E> {
-    qbit.assert { sorted(arr1, cmp) }
-    qbit.assert { sorted(arr2, cmp) }
+//    qbit.assert { sorted(arr1, cmp) }
+//    qbit.assert { sorted(arr2, cmp) }
     val extended = ArrayList<E>(arr1.size + arr2.size)
     val (larger, smaller) = if (arr1.size > arr2.size) Pair(arr1, arr2) else Pair(arr2, arr1)
     var fromIdx = 0
@@ -70,7 +70,7 @@ fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>):
     }
     extended.addAll(larger.subList(fromIdx))
     check(extended.size == arr1.size + arr2.size)
-    qbit.assert { sorted(extended, cmp) }
+    //qbit.assert { sorted(extended, cmp) }
     return extended
 }
 

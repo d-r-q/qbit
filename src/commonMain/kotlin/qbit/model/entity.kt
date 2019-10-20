@@ -2,11 +2,10 @@
 
 package qbit.model
 
-import qbit.Db
-import qbit.Fact
+import qbit.index.Db
 import qbit.QBitException
-import qbit.mapping.gid
-import qbit.mapping.isListOfVals
+import qbit.typing.gid
+import qbit.typing.isListOfVals
 import qbit.tombstone as tsAttr
 
 interface AttrValue<A : Attr<T>, T : Any> {

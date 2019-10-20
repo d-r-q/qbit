@@ -1,57 +1,33 @@
-package qbit
+package qbit.index
 
 import qbit.collections.firstMatchIdx
+import qbit.collections.merge
 import qbit.collections.subList
+import qbit.model.Fact
 import qbit.model.Gid
+import qbit.tombstone
 
 typealias RawEntity = Pair<Gid, List<Fact>>
 
-private fun loadFacts(graph: Graph, head: NodeVal<Hash>): List<RawEntity> {
-    val entities = HashMap<Gid, List<Fact>>()
-    val tombstones = HashSet<Gid>()
-    var n: NodeVal<Hash>? = head
-    while (n != null) {
-        val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.name }
-        tombstones += removed.map { it.eid }.toSet()
-        toAdd
-                .filterNot { tombstones.contains(it.eid) || entities.containsKey(it.eid) }
-                .groupBy { it.eid }
-                .forEach {
-                    entities[it.key] = it.value
-                }
-        n = when (n) {
-            is Root -> null
-            is Leaf -> graph.resolveNode(n.parent)
-            is Merge -> graph.resolveNode(n.parent1)
-        }
-    }
-    return entities.entries
-            .map { it.key to it.value }
-}
-
-fun Index(graph: Graph, head: NodeVal<Hash>): Index {
-    return Index().add(loadFacts(graph, head))
-}
-
-fun Index(entities: List<RawEntity>): Index =
+internal fun Index(entities: List<RawEntity>): Index =
         Index().add(entities)
 
-fun eidPattern(eid: Gid) = { other: Fact -> other.eid.compareTo(eid) }
+internal fun eidPattern(eid: Gid) = { other: Fact -> other.eid.compareTo(eid) }
 
-fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
+internal fun attrPattern(attr: String) = { fact: Fact -> fact.attr.compareTo(attr) }
 
-fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
+internal fun valuePattern(value: Any) = { fact: Fact -> compareValues(fact.value, value) }
 
-fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
+internal fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
 
-fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
+internal fun composeComparable(vararg cmps: (Fact) -> Int) = { fact: Fact ->
     cmps.asSequence()
             .map { it(fact) }
             .dropWhile { it == 0 }
             .firstOrNull() ?: 0
 }
 
-val aveCmp = Comparator<Fact> { o1, o2 ->
+internal val aveCmp = Comparator<Fact> { o1, o2 ->
 
     var res = o1.attr.compareTo(o2.attr)
     if (res == 0) {
@@ -63,14 +39,14 @@ val aveCmp = Comparator<Fact> { o1, o2 ->
     res
 }
 
-fun compareValues(v1: Any, v2: Any): Int {
+internal fun compareValues(v1: Any, v2: Any): Int {
     @Suppress("UNCHECKED_CAST")
     return (v1 as Comparable<Any>).compareTo(v2)
 }
 
-class Index(
+internal class Index(
         val entities: Map<Gid, RawEntity> = HashMap(),
-        private val index: List<Fact> = ArrayList()
+        val index: List<Fact> = ArrayList()
 ) {
 
     fun addFacts(facts: List<Fact>): Index =
@@ -87,6 +63,8 @@ class Index(
         val newEntities = HashMap(this.entities)
         val newIndex = ArrayList(index)
 
+        val toRemove = ArrayList<Fact>()
+        val toAdd = ArrayList<Fact>()
         for (e in entities) {
             val prev = if (e.second[0].attr != tombstone.name) {
                 newEntities.put(e.first, e)
@@ -94,12 +72,38 @@ class Index(
                 newEntities.remove(e.first)
             }
             if (prev != null) {
-                newIndex.removeAll(prev.second)
+                toRemove.addAll(prev.second)
             }
-            newIndex.addAll(e.second.filter { it.value is Comparable<*> })
+            toAdd.addAll(e.second.filter { it.value is Comparable<*> })
         }
+        toAdd.sortWith(aveCmp)
 
-        return Index(newEntities, newIndex.sortedWith(aveCmp))
+        val filteredIndex = ArrayList<Fact>(toAdd.size)
+        var filterIdx = 0
+        newIndex.forEach {
+            val cmp = if (filterIdx < toRemove.size) {
+                aveCmp.compare(it, toRemove[filterIdx])
+            } else {
+                // add all facts, that are greater, than last to remove fact
+                -1
+            }
+            when {
+                cmp < 0 -> filteredIndex.add(it)
+                cmp > 0 -> {
+                    filterIdx++
+                    while (filterIdx < toRemove.size && aveCmp.compare(it, toRemove[filterIdx]) >= 0) {
+                        filterIdx++
+                    }
+                    if (filterIdx == toRemove.size && aveCmp.compare(it, toRemove[filterIdx - 1]) != 0) {
+                        filteredIndex.add(it)
+                    }
+                }
+                cmp == 0 -> {
+                    // fiter out
+                }
+            }
+        }
+        return Index(newEntities, merge(filteredIndex, toAdd, aveCmp))
     }
 
     fun add(e: RawEntity): Index {

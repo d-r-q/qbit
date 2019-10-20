@@ -1,8 +1,8 @@
 package qbit
 
-import qbit.mapping.attrName
-import qbit.mapping.destruct
-import qbit.mapping.schema
+import qbit.typing.attrName
+import qbit.typing.destruct
+import qbit.typing.schema
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.platform.BigDecimal
@@ -10,9 +10,9 @@ import qbit.platform.Instant
 import qbit.platform.ZonedDateTime
 import qbit.storage.MemStorage
 import qbit.storage.Storage
-import qbit.trx.Conn
-import qbit.trx.EmptyIterator
-import qbit.trx.qbit
+import qbit.db.Conn
+import qbit.collections.EmptyIterator
+import qbit.db.qbit
 
 data class IntEntity(val id: Long?, val int: Int)
 

@@ -1,4 +1,4 @@
-package qbit.mapping
+package qbit.typing
 
 import qbit.*
 import qbit.model.AttachedEntity

@@ -10,9 +10,7 @@ class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (this::class != other?.let { it::class }) return false
-
-        other as Gid
+        if (!(other is Gid)) return false
 
         if (iid != other.iid) return false
         if (eid != other.eid) return false

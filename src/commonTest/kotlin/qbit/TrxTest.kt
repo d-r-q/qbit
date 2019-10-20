@@ -2,14 +2,16 @@ package qbit
 
 import qbit.Scientists.extId
 import qbit.Scientists.name
-import qbit.mapping.gid
+import qbit.db.Instance
+import qbit.typing.gid
 import qbit.model.Gid
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
-import qbit.trx.Instance
-import qbit.trx.QbitTrx2
-import qbit.trx.qbit
+import qbit.trx.QTrx
+import qbit.db.qbit
+import qbit.index.attrIs
+import qbit.index.pullT
 import kotlin.test.*
 
 
@@ -50,7 +52,7 @@ class TrxTest {
     fun `Qbit should ignore persistence of not changed entity`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
                 Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
                 extId), conn)
@@ -64,7 +66,7 @@ class TrxTest {
     fun `When entity graph to store contains both updated and stored entities, only updated entity should be actually stored`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
                 Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
                 Countries.name, Countries.population,
@@ -82,7 +84,7 @@ class TrxTest {
     fun `When entity graph to store contains both new and stored entities, only updated entity should be actually stored`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QbitTrx2(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
                 Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
                 Countries.name, Countries.population,

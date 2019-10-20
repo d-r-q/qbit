@@ -1,11 +1,11 @@
 package qbit
 
-import qbit.trx.InternalConn
-import qbit.trx.Trx
-import qbit.trx.TrxLog
-import qbit.trx.WriteResult
+import qbit.db.Conn
+import qbit.db.DbUuid
+import qbit.index.Db
+import qbit.trx.*
 
-internal class FakeConn : InternalConn {
+internal class FakeConn : Conn, CommitHandler {
 
     var updatesCalls = 0
 
@@ -31,7 +31,7 @@ internal class FakeConn : InternalConn {
     override val head: Hash
         get() = TODO("not implemented")
 
-    override fun update(trxLog: TrxLog, newLog: TrxLog) {
+    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: Db) {
         updatesCalls++
     }
 
