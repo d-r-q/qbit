@@ -1,6 +1,5 @@
 package qbit.model
 
-import qbit.QBitException
 import kotlin.reflect.KProperty1
 
 class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {

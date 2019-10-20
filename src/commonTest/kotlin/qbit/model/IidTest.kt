@@ -1,6 +1,5 @@
 package qbit.model
 
-import qbit.QBitException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

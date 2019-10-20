@@ -1,7 +1,10 @@
 package qbit
 
 import qbit.Scientists.extId
-import qbit.model.*
+import qbit.model.Fact
+import qbit.model.Gid
+import qbit.model.QBitException
+import qbit.model.firstInstanceEid
 import qbit.trx.validate
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

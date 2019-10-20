@@ -1,6 +1,6 @@
 package qbit.collections
 
-import qbit.util.assert
+import qbit.model.impl.assert
 
 fun <E> arrayList(size: Int, init: (Int) -> E): ArrayList<E> {
     val res = ArrayList<E>(size)
@@ -43,8 +43,8 @@ fun <E : Any> merge(arr: ArrayList<E>, el: E, cmp: Comparator<E>): ArrayList<E> 
         merge(arr, arrayListOf(el), cmp)
 
 fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>): ArrayList<E> {
-//    qbit.util.assert { sorted(arr1, cmp) }
-//    qbit.util.assert { sorted(arr2, cmp) }
+    assert { sorted(arr1, cmp) }
+    assert { sorted(arr2, cmp) }
     val extended = ArrayList<E>(arr1.size + arr2.size)
     val (larger, smaller) = if (arr1.size > arr2.size) Pair(arr1, arr2) else Pair(arr2, arr1)
     var fromIdx = 0
@@ -72,7 +72,7 @@ fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>):
     }
     extended.addAll(larger.subList(fromIdx))
     check(extended.size == arr1.size + arr2.size)
-    //qbit.util.assert { sorted(extended, cmp) }
+    assert { sorted(extended, cmp) }
     return extended
 }
 

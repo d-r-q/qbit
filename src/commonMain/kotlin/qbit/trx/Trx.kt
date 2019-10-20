@@ -1,13 +1,9 @@
 package qbit.trx
 
-import qbit.QBitException
 import qbit.collections.EmptyIterator
-import qbit.system.Instance
 import qbit.factorization.destruct
-import qbit.model.gid
-import qbit.model.Eav
-import qbit.model.Gid
-import qbit.model.toFacts
+import qbit.index.Db
+import qbit.model.*
 
 
 interface Trx {

@@ -2,7 +2,6 @@
 
 package qbit.model
 
-import qbit.QBitException
 import qbit.model.tombstone as tsAttr
 
 interface AttrValue<A : Attr<T>, T : Any> {

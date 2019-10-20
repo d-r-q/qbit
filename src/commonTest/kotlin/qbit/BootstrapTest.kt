@@ -1,21 +1,13 @@
 package qbit
 
-import qbit.system.Instance
-import qbit.model.Attr
-import qbit.model.Iid
-import qbit.ns.Namespace
-import qbit.storage.MemStorage
-import qbit.system.DbUuid
-import qbit.db.bootstrap
-import qbit.db.qbit
-import qbit.query.attrIs
 import qbit.index.queryT
-import qbit.model.tombstone
+import qbit.model.*
+import qbit.query.attrIs
+import qbit.storage.MemStorage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 
 
 class BootstrapTest {

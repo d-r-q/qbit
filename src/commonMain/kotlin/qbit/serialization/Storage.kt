@@ -1,7 +1,8 @@
 package qbit.storage
 
-import qbit.ns.Key
-import qbit.ns.Namespace
+import qbit.model.Key
+import qbit.model.Namespace
+import qbit.model.root
 
 interface Storage {
 
@@ -28,5 +29,5 @@ internal fun copyStorage(from: Storage, to: Storage) {
             copyNs(it)
         }
     }
-    copyNs(qbit.ns.root)
+    copyNs(root)
 }

@@ -1,14 +1,10 @@
 package qbit.typing
 
 import qbit.*
+import qbit.model.*
 import qbit.query.EagerQuery
-import qbit.model.AttachedEntity
-import qbit.model.Attr
-import qbit.model.Gid
-import qbit.model.StoredEntity
 import qbit.query.GraphQuery
 import kotlin.test.*
-import qbit.Scientist as Scientist
 
 
 class TypingTest {

@@ -1,8 +1,8 @@
 package qbit.serialization
 
-import qbit.util.Hash
+import qbit.model.DbUuid
 import qbit.model.Eav
-import qbit.system.DbUuid
+import qbit.model.Hash
 
 class NodeData(val trxes: Array<out Eav>)
 

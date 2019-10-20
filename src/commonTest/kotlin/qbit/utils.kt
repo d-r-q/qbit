@@ -1,16 +1,16 @@
 package qbit
 
-import qbit.index.*
 import qbit.factorization.destruct
+import qbit.factorization.types
+import qbit.index.Db
+import qbit.index.Index
+import qbit.index.IndexDb
 import qbit.model.*
 import qbit.platform.*
-import qbit.serialization.Node
-import qbit.serialization.NodeVal
-import qbit.factorization.types
 import qbit.query.Fetch
 import qbit.query.QueryPred
-import qbit.trx.Db
-import qbit.util.Hash
+import qbit.serialization.Node
+import qbit.serialization.NodeVal
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals

@@ -6,9 +6,8 @@ import kotlinx.io.charsets.encode
 import kotlinx.io.core.*
 import qbit.model.*
 import qbit.platform.*
-import qbit.system.DbUuid
-import qbit.util.Hash
-import qbit.util.nullHash
+import qbit.model.Hash
+import qbit.model.nullHash
 
 object SimpleSerialization : Serialization {
 

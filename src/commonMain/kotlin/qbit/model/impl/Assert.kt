@@ -1,4 +1,4 @@
-package qbit.util
+package qbit.model.impl
 
 import qbit.platform.assert as assertImpl
 

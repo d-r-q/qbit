@@ -1,9 +1,9 @@
-package qbit.trx
+package qbit.index
 
+import qbit.model.*
 import qbit.query.Fetch
 import qbit.query.Lazy
 import qbit.query.QueryPred
-import qbit.model.*
 import kotlin.reflect.KClass
 
 interface Db {

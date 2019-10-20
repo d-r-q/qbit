@@ -1,15 +1,14 @@
 package qbit.index
 
-import qbit.Attrs.list
-import qbit.Attrs.name
-import qbit.Attrs.type
-import qbit.Attrs.unique
-import qbit.typing.Typing
 import qbit.model.*
+import qbit.model.Attrs.list
+import qbit.model.Attrs.name
+import qbit.model.Attrs.type
+import qbit.model.Attrs.unique
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import qbit.query.*
-import qbit.trx.Db
+import qbit.typing.Typing
 import kotlin.reflect.KClass
 
 inline fun <reified R : Any> Db.pullT(eid: Gid): R? {

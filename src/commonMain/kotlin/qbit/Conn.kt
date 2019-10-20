@@ -1,24 +1,17 @@
-package qbit.db
+package qbit
 
-import qbit.*
-import qbit.collections.EmptyIterator
-import qbit.trx.Db
+import qbit.index.Db
 import qbit.index.Indexer
 import qbit.index.pullT
-import qbit.factorization.destruct
-import qbit.model.Gid
-import qbit.model.Iid
-import qbit.model.toFacts
-import qbit.model.tombstone
-import qbit.ns.Namespace
-import qbit.platform.currentTimeMillis
-import qbit.serialization.*
+import qbit.model.*
+import qbit.model.Namespace
+import qbit.serialization.Node
+import qbit.serialization.NodeRef
+import qbit.serialization.NodeVal
 import qbit.serialization.NodesStorage
 import qbit.storage.Storage
-import qbit.system.DbUuid
-import qbit.system.Instance
 import qbit.trx.*
-import qbit.util.Hash
+import qbit.model.Hash
 
 fun qbit(storage: Storage): Conn {
     val iid = Iid(1, 4)
@@ -48,13 +41,6 @@ interface Conn {
 
     val head: Hash
 
-}
-
-fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Hash> = { n ->
-    when (n) {
-        is NodeVal<Hash> -> n
-        is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
-    }
 }
 
 internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : Conn, CommitHandler {
@@ -99,14 +85,10 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
 
 }
 
-internal fun bootstrap(storage: Storage, dbUuid: DbUuid): Conn {
-    val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
-            .flatMap { it.toFacts() }
-            .plus(destruct(Instance(Gid(Iid(1, 4), theInstanceEid), 1, 0, firstInstanceEid), bootstrapSchema::get, EmptyIterator))
-
-    val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
-    val storedRoot = NodesStorage(storage).store(root)
-    storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
-    return QConn(dbUuid, storage, storedRoot)
+private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Hash> = { n ->
+    when (n) {
+        is NodeVal<Hash> -> n
+        is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
+    }
 }
 

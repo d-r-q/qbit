@@ -1,7 +1,6 @@
 package qbit.typing
 
-import qbit.QBitException
-import qbit.factorization.*
+import qbit.factorization.valueTypes
 import qbit.model.*
 import qbit.query.Query
 import qbit.reflection.findPrimaryConstructor

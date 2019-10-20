@@ -1,8 +1,6 @@
 package qbit
 
 import qbit.Scientists.extId
-import qbit.system.DbUuid
-import qbit.index.Indexer
 import qbit.index.*
 import qbit.model.*
 import qbit.platform.currentTimeMillis
@@ -11,9 +9,6 @@ import qbit.query.AttrValuePred
 import qbit.query.attrIn
 import qbit.query.attrIs
 import qbit.serialization.*
-import qbit.util.Hash
-import qbit.util.hash
-import qbit.util.nullHash
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

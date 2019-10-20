@@ -1,8 +1,8 @@
 package qbit.index
 
-import qbit.util.Hash
-import qbit.QBitException
+import qbit.model.QBitException
 import qbit.serialization.*
+import qbit.model.Hash
 
 internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
 
@@ -34,29 +34,5 @@ internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, 
         }
     }
 
-/*
-    private fun loadFacts(head: NodeVal<Hash>): List<RawEntity> {
-        val entities = HashMap<Gid, List<Fact>>()
-        val tombstones = HashSet<Gid>()
-        var n: NodeVal<Hash>? = head
-        while (n != null && n.hash != baseHash) {
-            val (removed, toAdd) = n.data.trx.partition { it.attr == tombstone.name }
-            tombstones += removed.map { it.eid }.toSet()
-            toAdd
-                    .filterNot { tombstones.contains(it.eid) || entities.containsKey(it.eid) }
-                    .groupBy { it.eid }
-                    .forEach {
-                        entities[it.key] = it.value
-                    }
-            n = when (n) {
-                is Root -> null
-                is Leaf -> resolveNode(n.parent)
-                is Merge -> resolveNode(n.parent1)
-            }
-        }
-        return entities.entries
-                .map { it.key to it.value }
-    }
-*/
 }
 

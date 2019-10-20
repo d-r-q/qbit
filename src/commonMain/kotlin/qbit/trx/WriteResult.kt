@@ -1,5 +1,7 @@
 package qbit.trx
 
+import qbit.index.Db
+
 interface WriteResult<R> {
 
     val persisted: R

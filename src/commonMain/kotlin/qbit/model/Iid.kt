@@ -1,7 +1,5 @@
 package qbit.model
 
-import qbit.QBitException
-
 data class Iid(val value: Int, val instanceBits: Byte) {
 
     fun fork(forkNum: Int): Iid {

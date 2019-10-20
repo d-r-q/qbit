@@ -1,7 +1,8 @@
 package qbit
 
+import qbit.collections.EmptyIterator
+import qbit.factorization.attrName
 import qbit.factorization.destruct
-import qbit.typing.schema
 import qbit.model.Attr
 import qbit.model.Gid
 import qbit.platform.BigDecimal
@@ -9,10 +10,7 @@ import qbit.platform.Instant
 import qbit.platform.ZonedDateTime
 import qbit.storage.MemStorage
 import qbit.storage.Storage
-import qbit.db.Conn
-import qbit.collections.EmptyIterator
-import qbit.db.qbit
-import qbit.factorization.attrName
+import qbit.typing.schema
 
 data class IntEntity(val id: Long?, val int: Int)
 

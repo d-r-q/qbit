@@ -1,4 +1,4 @@
-package qbit.ns
+package qbit.model
 
 val root = Namespace(null, "")
 

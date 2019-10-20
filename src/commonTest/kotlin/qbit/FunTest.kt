@@ -1,17 +1,15 @@
 package qbit
 
-import qbit.system.Instance
-import qbit.model.gid
-import qbit.model.Gid
-import qbit.reflection.tombstone
-import qbit.storage.MemStorage
-import qbit.serialization.NodesStorage
-import qbit.db.qbit
-import qbit.index.*
+import qbit.index.pullT
+import qbit.index.queryT
+import qbit.model.*
 import qbit.query.Eager
 import qbit.query.attrIs
 import qbit.query.hasAttr
+import qbit.reflection.tombstone
 import qbit.serialization.NodeRef
+import qbit.serialization.NodesStorage
+import qbit.storage.MemStorage
 import kotlin.test.*
 
 

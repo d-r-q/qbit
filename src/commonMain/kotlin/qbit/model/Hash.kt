@@ -1,4 +1,4 @@
-package qbit.util
+package qbit.model
 
 import qbit.platform.MessageDigests
 import qbit.platform.toHexString

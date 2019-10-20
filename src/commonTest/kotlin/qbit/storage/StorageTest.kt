@@ -1,8 +1,8 @@
 package qbit
 
-import qbit.ns.Namespace
-import qbit.ns.ns
-import qbit.ns.root
+import qbit.model.Namespace
+import qbit.model.ns
+import qbit.model.root
 import qbit.storage.MemStorage
 import qbit.storage.Storage
 import qbit.storage.copyStorage
