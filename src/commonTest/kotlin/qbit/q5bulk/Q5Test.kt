@@ -50,6 +50,7 @@ object Cats {
 
 class Q5Test {
 
+    @Ignore
     @Test
     fun test() {
         val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")
