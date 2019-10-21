@@ -6,7 +6,7 @@ import qbit.ns.Namespace
 import qbit.platform.ConcurrentHashMap
 import qbit.platform.asSequence
 import qbit.platform.getOrPut
-import qbit.serialization.Storage
+import qbit.spi.Storage
 
 class MemStorage : Storage {
 

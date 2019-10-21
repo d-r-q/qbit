@@ -4,8 +4,7 @@ import qbit.assertArrayEquals
 import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
-import qbit.serialization.Storage
-import qbit.serialization.copyStorage
+import qbit.spi.Storage
 import qbit.setupTestSchema
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,7 +40,7 @@ abstract class StorageTest {
 
         // actually it compiles
         val storage = storage()
-        copyStorage(origin, storage)
+        cloneStorage(origin, storage)
         assertEquals(origin.subNamespaces(testNs.parent!!), storage.subNamespaces(testNs.parent!!))
         assertEquals(storage.subNamespaces(root).sortedBy { it.name }, listOf(ns("nodes"), ns("refs")).sortedBy { it.name })
     }

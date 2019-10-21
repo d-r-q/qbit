@@ -15,7 +15,7 @@ import qbit.platform.currentTimeMillis
 import qbit.serialization.NodeData
 import qbit.serialization.NodesStorage
 import qbit.serialization.Root
-import qbit.serialization.Storage
+import qbit.spi.Storage
 
 
 internal val bootstrapSchema: Map<String, Attr<Any>> = mapOf(

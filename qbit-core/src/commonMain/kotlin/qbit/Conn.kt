@@ -17,7 +17,7 @@ import qbit.serialization.Node
 import qbit.serialization.NodeRef
 import qbit.serialization.NodeVal
 import qbit.serialization.NodesStorage
-import qbit.serialization.Storage
+import qbit.spi.Storage
 import qbit.trx.CommitHandler
 import qbit.trx.QTrx
 import qbit.trx.QTrxLog

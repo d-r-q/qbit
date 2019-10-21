@@ -11,7 +11,7 @@ import qbit.platform.BigDecimal
 import qbit.platform.Instant
 import qbit.platform.ZonedDateTime
 import qbit.storage.MemStorage
-import qbit.serialization.Storage
+import qbit.spi.Storage
 import qbit.schema.schema
 
 data class IntEntity(val id: Long?, val int: Int)

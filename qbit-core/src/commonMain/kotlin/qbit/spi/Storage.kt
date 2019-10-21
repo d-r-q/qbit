@@ -1,4 +1,4 @@
-package qbit.serialization
+package qbit.spi
 
 import qbit.ns.Key
 import qbit.ns.Namespace
