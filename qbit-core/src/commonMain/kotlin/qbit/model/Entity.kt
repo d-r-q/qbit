@@ -16,7 +16,7 @@ fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, resolveGid: (G
     return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v) }.toMap(), resolveGid)
 }
 
-internal sealed class QRoEntity(override val gid: Gid) : Entity {
+internal sealed class QRoEntity(override val gid: Gid) : Entity() {
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = keys.map {
@@ -44,7 +44,7 @@ internal class QTombstone(override val gid: Gid) : Tombstone() {
 
 }
 
-internal sealed class QEntity(eid: Gid) : QRoEntity(eid), Entity
+internal sealed class QEntity(eid: Gid) : QRoEntity(eid)
 
 internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid) {
 
@@ -75,9 +75,12 @@ internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid)
 
 }
 
-internal class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : QEntity(gid), StoredEntity {
+internal class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : StoredEntity() {
 
     private val delegate = MapEntity(gid, map)
+
+    override val entries: Set<AttrValue<Attr<Any>, Any>>
+        get() = delegate.entries
 
     override val keys: Set<Attr<Any>>
         get() = delegate.keys
@@ -92,7 +95,7 @@ internal class QStoredEntity(gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid:
 
 }
 
-private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, Any>) : Entity {
+private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, Any>) : Entity() {
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = map.entries.map { it.key eq it.value }.toSet()
