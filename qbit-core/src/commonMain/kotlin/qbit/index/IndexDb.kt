@@ -1,6 +1,5 @@
 package qbit.index
 
-import qbit.AttachedEntity
 import qbit.api.Attrs.list
 import qbit.api.Attrs.name
 import qbit.api.Attrs.type

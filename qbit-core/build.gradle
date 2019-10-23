@@ -1,0 +1,59 @@
+plugins {
+    id 'kotlin-multiplatform'
+}
+
+pitest {
+    targetClasses = ['qbit.*']  //by default "${project.group}.*"
+    threads = 12
+    outputFormats = ['HTML']
+    timestampedReports = false
+    mutators  = ['ALL']
+}
+
+test {
+    jvmArgs '-ea'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = '1.6'
+            }
+        }
+    }
+
+    sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+        }
+        commonMain {
+            dependencies {
+                implementation kotlin("stdlib")
+                implementation kotlin("reflect")
+                implementation "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-common'
+                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+            }
+        }
+        jvmMain {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+                implementation "org.jetbrains.kotlinx:kotlinx-io-jvm:$kotlinIoVersion"
+            }
+        }
+        jvmTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+            }
+        }
+    }
+}
