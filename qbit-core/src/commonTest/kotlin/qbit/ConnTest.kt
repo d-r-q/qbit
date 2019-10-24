@@ -1,17 +1,15 @@
 package qbit
 
-import qbit.api.model.Eav
 import qbit.api.gid.Gid
-import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
+import qbit.api.model.Eav
+import qbit.api.system.DbUuid
 import qbit.ns.Namespace
-import qbit.platform.Files
 import qbit.platform.currentTimeMillis
 import qbit.serialization.Leaf
 import qbit.serialization.NodeData
 import qbit.serialization.NodesStorage
 import qbit.serialization.Root
-import qbit.storage.FileSystemStorage
 import qbit.storage.MemStorage
 import kotlin.test.Test
 
@@ -40,8 +38,7 @@ class ConnTest {
 
     @Test
     fun `Transaction committing should update connection's head`() {
-        val root = Files.createTempDirectory("qbit").toFile()
-        val storage = FileSystemStorage(root)
+        val storage = MemStorage()
 
         val conn = setupTestSchema(storage)
         conn.persist(IntEntity(0, 1))

@@ -8,8 +8,8 @@ import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.api.db.attrIn
 import qbit.api.db.attrIs
-import qbit.storage.FileSystemStorage
 import qbit.schema.schema
+import qbit.storage.MemStorage
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertNotNull
@@ -59,13 +59,8 @@ class Q5Test {
             return
         }
         val dataFiles = dataDir.listFiles()
-        val dbDir = File("/home/azhidkov/tmp/q5-db")
-        if (dbDir.exists()) {
-            dbDir.deleteRecursively()
-            dbDir.mkdir()
-        }
 
-        val conn = qbit(FileSystemStorage(dbDir))
+        val conn = qbit(MemStorage())
 
         q5Schema.forEach { conn.persist(it) }
         val categories = HashMap<String, Category>()
