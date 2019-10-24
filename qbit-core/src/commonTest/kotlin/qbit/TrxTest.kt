@@ -4,11 +4,13 @@ import qbit.Scientists.extId
 import qbit.Scientists.name
 import qbit.api.*
 import qbit.api.db.attrIs
+import qbit.api.db.pull
+import qbit.api.db.query
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.model.gid
+import qbit.api.model.Attr
+import qbit.model.impl.gid
 import qbit.api.system.Instance
-import qbit.index.pullT
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
@@ -24,7 +26,7 @@ class TrxTest {
         val trx = conn.trx()
         trx.persist(eCodd.copy(name = "Not A Codd"))
         trx.commit()
-        assertEquals("Not A Codd", conn.db().pullT<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Not A Codd", conn.db().pull<Scientist>(eCodd.gid!!)!!.name)
     }
 
     @Test
@@ -44,8 +46,8 @@ class TrxTest {
             // expected
         }
         conn.db {
-            assertNotNull(it.query(attrIs(Attrs.name, extId.name)).firstOrNull())
-            assertNull(it.query(attrIs(Attrs.name, name.name)).firstOrNull())
+            assertNotNull(it.query<Attr<Any>>(attrIs(Attrs.name, extId.name)).firstOrNull())
+            assertNull(it.query<Attr<Any>>(attrIs(Attrs.name, name.name)).firstOrNull())
         }
     }
 
@@ -122,9 +124,9 @@ class TrxTest {
         val conn = setupTestData()
         val trx = conn.trx()
         trx.persist(eCodd.copy(name = "Not A Codd"))
-        assertEquals("Not A Codd", trx.db().pullT<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Not A Codd", trx.db().pull<Scientist>(eCodd.gid!!)!!.name)
         trx.rollback()
-        assertEquals("Edgar Codd", trx.db().pullT<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Edgar Codd", trx.db().pull<Scientist>(eCodd.gid!!)!!.name)
     }
 
     @Test

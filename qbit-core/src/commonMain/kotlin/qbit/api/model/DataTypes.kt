@@ -148,7 +148,7 @@ object QBytes : DataType<ByteArray>() {
 
 }
 
-object QRef : DataType<Entity>() {
+object QRef : DataType<Any>() {
 
     override val code = 18.toByte()
 

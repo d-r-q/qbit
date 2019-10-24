@@ -4,8 +4,8 @@ import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
 import qbit.qbit
-import qbit.serialization.Storage
-import qbit.serialization.copyStorage
+import qbit.spi.Storage
+import qbit.spi.copyStorage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

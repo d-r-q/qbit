@@ -1,12 +1,12 @@
 package qbit.trx
 
 import qbit.api.QBitException
-import qbit.api.db.Db
 import qbit.api.db.attrIs
 import qbit.api.model.Attr
 import qbit.api.model.Eav
+import qbit.index.InternalDb
 
-fun validate(db: Db, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
+internal fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.name }
     val factAttrs = facts.map { it.attr to (db.attr(it.attr) ?: newAttrsByName[it.attr]) }.toMap()
 

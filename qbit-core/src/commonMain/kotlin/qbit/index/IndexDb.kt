@@ -4,7 +4,6 @@ import qbit.api.Attrs.list
 import qbit.api.Attrs.name
 import qbit.api.Attrs.type
 import qbit.api.Attrs.unique
-import qbit.api.db.Db
 import qbit.api.db.Eager
 import qbit.api.db.Fetch
 import qbit.api.db.Lazy
@@ -13,9 +12,9 @@ import qbit.api.db.hasAttr
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.Eav
-import qbit.api.model.Entity
-import qbit.api.model.StoredEntity
-import qbit.model.AttachedEntity
+import qbit.model.Entity
+import qbit.model.StoredEntity
+import qbit.model.impl.AttachedEntity
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import qbit.query.EagerQuery
@@ -23,32 +22,21 @@ import qbit.query.GraphQuery
 import qbit.typing.Typing
 import kotlin.reflect.KClass
 
-inline fun <reified R : Any> Db.pullT(eid: Gid): R? {
-    return this.pull(eid, R::class)
-}
-
-inline fun <reified R : Any> Db.pullT(eid: Long): R? {
-    return this.pull(Gid(eid), R::class)
-}
-
-inline fun <reified R : Any> Db.queryT(vararg preds: QueryPred, fetch: Fetch = Lazy): Sequence<R> =
-        this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }
-
-internal class IndexDb(internal val index: Index) : Db() {
+internal class IndexDb(internal val index: Index) : InternalDb() {
 
     private val schema = loadAttrs(index)
 
-    private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this::pull)
+    private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this::pullEntity)
 
     private val entityCache = WeakHashMap<Gid, StoredEntity>()
 
     private val dcCache = WeakHashMap<Entity, Any>()
 
-    override fun with(facts: Iterable<Eav>): Db {
+    override fun with(facts: Iterable<Eav>): InternalDb {
         return IndexDb(index.addFacts(facts))
     }
 
-    override fun pull(gid: Gid): StoredEntity? {
+    override fun pullEntity(gid: Gid): StoredEntity? {
         val cached = entityCache[gid]
         if (cached === notFound) {
             return null
@@ -67,13 +55,13 @@ internal class IndexDb(internal val index: Index) : Db() {
             require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
             attr to if (attr.list) it.value else it.value[0]
         }
-        val entity = AttachedEntity(gid, attrValues, this::pull)
+        val entity = AttachedEntity(gid, attrValues, this::pullEntity)
         entityCache[gid] = entity
         return entity
     }
 
     override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
-        val entity = pull(gid) ?: return null
+        val entity = pullEntity(gid) ?: return null
         val cached = dcCache[entity]
         if (cached === notFound) {
             return null
@@ -94,7 +82,7 @@ internal class IndexDb(internal val index: Index) : Db() {
     }
 
     override fun query(vararg preds: QueryPred): Sequence<Entity> {
-        return queryGids(*preds).map { pull(it)!! }
+        return queryGids(*preds).map { pullEntity(it)!! }
     }
 
     override fun queryGids(vararg preds: QueryPred): Sequence<Gid> {

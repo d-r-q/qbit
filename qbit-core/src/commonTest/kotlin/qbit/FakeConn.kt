@@ -8,6 +8,7 @@ import qbit.api.model.Hash
 import qbit.trx.CommitHandler
 import qbit.trx.TrxLog
 import qbit.api.db.WriteResult
+import qbit.index.InternalDb
 
 internal class FakeConn : Conn(), CommitHandler {
 
@@ -35,7 +36,7 @@ internal class FakeConn : Conn(), CommitHandler {
     override val head: Hash
         get() = TODO("not implemented")
 
-    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: Db) {
+    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
         updatesCalls++
     }
 

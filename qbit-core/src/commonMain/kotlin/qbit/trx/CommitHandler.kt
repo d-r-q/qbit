@@ -1,10 +1,10 @@
 package qbit.trx
 
-import qbit.api.db.Db
+import qbit.index.InternalDb
 
 
 internal interface CommitHandler {
 
-    fun update(trxLog: TrxLog, newLog: TrxLog, newDb: Db)
+    fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb)
 
 }

@@ -4,11 +4,12 @@ import qbit.api.*
 import qbit.api.db.Eager
 import qbit.api.db.attrIs
 import qbit.api.db.hasAttr
+import qbit.api.db.pull
+import qbit.api.db.query
 import qbit.api.gid.Gid
-import qbit.model.gid
+import qbit.model.impl.gid
 import qbit.api.system.Instance
-import qbit.index.pullT
-import qbit.index.queryT
+import qbit.index.InternalDb
 import qbit.serialization.NodeRef
 import qbit.serialization.NodesStorage
 import qbit.storage.MemStorage
@@ -22,7 +23,7 @@ class FunTest {
         val conn = setupTestData()
         conn.persist(eCodd.copy(name = "Im updated"))
         conn.db {
-            assertEquals("Im updated", it.pullT<Scientist>(eCodd.id!!)!!.name)
+            assertEquals("Im updated", it.pull<Scientist>(eCodd.id!!)!!.name)
         }
     }
 
@@ -40,22 +41,22 @@ class FunTest {
     @Test
     fun testDelete() {
         val conn = setupTestData()
-        var eCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
+        var eCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
         val newExtId = eCodd.externalId shl 10
         eCodd = eCodd.copy(externalId = newExtId)
         conn.persist(eCodd)
 
-        val pulledECodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
+        val pulledECodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
         assertEquals(newExtId, pulledECodd.externalId)
 
         val ts = pulledECodd.tombstone
         val (stored) = conn.persist(ts)
         assertSame(ts, stored)
 
-        val deletedPulledE2 = conn.db().pull(eCodd.gid!!)
+        val deletedPulledE2 = conn.db().pull<Scientist>(eCodd.gid!!)
         assertNull(deletedPulledE2)
-        assertEquals(0, conn.db().query(attrIs(Scientists.extId, eCodd.externalId)).count())
-        assertEquals(0, conn.db().query(attrIs(Scientists.extId, newExtId)).count())
+        assertEquals(0, conn.db().query<Scientist>(attrIs(Scientists.extId, eCodd.externalId)).count())
+        assertEquals(0, conn.db().query<Scientist>(attrIs(Scientists.extId, newExtId)).count())
     }
 
     @Test
@@ -66,7 +67,7 @@ class FunTest {
         var aErshov = Scientist(null, 0, "Andrey Ershov", listOf("Kompilatorshik"), su)
 
         conn.persist(aErshov)
-        aErshov = conn.db().queryT<Scientist>(attrIs(Scientists.extId, 0)).first()
+        aErshov = conn.db().query<Scientist>(attrIs(Scientists.extId, 0)).first()
         su = aErshov.country
         assertNotNull(su.id)
         assertEquals("USSR", su.name)
@@ -75,7 +76,7 @@ class FunTest {
     @Test
     fun `Test pulling of referenced entity()`() {
         val conn = setupTestData()
-        assertEquals("Russia", conn.db().pullT<Region>(nsk.gid!!)!!.country.name)
+        assertEquals("Russia", conn.db().pull<Region>(nsk.gid!!)!!.country.name)
     }
 
     @Test
@@ -88,7 +89,7 @@ class FunTest {
 
         conn.persist(pChenReviewed)
 
-        val pc = conn.db().queryT<Scientist>(attrIs(Scientists.extId, pChen.externalId), fetch = Eager).first()
+        val pc = conn.db().query<Scientist>(attrIs(Scientists.extId, pChen.externalId), fetch = Eager).first()
 
         assertEquals("Peter Chen", pc.name)
         assertEquals("Michael Stonebreaker", pc.reviewer?.name)
@@ -117,7 +118,7 @@ class FunTest {
     fun `Test updating entity with unique attribute (it shouldn't treated as unique constraint violation)`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(name = "Not A Codd"))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
         assertEquals(1, updatedCodd.externalId)
         assertEquals("Not A Codd", updatedCodd.name)
     }
@@ -126,7 +127,7 @@ class FunTest {
     fun `Test persistence entity with scalar list attribute`() {
         val conn = setupTestData()
         conn.persist(Scientist(null, 5, "Name", listOf("nick1", "nick2"), ru))
-        val user = conn.db().queryT<Scientist>(attrIs(Scientists.extId, 5)).first()
+        val user = conn.db().query<Scientist>(attrIs(Scientists.extId, 5)).first()
         assertEquals(listOf("nick1", "nick2"), user.nicks)
     }
 
@@ -134,7 +135,7 @@ class FunTest {
     fun `Test persistence entity with ref list attribute`() {
         val conn = setupTestData()
         conn.persist(ResearchGroup(null, listOf(eCodd, pChen)))
-        val rg = conn.db().queryT<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
+        val rg = conn.db().query<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
         assertEquals(listOf(eCodd, pChen), rg.members)
     }
 
@@ -142,7 +143,7 @@ class FunTest {
     fun `Test deletion of scalar list element`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = eCodd.nicks.drop(1)))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
         assertEquals(listOf("tabulator"), updatedCodd.nicks)
     }
 
@@ -150,9 +151,9 @@ class FunTest {
     fun `Test reoreder of ref list elements`() {
         val conn = setupTestData()
         conn.persist(ResearchGroup(null, listOf(eCodd, pChen)))
-        val researchGroup = conn.db().queryT<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
+        val researchGroup = conn.db().query<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
         conn.persist(researchGroup.copy(members = researchGroup.members.reversed()))
-        val updatedRG = conn.db().queryT<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
+        val updatedRG = conn.db().query<ResearchGroup>(hasAttr(ResearchGroups.members)).first()
         assertEquals(listOf(pChen, eCodd), updatedRG.members)
     }
 
@@ -161,7 +162,7 @@ class FunTest {
     fun `Test scalar list clearing`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = emptyList()))
-        val updatedCodd = conn.db().pullT<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
         assertEquals(emptyList(), updatedCodd.nicks)
     }
 
@@ -193,7 +194,7 @@ class FunTest {
     fun `Storage of entity with empty list should preserve list`() {
         val conn = setupTestData()
         conn.persist(NullableList(null, emptyList(), 0))
-        val stored = conn.db().queryT<NullableList>(attrIs(NullableLists.placeholder, 0L)).first()
+        val stored = conn.db().query<NullableList>(attrIs(NullableLists.placeholder, 0L)).first()
         assertEquals(emptyList(), stored.lst)
     }
 
@@ -213,8 +214,8 @@ class FunTest {
         val conn = setupTestSchema()
         val (stored) = conn.persist(NullableScalarWithoutPlaceholder(null, null))
         assertNotNull(stored)
-        assertNotNull(conn.db().pull(stored.gid!!))
-        assertNull(conn.db().pullT<NullableScalarWithoutPlaceholder>(stored.gid!!)!!.scalar)
+        assertNotNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.gid!!))
+        assertNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.gid!!)!!.scalar)
     }
 
     @Ignore
@@ -224,7 +225,7 @@ class FunTest {
         val conn = setupTestSchema()
         val (stored) = conn.persist(EntityWithoutAttrs(null))
         assertNotNull(stored)
-        assertNotNull(conn.db().pull(stored.gid!!))
+        assertNotNull(conn.db().pull<EntityWithoutAttrs>(stored.gid!!))
     }
 
     @Test
@@ -233,11 +234,11 @@ class FunTest {
         setupTestSchema(storage)
 
         val conn1 = qbit(storage)
-        assertNotNull(conn1.db().attr(Scientists.name.name))
+        assertNotNull((conn1.db() as InternalDb).attr(Scientists.name.name))
         conn1.persist(IntEntity(null, 2))
 
         val conn2 = qbit(storage)
-        assertNotNull(conn2.db().query(attrIs(IntEntities.int, 2)).firstOrNull())
+        assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
     }
 
     @Test
@@ -245,7 +246,7 @@ class FunTest {
         val conn = setupTestData()
         val bomb = createBombWithNulls()
         conn.persist(bomb)
-        val storedBomb = conn.db().queryT<Bomb>(hasAttr(Bombs.bool), fetch = Eager).firstOrNull()
+        val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).firstOrNull()
         assertNotNull(storedBomb)
         assertNull(storedBomb.optBool)
         assertNull(storedBomb.boolListOpt)
@@ -277,10 +278,10 @@ class FunTest {
     @Test
     fun `Test bomb without nulls handling`() {
         val conn = setupTestData()
-        val inst = conn.db().pullT<Instance>(theInstanceGid)!!
+        val inst = conn.db().pull<Instance>(theInstanceGid)!!
         val bomb = createBombWithoutNulls()
         conn.persist(bomb)
-        val storedBomb = conn.db().queryT<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()
+        val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()
 
         assertEquals(bomb.bool, storedBomb.bool)
         assertEquals(bomb.optBool, storedBomb.optBool)

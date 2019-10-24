@@ -4,13 +4,15 @@ import qbit.Entity
 import qbit.AttachedEntity
 import qbit.Attr
 import qbit.ListAttr
-import qbit.api.model.StoredEntity
 import qbit.api.model.Attr
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.QInt
 import qbit.api.model.QRef
 import qbit.assertArrayEquals
+import qbit.model.impl.DetachedEntity
+import qbit.model.impl.QTombstone
+import qbit.model.impl.eq
 import qbit.ns.Namespace
 import qbit.trx.toFacts
 import kotlin.test.*
