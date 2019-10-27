@@ -20,7 +20,7 @@ interface Storage {
 
 }
 
-internal fun copyStorage(from: Storage, to: Storage) {
+fun copyStorage(from: Storage, to: Storage) {
     fun copyNs(ns: Namespace) {
         from.keys(ns).forEach {
             to.add(it, from.load(it)!!)
