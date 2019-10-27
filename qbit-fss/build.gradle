@@ -2,14 +2,6 @@ plugins {
     id 'kotlin-multiplatform'
 }
 
-pitest {
-    targetClasses = ['qbit.*']  //by default "${project.group}.*"
-    threads = 12
-    outputFormats = ['HTML']
-    timestampedReports = false
-    mutators  = ['ALL']
-}
-
 test {
     jvmArgs '-ea'
     testLogging {
@@ -34,8 +26,6 @@ kotlin {
         commonMain {
             dependencies {
                 implementation kotlin("stdlib")
-                implementation kotlin("reflect")
-                implementation "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
                 implementation project(':qbit-core')
             }
         }
@@ -43,12 +33,6 @@ kotlin {
             dependencies {
                 implementation 'org.jetbrains.kotlin:kotlin-test-common'
                 implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
-            }
-        }
-        jvmMain {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-                implementation "org.jetbrains.kotlinx:kotlinx-io-jvm:$kotlinIoVersion"
             }
         }
         jvmTest {

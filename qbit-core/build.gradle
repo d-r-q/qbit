@@ -33,9 +33,9 @@ kotlin {
         }
         commonMain {
             dependencies {
-                implementation kotlin("stdlib")
-                implementation kotlin("reflect")
-                implementation "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
+                api kotlin("stdlib")
+                api kotlin("reflect")
+                api "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
             }
         }
         commonTest {
@@ -46,8 +46,8 @@ kotlin {
         }
         jvmMain {
             dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-                implementation "org.jetbrains.kotlinx:kotlinx-io-jvm:$kotlinIoVersion"
+                api 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+                api "org.jetbrains.kotlinx:kotlinx-io-jvm:$kotlinIoVersion"
             }
         }
         jvmTest {
