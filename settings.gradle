@@ -13,4 +13,5 @@ rootProject.name = 'qbit'
 include ':qbit-core', ':qbit-fss'
 
 enableFeaturePreview('GRADLE_METADATA')
+include 'qbit-http-storages'
 
