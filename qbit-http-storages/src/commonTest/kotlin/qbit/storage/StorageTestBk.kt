@@ -1,6 +1,7 @@
 package qbit
 
 import io.ktor.client.HttpClient
+import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -15,6 +16,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
+import kotlinx.serialization.UnstableDefault
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.serialization.Storage
@@ -82,29 +86,28 @@ class StorageTestBk : CoroutineScope {
         while (!job.isCompleted) {}
     }
 
+    @UnstableDefault
     @Test
-    fun yandexDiskStorageLoad(){
+    fun yandexDiskStorageLoad() = runBlocking {
         val namespace0 = Namespace("namespace0");
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key : Key = Key(namespace1, "sobaka.png");
+        val key: Key = Key(namespace1, "sobaka.png");
         val filePath = getFullPath(key);
 
-        val job = GlobalScope.launch {
-            val client = HttpClient()
-            val response = getUrlToDownload(client, filePath)
-            var index = response.indexOf("https");
-            var indexEnd = response.indexOf("\",\"method")
-            val downloadUrl = response.substring(index, indexEnd);
-            index = response.indexOf("size=");
-            indexEnd = response.indexOf("&hid");
-            val expectedSize = response.substring(index + 5, indexEnd).toInt();
-
-            val byteArray = getFile(client, downloadUrl);
-            val actualSize = byteArray.size;
-            client.close()
-            assertEquals(expectedSize, actualSize);
+        val client = HttpClient() {
+            install(JsonFeature)
         }
-        while (!job.isCompleted) {}
+        val response = getUrlToDownload(client, filePath)
+        val json = Json.indented.parseJson(response)
+        val downloadUrl = (json as JsonObject).getPrimitive("href").content
+        val index = response.indexOf("size=")
+        val indexEnd = response.indexOf("&hid")
+        val expectedSize = response.substring(index + 5, indexEnd).toInt()
+
+        val byteArray = getFile(client, downloadUrl)
+        val actualSize = byteArray.size
+        client.close()
+        assertEquals(expectedSize, actualSize)
     }
 
     @Test
@@ -129,7 +132,9 @@ class StorageTestBk : CoroutineScope {
         }
         while (job.isActive) {
         }
-        job.getCancellationException().let { throw it.cause ?: it }
+        if (job.isCancelled) {
+            job.getCancellationException().let { throw it.cause ?: it }
+        }
     }
 
 
@@ -201,7 +206,7 @@ class StorageTestBk : CoroutineScope {
         return byteArray;
     }
 
-    private suspend fun getUrlToDownload(client: HttpClient, path: String) : String{
+    private suspend fun getUrlToDownload(client: HttpClient, path: String): String {
         val response = client.get<String>(YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL) {
             parameter("path", path)
             header("Authorization", "OAuth $TEST_ACCESS_TOKEN");
