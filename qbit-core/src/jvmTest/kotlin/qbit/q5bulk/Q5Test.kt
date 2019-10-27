@@ -1,16 +1,16 @@
 package qbit.q5bulk
 
 import qbit.api.db.Conn
+import qbit.api.db.attrIn
+import qbit.api.db.attrIs
 import qbit.factorization.attrName
 import qbit.model.gid
 import qbit.platform.*
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
-import qbit.api.db.attrIn
-import qbit.api.db.attrIs
 import qbit.schema.schema
 import qbit.storage.MemStorage
-import kotlin.test.Ignore
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -50,7 +50,6 @@ object Cats {
 
 class Q5Test {
 
-    @Ignore
     @Test
     fun test() {
         val dataDir = File("/home/azhidkov/0my/Alive/qbit/q5")
