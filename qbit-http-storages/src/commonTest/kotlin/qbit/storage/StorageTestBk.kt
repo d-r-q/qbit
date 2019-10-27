@@ -1,21 +1,35 @@
 package qbit
 
 import io.ktor.client.HttpClient
-import io.ktor.client.request.*
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.response.HttpResponse
 import io.ktor.client.response.readBytes
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
 import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.serialization.Storage
 import qbit.storage.assertArrayEquals
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class StorageTestBk {
+@InternalCoroutinesApi
+class StorageTestBk : CoroutineScope {
+
+    override val coroutineContext: CoroutineContext
+        get() = EmptyCoroutineContext + DirectCoroutineDispatcher() + CoroutineExceptionHandler { _, t -> throw t }
 
     val TEST_ACCESS_TOKEN = "AgAAAAA4v_tAAADLW-MJ7N5YOU1BvQAUJ3i8_XM";
     val YANDEX_DISK_API_CREATE_FOLDER = "https://cloud-api.yandex.net:443/v1/disk/resources"
@@ -94,25 +108,30 @@ class StorageTestBk {
     }
 
     @Test
-    fun yandexDiskStorageAdd(){
+    fun yandexDiskStorageAdd() = runBlocking {
         val namespace0 = Namespace("namespace0");
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key : Key = Key(namespace1, "file1");
+        val key: Key = Key(namespace1, "file1");
         val byteArray = ByteArray(1000);
 
-
-        var job : Job = Job();
-        GlobalScope.launch {
-            val client = HttpClient()
-            val paths = generatePutResourcePaths(namespace1)
-            createFolderStructure(client, paths)
-            val fileUrlResponse = getFileUrl(client)
-            var filePutResponse = uploadFile(client, "", "")
-            client.close()
-            assertTrue(true)
-        }
-        while (!job.isCompleted) {}
+        val client = HttpClient()
+        val paths = generatePutResourcePaths(namespace1)
+        createFolderStructure(client, paths)
+        val fileUrlResponse = getFileUrl(client)
+        var filePutResponse = uploadFile(client, "", "")
+        client.close()
+        assertTrue(true)
     }
+
+    private fun runBlocking(body: suspend () -> Unit) {
+        val job = launch {
+            body()
+        }
+        while (job.isActive) {
+        }
+        job.getCancellationException().let { throw it.cause ?: it }
+    }
+
 
     private suspend fun uploadFile(client: HttpClient, fileUrl: String, filePath: String) : String{
         val response = client.post<String>(YANDEX_DISK_API_GET_FILE_URL) {
@@ -244,3 +263,11 @@ data class Resource(val public_key: String, val _embedded: ResourceList, val nam
                     val mime_type: String, val size: Int)
 
 data class ResourceList(val sort: String, val public_key: String, val items: Array<Resource>, val path: String, val limit: Int, val offset: Int, val total: Int)
+
+class DirectCoroutineDispatcher : CoroutineDispatcher() {
+
+    override fun dispatch(context: CoroutineContext, block: Runnable) {
+        block.run()
+    }
+
+}
