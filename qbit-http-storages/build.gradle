@@ -1,0 +1,58 @@
+plugins {
+    id 'kotlin-multiplatform'
+}
+
+apply plugin: "kotlinx-serialization"
+
+test {
+    jvmArgs '-ea'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = '1.6'
+            }
+        }
+    }
+
+    sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+        }
+        commonMain {
+            dependencies {
+                implementation kotlin("stdlib")
+                implementation project(':qbit-core')
+                implementation "io.ktor:ktor-client-core:$ktor_version"
+                implementation "io.ktor:ktor-client-json:$ktor_version"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core-common:1.3.2"
+                implementation "io.ktor:ktor-client-serialization:${ktor_version}"
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-common'
+                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+            }
+        }
+        jvmMain {
+            dependencies {
+                implementation "io.ktor:ktor-client-apache:$ktor_version"
+                implementation "io.ktor:ktor-client-json-jvm:$ktor_version"
+                implementation "io.ktor:ktor-client-serialization-jvm:${ktor_version}"
+            }
+        }
+        jvmTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+            }
+        }
+    }
+}

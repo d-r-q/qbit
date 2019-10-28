@@ -1,0 +1,44 @@
+plugins {
+    id 'kotlin-multiplatform'
+}
+
+test {
+    jvmArgs '-ea'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = '1.6'
+            }
+        }
+    }
+
+    sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+        }
+        commonMain {
+            dependencies {
+                implementation kotlin("stdlib")
+                implementation project(':qbit-core')
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-common'
+                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+            }
+        }
+        jvmTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+            }
+        }
+    }
+}
