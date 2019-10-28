@@ -1,23 +1,19 @@
 package qbit
 
 import io.ktor.client.HttpClient
-import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
-import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.response.HttpResponse
 import io.ktor.client.response.readBytes
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.launch
+import io.ktor.content.ByteArrayContent
+import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonObject
 import qbit.ns.Key
 import qbit.ns.Namespace
@@ -27,6 +23,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @InternalCoroutinesApi
@@ -35,55 +32,69 @@ class StorageTestBk : CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = EmptyCoroutineContext + DirectCoroutineDispatcher() + CoroutineExceptionHandler { _, t -> throw t }
 
-    val TEST_ACCESS_TOKEN = "AgAAAAA4v_tAAADLW-MJ7N5YOU1BvQAUJ3i8_XM";
+    val TEST_ACCESS_TOKEN = "AgAAAAA4v_tAAADLW-MJ7N5YOU1BvQAUJ3i8_XM"
     val YANDEX_DISK_API_CREATE_FOLDER = "https://cloud-api.yandex.net:443/v1/disk/resources"
     val YANDEX_DISK_API_GET_FILE_URL = "https://cloud-api.yandex.net/v1/disk/resources/upload"
     val YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL = "https://cloud-api.yandex.net:443/v1/disk/resources/download"
-    val FILE_URL_HARDCODED = "https://avatars.mds.yandex.net/get-pdb/216365/eb43844b-51d6-41a0-86c0-0f3c47da5b48/s375"
 
     @Test
-    fun yandexDiskStorageHasKey(){
-        val job = GlobalScope.launch {
-            val client = HttpClient()
-            val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources/files"){
-                parameter("path", "/namespace0")
+    fun yandexDiskStorageHasKey() = runBlocking {
+        val namespace0 = Namespace("namespace0");
+        val namespace1 = Namespace(namespace0, "namespace1")
+        val key: Key = Key(namespace1, "file2");
+        var fullPath = getFullPath(key)
+
+        val client = HttpClient()
+        try {
+            val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources") {
+                parameter("path", fullPath)
                 header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
             }
+            assertTrue(true)
             client.close()
-            assertTrue(true);
-            //осталось сериализовать и проверить, есть ли в объекте файл
+        } catch(e: ClientRequestException){
+            assertFalse(false)
+            client.close()
         }
-        while (!job.isCompleted) {}
     }
 
     @Test
-    fun yandexDiskStorageSubNamespaces(){
-        val job = GlobalScope.launch {
-            val client = HttpClient()
-            val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
-                parameter("path", "/namespace0")
-                header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
-            }
-            client.close()
-            assertTrue(true);
-            //осталось сериализовать и вернуть by type: dir
+    fun yandexDiskStorageSubNamespaces() = runBlocking {
+        val namespace0 = Namespace("namespace0");
+        val namespace1 = Namespace(namespace0, "namespace1")
+        var fullPath = getFullPath(namespace1)
+
+        val client = HttpClient()
+        val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
+            parameter("path", fullPath)
+            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
         }
-        while (!job.isCompleted) {}
+        val json = Json(JsonConfiguration.Stable)
+        val resource = json.parse(Resource.serializer(), response)
+        val files = getFileNamesInResourceByType(resource, "dir")
+        val keys = wrapFileNamesToKeys(files, namespace1)
+        client.close()
+        assertTrue(true)
     }
 
     @Test
-    fun yandexDiskStorageKeys(){
-        val job = GlobalScope.launch {
-            val client = HttpClient()
-            val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
-                parameter("path", "/namespace0")
-                header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
-            }
-            client.close()
-            assertTrue(true);
-            //осталось сериализовать и вернуть by type: file
+    fun yandexDiskStorageKeys() = runBlocking {
+        val namespace0 = Namespace("namespace0");
+        val namespace1 = Namespace(namespace0, "namespace1")
+        var fullPath = getFullPath(namespace1)
+
+        val client = HttpClient()
+        val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
+            parameter("path", fullPath)
+            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
         }
-        while (!job.isCompleted) {}
+        val json = Json(JsonConfiguration.Stable)
+        val resource = json.parse(Resource.serializer(), response)
+        val files = getFileNamesInResourceByType(resource, "file")
+        val keys = wrapFileNamesToKeys(files, namespace1)
+        client.close()
+        assertTrue(true)
+
     }
 
     @UnstableDefault
@@ -91,12 +102,10 @@ class StorageTestBk : CoroutineScope {
     fun yandexDiskStorageLoad() = runBlocking {
         val namespace0 = Namespace("namespace0");
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key: Key = Key(namespace1, "sobaka.png");
+        val key: Key = Key(namespace1, "file1");
         val filePath = getFullPath(key);
 
-        val client = HttpClient() {
-            install(JsonFeature)
-        }
+        val client = HttpClient()
         val response = getUrlToDownload(client, filePath)
         val json = Json.indented.parseJson(response)
         val downloadUrl = (json as JsonObject).getPrimitive("href").content
@@ -111,17 +120,37 @@ class StorageTestBk : CoroutineScope {
     }
 
     @Test
+    fun yandexDistStorageOverwrite() = runBlocking {
+        val namespace0 = Namespace("namespace0");
+        val namespace1 = Namespace(namespace0, "namespace1")
+        val key = Key(namespace1, "file1");
+        val byteArray = ByteArray(5000)
+
+        val client = HttpClient()
+        val paths = generatePutResourcePaths(key.ns)
+        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths.get(paths.size - 1), key.name))
+        var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
+        var filePutResponse = uploadFile(client, urlToUploadFile, byteArray)
+        client.close()
+    }
+
+    @Test
     fun yandexDiskStorageAdd() = runBlocking {
         val namespace0 = Namespace("namespace0");
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key: Key = Key(namespace1, "file1");
+        val key = Key(namespace1, "file1");
         val byteArray = ByteArray(1000);
 
         val client = HttpClient()
-        val paths = generatePutResourcePaths(namespace1)
-        createFolderStructure(client, paths)
-        val fileUrlResponse = getFileUrl(client)
-        var filePutResponse = uploadFile(client, "", "")
+        val paths = generatePutResourcePaths(key.ns)
+        try {
+            createFolderStructure(client, paths)
+        } catch(e: ClientRequestException){
+            println(e)
+        }
+        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths.get(paths.size - 1), key.name))
+        var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
+        var filePutResponse = uploadFile(client, urlToUploadFile, byteArray)
         client.close()
         assertTrue(true)
     }
@@ -137,23 +166,20 @@ class StorageTestBk : CoroutineScope {
         }
     }
 
-
-    private suspend fun uploadFile(client: HttpClient, fileUrl: String, filePath: String) : String{
-        val response = client.post<String>(YANDEX_DISK_API_GET_FILE_URL) {
-            parameter("path", "sobaka.png")
-            parameter("url", FILE_URL_HARDCODED);
-            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN);
+    private suspend fun uploadFile(client: HttpClient, urlToUploadFile: String, byteArray: ByteArray) : String{
+        val response = client.put<String>(urlToUploadFile){
+            body = ByteArrayContent(byteArray)
         }
         return response;
     }
 
-    private suspend fun getFileUrl(client: HttpClient) : String{
+    private suspend fun getUrlToUploadFile(client: HttpClient, filePath: String, fileName: String) : String{
         val response = client.get<String>(YANDEX_DISK_API_GET_FILE_URL) {
-            parameter("path", "sobaka.png")
+            parameter("path", filePath + fileName)
             parameter("overwrite", true)
             header("Authorization", "OAuth " + TEST_ACCESS_TOKEN);
         }
-        return response;
+        return response
     }
 
     private suspend fun createFolderStructure(client: HttpClient, paths : List<String>){
@@ -167,6 +193,28 @@ class StorageTestBk : CoroutineScope {
         }
     }
 
+//    Helper method for wrapping fileNames to Keys Collection
+    private fun wrapFileNamesToKeys(fileNames: List<String>, namespace: Namespace): Collection<Key> {
+        return fileNames.map{ filename -> Key(namespace, filename)}
+    }
+
+//    Helper method for getting file names by type
+    private fun getFileNamesInResourceByType(resource: Resource, type: String): List<String>{
+        val items = resource._embedded?.items
+        var files: List<String> = emptyList()
+        if(items != null){
+            files = items.filter { item -> item.type == type}.map { item -> item.name }
+        }
+        return files
+    }
+
+//    Helper method for getting full path from namespace to root
+    private fun getFullPath(namespace: Namespace) : String {
+        var parts = namespace.parts;
+        return parts.joinToString("/") + "/";
+    }
+
+//    Helper method for getting paths from namespace and its parents
     private fun generatePutResourcePaths(namespace: Namespace) : List<String> {
         val partsArrayList = arrayListOf<List<String>>()
         val pathsArrayList = arrayListOf<String>()
@@ -179,7 +227,7 @@ class StorageTestBk : CoroutineScope {
         val iterator = partsArrayList.iterator();
         while(iterator.hasNext()) {
             val parts = iterator.next();
-            pathsArrayList.add(parts.joinToString("/"));
+            pathsArrayList.add(parts.joinToString("/") + "/");
         }
         return pathsArrayList.reversed();
     }
@@ -263,11 +311,27 @@ class StorageTestBk : CoroutineScope {
 //    }
 }
 
-data class Resource(val public_key: String, val _embedded: ResourceList, val name: String, val created: String, val custom_properties: Map<String, String>,
-                    val public_url: String, val origin_path: String, val modified : String, val path: String, val md5: String, val type: String,
-                    val mime_type: String, val size: Int)
+@Serializable
+data class Resource(val antivirus_status: String? = null, val resource_id: String? = null, val share: ShareInfo? = null,
+                    val file: String? = null, val size: Int? = null, val photoslice_time: String? = null,
+                    val _embedded: ResourceList? = null, val exif: Exif? = null, val custom_properties: JsonObject? = null,
+                    val media_type: String? = null, val preview: String? = null, val type: String,
+                    val mime_type: String? = null, val revision: Long? = null, val public_url: String? = null, val path: String,
+                    val md5: String? = null, val public_key: String? = null, val sha256: String? = null, val name: String,
+                    val created: String, val modified: String, val comment_ids: CommentIds? = null)
 
-data class ResourceList(val sort: String, val public_key: String, val items: Array<Resource>, val path: String, val limit: Int, val offset: Int, val total: Int)
+@Serializable
+data class ShareInfo(val is_root: Boolean? = null, val is_owned: Boolean? = null, val rights: String)
+
+@Serializable
+data class ResourceList(val sort: String? = null, val items: Array<Resource>, val limit: Int? = null, val offset: Int? = null,
+                        val path: String, val total: Int? = null)
+
+@Serializable
+data class Exif(val date_time: String? = null)
+
+@Serializable
+data class CommentIds(val private_resource: String? = null, val public_resource: String? = null)
 
 class DirectCoroutineDispatcher : CoroutineDispatcher() {
 
