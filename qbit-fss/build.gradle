@@ -2,15 +2,8 @@ plugins {
     id 'kotlin-multiplatform'
 }
 
-test {
-    jvmArgs '-ea'
-    testLogging {
-        events "failed"
-        exceptionFormat "full"
-    }
-}
-
 kotlin {
+
     jvm {
         compilations.all {
             kotlinOptions {
@@ -25,8 +18,7 @@ kotlin {
         }
         commonMain {
             dependencies {
-                implementation kotlin("stdlib")
-                implementation project(':qbit-core')
+                api project(':qbit-core')
             }
         }
         commonTest {

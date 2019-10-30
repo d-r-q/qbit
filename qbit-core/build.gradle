@@ -2,23 +2,9 @@ plugins {
     id 'kotlin-multiplatform'
 }
 
-pitest {
-    targetClasses = ['qbit.*']  //by default "${project.group}.*"
-    threads = 12
-    outputFormats = ['HTML']
-    timestampedReports = false
-    mutators  = ['ALL']
-}
-
-test {
-    jvmArgs '-ea'
-    testLogging {
-        events "failed"
-        exceptionFormat "full"
-    }
-}
 
 kotlin {
+
     jvm {
         compilations.all {
             kotlinOptions {
