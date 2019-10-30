@@ -36,19 +36,20 @@ class StorageTestBk : CoroutineScope {
     val YANDEX_DISK_API_CREATE_FOLDER = "https://cloud-api.yandex.net:443/v1/disk/resources"
     val YANDEX_DISK_API_GET_FILE_URL = "https://cloud-api.yandex.net/v1/disk/resources/upload"
     val YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL = "https://cloud-api.yandex.net:443/v1/disk/resources/download"
+    val YANDEX_DISK_API_RESOURCES = "https://cloud-api.yandex.net:443/v1/disk/resources"
 
     @Test
     fun yandexDiskStorageHasKey() = runBlocking {
-        val namespace0 = Namespace("namespace0");
+        val namespace0 = Namespace("namespace0")
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key: Key = Key(namespace1, "file2");
+        val key: Key = Key(namespace1, "file2")
         var fullPath = getFullPath(key)
 
         val client = HttpClient()
         try {
-            val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources") {
+            val response = client.get<String>(YANDEX_DISK_API_RESOURCES) {
                 parameter("path", fullPath)
-                header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
+                header("Authorization", "OAuth $TEST_ACCESS_TOKEN")
             }
             assertTrue(true)
             client.close()
@@ -65,28 +66,28 @@ class StorageTestBk : CoroutineScope {
         var fullPath = getFullPath(namespace1)
 
         val client = HttpClient()
-        val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
+        val response = client.get<String>(YANDEX_DISK_API_RESOURCES){
             parameter("path", fullPath)
-            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
+            header("Authorization", "OAuth $TEST_ACCESS_TOKEN")
         }
         val json = Json(JsonConfiguration.Stable)
         val resource = json.parse(Resource.serializer(), response)
-        val files = getFileNamesInResourceByType(resource, "dir")
-        val keys = wrapFileNamesToKeys(files, namespace1)
+        val dirNames = getFileNamesInResourceByType(resource, "dir")
+        val dirs = wrapDirNamesToNamespaces(dirNames, namespace1)
         client.close()
         assertTrue(true)
     }
 
     @Test
     fun yandexDiskStorageKeys() = runBlocking {
-        val namespace0 = Namespace("namespace0");
+        val namespace0 = Namespace("namespace0")
         val namespace1 = Namespace(namespace0, "namespace1")
         var fullPath = getFullPath(namespace1)
 
         val client = HttpClient()
-        val response = client.get<String>("https://cloud-api.yandex.net:443/v1/disk/resources"){
+        val response = client.get<String>(YANDEX_DISK_API_RESOURCES){
             parameter("path", fullPath)
-            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN)
+            header("Authorization", "OAuth $TEST_ACCESS_TOKEN")
         }
         val json = Json(JsonConfiguration.Stable)
         val resource = json.parse(Resource.serializer(), response)
@@ -100,10 +101,10 @@ class StorageTestBk : CoroutineScope {
     @UnstableDefault
     @Test
     fun yandexDiskStorageLoad() = runBlocking {
-        val namespace0 = Namespace("namespace0");
+        val namespace0 = Namespace("namespace0")
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key: Key = Key(namespace1, "file1");
-        val filePath = getFullPath(key);
+        val key: Key = Key(namespace1, "file1")
+        val filePath = getFullPath(key)
 
         val client = HttpClient()
         val response = getUrlToDownload(client, filePath)
@@ -121,25 +122,26 @@ class StorageTestBk : CoroutineScope {
 
     @Test
     fun yandexDistStorageOverwrite() = runBlocking {
-        val namespace0 = Namespace("namespace0");
+        val namespace0 = Namespace("namespace0")
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key = Key(namespace1, "file1");
+        val key = Key(namespace1, "file1")
         val byteArray = ByteArray(5000)
 
         val client = HttpClient()
         val paths = generatePutResourcePaths(key.ns)
-        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths.get(paths.size - 1), key.name))
+        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name))
         var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
         var filePutResponse = uploadFile(client, urlToUploadFile, byteArray)
         client.close()
+        assertTrue(true)
     }
 
     @Test
     fun yandexDiskStorageAdd() = runBlocking {
-        val namespace0 = Namespace("namespace0");
+        val namespace0 = Namespace("namespace0")
         val namespace1 = Namespace(namespace0, "namespace1")
-        val key = Key(namespace1, "file1");
-        val byteArray = ByteArray(1000);
+        val key = Key(namespace1, "file1")
+        val byteArray = ByteArray(1000)
 
         val client = HttpClient()
         val paths = generatePutResourcePaths(key.ns)
@@ -148,7 +150,7 @@ class StorageTestBk : CoroutineScope {
         } catch(e: ClientRequestException){
             println(e)
         }
-        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths.get(paths.size - 1), key.name))
+        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name))
         var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
         var filePutResponse = uploadFile(client, urlToUploadFile, byteArray)
         client.close()
@@ -177,7 +179,7 @@ class StorageTestBk : CoroutineScope {
         val response = client.get<String>(YANDEX_DISK_API_GET_FILE_URL) {
             parameter("path", filePath + fileName)
             parameter("overwrite", true)
-            header("Authorization", "OAuth " + TEST_ACCESS_TOKEN);
+            header("Authorization", "OAuth $TEST_ACCESS_TOKEN");
         }
         return response
     }
@@ -188,10 +190,15 @@ class StorageTestBk : CoroutineScope {
             val path = iterator.next();
             client.put<String>(YANDEX_DISK_API_CREATE_FOLDER) {
                 parameter("path", path)
-                header("Authorization", "OAuth " + TEST_ACCESS_TOKEN);
+                header("Authorization", "OAuth $TEST_ACCESS_TOKEN");
             }
         }
     }
+
+//    Helper method for wrapping dirNames to Namespace Collection
+    private fun wrapDirNamesToNamespaces(dirNames: List<String>, namespace: Namespace) : Collection<Namespace> {
+    return dirNames.map{ dirName -> Namespace(namespace, dirName) }
+}
 
 //    Helper method for wrapping fileNames to Keys Collection
     private fun wrapFileNamesToKeys(fileNames: List<String>, namespace: Namespace): Collection<Key> {
@@ -269,46 +276,6 @@ class StorageTestBk : CoroutineScope {
         val filePath = parts.joinToString("/")
         return "$filePath/$fileName";
     }
-
-//    @Ignore
-//    @Test
-//    fun testSwapHead() {
-//        val user = Namespace("user")
-//        val _id = ScalarAttr(user["val"], QString)
-//
-//        val root = Files.createTempDirectory("qbit").toFile()
-//        val storage = FileSystemStorage(root)
-//
-//        val conn = qbit(storage)
-//        conn.persist(_id)
-//
-//        val e = Entity(_id eq "1")
-//        conn.persist(e)
-//
-//        val loaded = storage.load(Namespace("refs")["head"])
-//        //val hash = conn.db.hash.bytes
-//        //assertArrayEquals(loaded, hash)
-//    }
-
-//    @Test
-//    fun testCopyNsConstructor() {
-//        val testNs = ns("nodes")("test")
-//        val _id = ScalarAttr(testNs["val"], QString)
-//
-//        val origin = MemStorage()
-//        val conn = qbit(origin)
-//        conn.persist(_id)
-//
-//        val e = Entity(_id eq "1")
-//        conn.persist(e)
-//
-//
-//        // actually it compiles
-//        val rootFile = Files.createTempDirectory("qbit").toFile()
-//        val storage = FileSystemStorage(rootFile, origin)
-//        assertEquals(origin.subNamespaces(testNs.parent!!), storage.subNamespaces(testNs.parent!!))
-//        assertEquals(storage.subNamespaces(root).sortedBy { it.name }, listOf(ns("nodes"), ns("refs")).sortedBy { it.name })
-//    }
 }
 
 @Serializable
