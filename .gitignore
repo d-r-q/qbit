@@ -13,7 +13,7 @@
 hs_err_pid*
 ### Gradle template
 .gradle
-/build/
+**/build/*
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
@@ -46,3 +46,7 @@ hs_err_pid*
 
 # IntelliJ
 out/
+.idea/
+
+# npm
+node_modules/
