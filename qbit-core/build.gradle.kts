@@ -7,7 +7,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(kotlin("stdlib-common"))
+                api(project(":qbit-api"))
             }
         }
         val commonTest by getting {

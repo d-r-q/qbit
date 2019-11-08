@@ -1,0 +1,4 @@
+package qbit
+
+class CoreMainPlaceHolder {
+}
