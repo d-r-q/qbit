@@ -7,7 +7,7 @@ group = "org.qbit"
 version = "0.3.0-SNAPSHOT"
 
 plugins {
-    kotlin("multiplatform") version "1.3.50" apply false
+    kotlin("multiplatform") version "1.3.60" apply false
     id("com.moowork.node") version "1.3.1" apply false
 }
 
@@ -51,7 +51,10 @@ subprojects {
                                 from(zipTree(it.absolutePath).matching { include("*.js") })
                             }
                             configurations["nodeJsTestRuntimeClasspath"].forEach {
-                                from(zipTree(it.absolutePath).matching { include("*.js") })
+                                // quick fix
+                                if(it.isFile) {
+                                    from(zipTree(it.absolutePath).matching { include("*.js") })
+                                }
                             }
 
                             into("$rootDir/node_modules")

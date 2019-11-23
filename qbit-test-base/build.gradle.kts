@@ -1,8 +1,8 @@
 plugins {
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.50"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.60"
 }
 
-val serializationVersion by extra { "0.13.0" }
+val serializationVersion by extra { "0.14.0" }
 
 kotlin {
 
