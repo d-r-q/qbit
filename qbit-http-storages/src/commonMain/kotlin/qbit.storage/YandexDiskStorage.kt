@@ -13,119 +13,134 @@ import io.ktor.content.ByteArrayContent
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.io.core.use
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonObject
+import qbit.api.QBitException
 import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.serialization.Storage
 
-class YandexDiskStorage(private val accessToken: String) : Storage {
+data class YandexDiskConfig(
+    val YANDEX_DISK_API_GET_FILE_URL: String = "https://cloud-api.yandex.net/v1/disk/resources/upload",
+    val YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL: String = "https://cloud-api.yandex.net:443/v1/disk/resources/download",
+    val YANDEX_DISK_API_RESOURCES: String = "https://cloud-api.yandex.net:443/v1/disk/resources"
+)
 
-    private val YANDEX_DISK_API_GET_FILE_URL = "https://cloud-api.yandex.net/v1/disk/resources/upload"
-    private val YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL = "https://cloud-api.yandex.net:443/v1/disk/resources/download"
-    private val YANDEX_DISK_API_RESOURCES = "https://cloud-api.yandex.net:443/v1/disk/resources"
+class YandexDiskStorage(private val accessToken: String, private val yandexDiskConfig: YandexDiskConfig) : Storage {
 
+    @UnstableDefault
     @InternalCoroutinesApi
     override fun add(key: Key, value: ByteArray) = runBlocking {
         val client = HttpClient()
-        val paths = generatePutResourcePaths(key.ns)
-        try {
-            createFolderStructure(client, paths)
-        } catch (e: ClientRequestException) {
-            println(e)
+        client.use {
+            val paths = generatePutResourcePaths(key.ns)
+            try {
+                createFolderStructure(client, paths)
+            } catch (e: ClientRequestException) {
+                println(e)
+                throw QBitException(e.message, e)
+            }
+            val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
+            val urlToUploadFile = (json as JsonObject).getPrimitive("href").content
+            uploadFile(client, urlToUploadFile, value)
+            Unit
         }
-        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
-        var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
-        var filePutResponse = uploadFile(client, urlToUploadFile, value)
-        client.close()
     }
 
+    @UnstableDefault
     @InternalCoroutinesApi
     override fun overwrite(key: Key, value: ByteArray) = runBlocking {
         val client = HttpClient()
-        val paths = generatePutResourcePaths(key.ns)
-        val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
-        var urlToUploadFile = (json as JsonObject).getPrimitive("href").content
-        var filePutResponse = uploadFile(client, urlToUploadFile, value)
-        client.close()
+        client.use {
+            val paths = generatePutResourcePaths(key.ns)
+            try {
+                val json =
+                    Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
+                val urlToUploadFile = (json as JsonObject).getPrimitive("href").content
+                uploadFile(client, urlToUploadFile, value)
+            } catch (e: ClientRequestException) {
+                throw QBitException(e.message, e)
+            }
+            Unit
+        }
+
     }
 
+    @UnstableDefault
     @InternalCoroutinesApi
     override fun load(key: Key): ByteArray? = runBlocking {
         val filePath = getFullPath(key)
-
         val client = HttpClient()
-        val response = getUrlToDownload(client, filePath)
-        val json = Json.indented.parseJson(response.readText())
-        val downloadUrl = (json as JsonObject).getPrimitive("href").content
-
-        val byteArray = getFile(client, downloadUrl)
-        client.close()
-        byteArray
+        client.use {
+            val response = getUrlToDownload(client, filePath)
+            val json = Json.indented.parseJson(response.readText())
+            val downloadUrl = (json as JsonObject).getPrimitive("href").content
+            val byteArray = getFile(client, downloadUrl)
+            byteArray
+        }
     }
 
     @InternalCoroutinesApi
     override fun keys(namespace: Namespace): Collection<Key> = runBlocking {
-        var fullPath = getFullPath(namespace)
-
-        val client = HttpClient()
-        val response = client.get<HttpResponse>(YANDEX_DISK_API_RESOURCES) {
-            parameter("path", fullPath)
-            header("Authorization", "OAuth $accessToken")
-        }
+        val response = getResourceInformation(namespace)
         val json = Json(JsonConfiguration.Stable)
         val resource = json.parse(Resource.serializer(), response.readText())
         val fileNames = getFileNamesInResourceByType(resource, "file")
         val keys = wrapFileNamesToKeys(fileNames, namespace)
-        client.close()
         keys
     }
 
     @InternalCoroutinesApi
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> = runBlocking {
-        var fullPath = getFullPath(namespace)
-
-        val client = HttpClient()
-        val response = client.get<HttpResponse>(YANDEX_DISK_API_RESOURCES) {
-            parameter("path", fullPath)
-            header("Authorization", "OAuth $accessToken")
-        }
+        val response = getResourceInformation(namespace)
         val json = Json(JsonConfiguration.Stable)
         val resource = json.parse(Resource.serializer(), response.readText())
         val dirNames = getFileNamesInResourceByType(resource, "dir")
         val namespaces = wrapDirNamesToNamespaces(dirNames, namespace)
-        client.close()
         namespaces
     }
 
     @InternalCoroutinesApi
     override fun hasKey(key: Key): Boolean = runBlocking {
-        var fullPath = getFullPath(key)
+        val fullPath = getFullPath(key)
 
         val client = HttpClient()
-        try {
-            val response = client.get<String>(YANDEX_DISK_API_RESOURCES) {
+        client.use {
+            try {
+                client.get<String>(yandexDiskConfig.YANDEX_DISK_API_RESOURCES) {
+                    parameter("path", fullPath)
+                    header("Authorization", "OAuth $accessToken")
+                }
+                true
+            } catch (e: ClientRequestException) {
+                false
+            }
+        }
+    }
+
+    private suspend fun getResourceInformation(namespace: Namespace): HttpResponse {
+        val fullPath = getFullPath(namespace)
+        val client = HttpClient()
+        client.use {
+            return client.get(yandexDiskConfig.YANDEX_DISK_API_RESOURCES) {
                 parameter("path", fullPath)
                 header("Authorization", "OAuth $accessToken")
             }
-            client.close()
-            true
-        } catch (e: ClientRequestException) {
-            client.close()
-            false
         }
     }
 
     private suspend fun uploadFile(client: HttpClient, urlToUploadFile: String, byteArray: ByteArray): HttpResponse {
         return client.put(urlToUploadFile) {
             body = ByteArrayContent(byteArray)
-        };
+        }
     }
 
     private suspend fun getUrlToUploadFile(client: HttpClient, filePath: String, fileName: String): HttpResponse {
-        return client.get(YANDEX_DISK_API_GET_FILE_URL) {
+        return client.get(yandexDiskConfig.YANDEX_DISK_API_GET_FILE_URL) {
             parameter("path", filePath + fileName)
             parameter("overwrite", true)
             header("Authorization", "OAuth $accessToken")
@@ -136,7 +151,7 @@ class YandexDiskStorage(private val accessToken: String) : Storage {
         val iterator = paths.iterator()
         while (iterator.hasNext()) {
             val path = iterator.next()
-            client.put<String>(YANDEX_DISK_API_RESOURCES) {
+            client.put<String>(yandexDiskConfig.YANDEX_DISK_API_RESOURCES) {
                 parameter("path", path)
                 header("Authorization", "OAuth $accessToken")
             }
@@ -149,10 +164,10 @@ class YandexDiskStorage(private val accessToken: String) : Storage {
     }
 
     private suspend fun getUrlToDownload(client: HttpClient, path: String): HttpResponse {
-        return client.get(YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL) {
+        return client.get(yandexDiskConfig.YANDEX_DISK_API_GET_DOWNLOAD_FILE_URL) {
             parameter("path", path)
             header("Authorization", "OAuth $accessToken")
-        };
+        }
     }
 
     /**    Helper method for wrapping dirNames to Namespace Collection */
@@ -177,7 +192,7 @@ class YandexDiskStorage(private val accessToken: String) : Storage {
 
     /**    Helper method for getting full path from namespace to root */
     private fun getFullPath(namespace: Namespace): String {
-        var parts = namespace.parts
+        val parts = namespace.parts
         return parts.joinToString("/") + "/"
     }
 
@@ -191,7 +206,7 @@ class YandexDiskStorage(private val accessToken: String) : Storage {
             currentNamespace = currentNamespace.parent!!
         }
 
-        val iterator = partsArrayList.iterator();
+        val iterator = partsArrayList.iterator()
         while (iterator.hasNext()) {
             val parts = iterator.next()
             pathsArrayList.add(parts.joinToString("/") + "/")
@@ -215,6 +230,7 @@ fun <T> runBlocking(body: suspend () -> T): T {
     val job = GlobalScope.launch {
         res = body()
     }
+    @Suppress("ControlFlowWithEmptyBody")
     while (job.isActive) {
     }
     if (job.isCancelled) {
@@ -241,7 +257,33 @@ data class ShareInfo(val is_root: Boolean? = null, val is_owned: Boolean? = null
 data class ResourceList(
     val sort: String? = null, val items: Array<Resource>, val limit: Int? = null, val offset: Int? = null,
     val path: String, val total: Int? = null
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ResourceList
+
+        if (sort != other.sort) return false
+        if (!items.contentEquals(other.items)) return false
+        if (limit != other.limit) return false
+        if (offset != other.offset) return false
+        if (path != other.path) return false
+        if (total != other.total) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = sort?.hashCode() ?: 0
+        result = 31 * result + items.contentHashCode()
+        result = 31 * result + (limit ?: 0)
+        result = 31 * result + (offset ?: 0)
+        result = 31 * result + path.hashCode()
+        result = 31 * result + (total ?: 0)
+        return result
+    }
+}
 
 @Serializable
 data class Exif(val date_time: String? = null)
