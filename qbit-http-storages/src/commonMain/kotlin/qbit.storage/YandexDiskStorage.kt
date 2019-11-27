@@ -2,14 +2,12 @@ package qbit.storage
 
 import io.ktor.client.HttpClient
 import io.ktor.client.features.ClientRequestException
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.parameter
-import io.ktor.client.request.put
+import io.ktor.client.request.*
 import io.ktor.client.response.HttpResponse
 import io.ktor.client.response.readBytes
 import io.ktor.client.response.readText
 import io.ktor.content.ByteArrayContent
+import io.ktor.http.ContentType
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -39,15 +37,16 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         client.use {
             val paths = generatePutResourcePaths(key.ns)
             try {
-                createFolderStructure(client, paths)
+                createFolderStructure(client, paths, key.ns)
+                val response = getUrlToUploadFile(client, paths[paths.size - 1], key.name, false)
+                val json = Json(JsonConfiguration.Stable)
+                val resourceUploadLink = json.parse(ResourceUploadLink.serializer(), response.readText())
+                uploadFile(client, resourceUploadLink.href, value)
+                Unit
             } catch (e: ClientRequestException) {
                 println(e)
                 throw QBitException(e.message, e)
             }
-            val json = Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
-            val urlToUploadFile = (json as JsonObject).getPrimitive("href").content
-            uploadFile(client, urlToUploadFile, value)
-            Unit
         }
     }
 
@@ -58,10 +57,10 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         client.use {
             val paths = generatePutResourcePaths(key.ns)
             try {
-                val json =
-                    Json.indented.parseJson(getUrlToUploadFile(client, paths[paths.size - 1], key.name).readText())
-                val urlToUploadFile = (json as JsonObject).getPrimitive("href").content
-                uploadFile(client, urlToUploadFile, value)
+                val response = getUrlToUploadFile(client, paths[paths.size - 1], key.name, true)
+                val json = Json(JsonConfiguration.Stable)
+                val resourceUploadLink = json.parse(ResourceUploadLink.serializer(), response.readText())
+                uploadFile(client, resourceUploadLink.href, value)
             } catch (e: ClientRequestException) {
                 throw QBitException(e.message, e)
             }
@@ -76,32 +75,44 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         val filePath = getFullPath(key)
         val client = HttpClient()
         client.use {
-            val response = getUrlToDownload(client, filePath)
-            val json = Json.indented.parseJson(response.readText())
-            val downloadUrl = (json as JsonObject).getPrimitive("href").content
-            val byteArray = getFile(client, downloadUrl)
-            byteArray
+            try {
+                val response = getUrlToDownload(client, filePath)
+                val json = Json(JsonConfiguration.Stable)
+                val link = json.parse(Link.serializer(), response.readText())
+                val byteArray = getFile(client, link.href)
+                byteArray
+            } catch (e: ClientRequestException) {
+                throw QBitException(e.message, e)
+            }
         }
     }
 
     @InternalCoroutinesApi
     override fun keys(namespace: Namespace): Collection<Key> = runBlocking {
-        val response = getResourceInformation(namespace)
-        val json = Json(JsonConfiguration.Stable)
-        val resource = json.parse(Resource.serializer(), response.readText())
-        val fileNames = getFileNamesInResourceByType(resource, "file")
-        val keys = wrapFileNamesToKeys(fileNames, namespace)
-        keys
+        try {
+            val response = getResourceInformation(namespace)
+            val json = Json(JsonConfiguration.Stable)
+            val resource = json.parse(Resource.serializer(), response.readText())
+            val fileNames = getFileNamesInResourceByType(resource, "file")
+            val keys = wrapFileNamesToKeys(fileNames, namespace)
+            keys
+        } catch (e: ClientRequestException) {
+            throw QBitException(e.message, e)
+        }
     }
 
     @InternalCoroutinesApi
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> = runBlocking {
-        val response = getResourceInformation(namespace)
-        val json = Json(JsonConfiguration.Stable)
-        val resource = json.parse(Resource.serializer(), response.readText())
-        val dirNames = getFileNamesInResourceByType(resource, "dir")
-        val namespaces = wrapDirNamesToNamespaces(dirNames, namespace)
-        namespaces
+        try {
+            val response = getResourceInformation(namespace)
+            val json = Json(JsonConfiguration.Stable)
+            val resource = json.parse(Resource.serializer(), response.readText())
+            val dirNames = getFileNamesInResourceByType(resource, "dir")
+            val namespaces = wrapDirNamesToNamespaces(dirNames, namespace)
+            namespaces
+        } catch (e: ClientRequestException) {
+            throw QBitException(e.message, e)
+        }
     }
 
     @InternalCoroutinesApi
@@ -139,18 +150,31 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         }
     }
 
-    private suspend fun getUrlToUploadFile(client: HttpClient, filePath: String, fileName: String): HttpResponse {
+    private suspend fun getUrlToUploadFile(
+        client: HttpClient,
+        filePath: String,
+        fileName: String,
+        overwrite: Boolean
+    ): HttpResponse {
         return client.get(yandexDiskConfig.YANDEX_DISK_API_GET_FILE_URL) {
             parameter("path", filePath + fileName)
-            parameter("overwrite", true)
+            parameter("overwrite", overwrite)
             header("Authorization", "OAuth $accessToken")
+            accept(ContentType.Application.Json)
         }
     }
 
-    private suspend fun createFolderStructure(client: HttpClient, paths: List<String>) {
-        val iterator = paths.iterator()
-        while (iterator.hasNext()) {
-            val path = iterator.next()
+    @InternalCoroutinesApi
+    private suspend fun createFolderStructure(client: HttpClient, paths: List<String>, ns: Namespace) {
+        val directoryKeys = generateDirectoryPathKeys(ns)
+        val pathIterator = paths.iterator()
+        val directoryKeyIterator = directoryKeys.iterator()
+        while (pathIterator.hasNext() && directoryKeyIterator.hasNext()) {
+            val path = pathIterator.next()
+            val directoryKey = directoryKeyIterator.next()
+            if (hasKey(directoryKey)) {
+                continue
+            }
             client.put<String>(yandexDiskConfig.YANDEX_DISK_API_RESOURCES) {
                 parameter("path", path)
                 header("Authorization", "OAuth $accessToken")
@@ -168,6 +192,20 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
             parameter("path", path)
             header("Authorization", "OAuth $accessToken")
         }
+    }
+
+    /**    Helper method for creating namespace sutrcture as keys */
+    private fun generateDirectoryPathKeys(ns: Namespace): ArrayList<Key> {
+        val path = ns.parts
+        val directoryKeys = ArrayList<Key>()
+        for (i in 1 until path.size) {
+            var current = Namespace(null, "")
+            for (j in 1 until i) {
+                current = Namespace(current, path[j])
+            }
+            directoryKeys.add(Key(current, path[i]))
+        }
+        return directoryKeys
     }
 
     /**    Helper method for wrapping dirNames to Namespace Collection */
@@ -199,19 +237,12 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
     /**    Helper method for getting paths from namespace and its parents */
     private fun generatePutResourcePaths(namespace: Namespace): List<String> {
         val partsArrayList = arrayListOf<List<String>>()
-        val pathsArrayList = arrayListOf<String>()
         var currentNamespace = namespace
         while (currentNamespace.parent != null) {
             partsArrayList.add(currentNamespace.parts)
             currentNamespace = currentNamespace.parent!!
         }
-
-        val iterator = partsArrayList.iterator()
-        while (iterator.hasNext()) {
-            val parts = iterator.next()
-            pathsArrayList.add(parts.joinToString("/") + "/")
-        }
-        return pathsArrayList.reversed()
+        return partsArrayList.map { part -> part.joinToString("/") + "/" }.reversed()
     }
 
     /**    Helper method for getting full path to key, including key name */
@@ -290,3 +321,14 @@ data class Exif(val date_time: String? = null)
 
 @Serializable
 data class CommentIds(val private_resource: String? = null, val public_resource: String? = null)
+
+@Serializable
+data class ResourceUploadLink(
+    val operation_id: String,
+    val href: String,
+    val method: String,
+    val templated: Boolean? = null
+)
+
+@Serializable
+data class Link(val href: String, val method: String, val templated: Boolean? = null)
