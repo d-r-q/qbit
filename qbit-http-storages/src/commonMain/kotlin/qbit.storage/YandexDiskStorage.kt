@@ -108,8 +108,7 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
             val json = Json(JsonConfiguration.Stable)
             val resource = json.parse(Resource.serializer(), response.readText())
             val dirNames = getFileNamesInResourceByType(resource, "dir")
-            val namespaces = wrapDirNamesToNamespaces(dirNames, namespace)
-            namespaces
+            wrapDirNamesToNamespaces(dirNames, namespace)
         } catch (e: ClientRequestException) {
             throw QBitException(e.message, e)
         }
@@ -194,7 +193,9 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         }
     }
 
-    /**    Helper method for creating namespace sutrcture as keys */
+    /**
+     * Converts namespace and its parents to list of keys
+     */
     private fun generateDirectoryPathKeys(ns: Namespace): ArrayList<Key> {
         val path = ns.parts
         val directoryKeys = ArrayList<Key>()
@@ -208,33 +209,32 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         return directoryKeys
     }
 
-    /**    Helper method for wrapping dirNames to Namespace Collection */
-    private fun wrapDirNamesToNamespaces(dirNames: List<String>, namespace: Namespace): Collection<Namespace> {
+    /**
+     * Wraps dirNames to Namespace Collection
+     */
+    private fun wrapDirNamesToNamespaces(dirNames: Collection<String>, namespace: Namespace): Collection<Namespace> {
         return dirNames.map { dirName -> Namespace(namespace, dirName) }
     }
 
-    /**    Helper method for wrapping fileNames to Keys Collection */
-    private fun wrapFileNamesToKeys(fileNames: List<String>, namespace: Namespace): Collection<Key> {
+    /**
+     * Wraps fileNames to Keys Collection
+     */
+    private fun wrapFileNamesToKeys(fileNames: Collection<String>, namespace: Namespace): Collection<Key> {
         return fileNames.map { filename -> Key(namespace, filename) }
     }
 
-    /**    Helper method for getting file names by type */
-    private fun getFileNamesInResourceByType(resource: Resource, type: String): List<String> {
-        val items = resource._embedded?.items
-        var files: List<String> = emptyList()
-        if (items != null) {
-            files = items.filter { item -> item.type == type }.map { item -> item.name }
-        }
-        return files
+    /**
+     * Finds all files in Resource, matched by type, and returns matched filenames
+     */
+    private fun getFileNamesInResourceByType(resource: Resource, type: String): Collection<String> {
+        return resource._embedded?.items
+            ?.filter { item -> item.type == type }
+            ?.map { item -> item.name } ?: emptyList()
     }
 
-    /**    Helper method for getting full path from namespace to root */
-    private fun getFullPath(namespace: Namespace): String {
-        val parts = namespace.parts
-        return parts.joinToString("/") + "/"
-    }
-
-    /**    Helper method for getting paths from namespace and its parents */
+    /**
+     * Converts namespace to list of paths to itself and its parents
+     */
     private fun generatePutResourcePaths(namespace: Namespace): List<String> {
         val partsArrayList = arrayListOf<List<String>>()
         var currentNamespace = namespace
@@ -245,13 +245,21 @@ class YandexDiskStorage(private val accessToken: String, private val yandexDiskC
         return partsArrayList.map { part -> part.joinToString("/") + "/" }.reversed()
     }
 
-    /**    Helper method for getting full path to key, including key name */
+    /**
+     * Сonverts namespace to full path from root to itself within YD storage
+     */
+    private fun getFullPath(namespace: Namespace): String {
+        val parts = namespace.parts
+        return parts.joinToString("/") + "/"
+    }
+
+    /**
+     * Converts key to path to file within YD storage
+     */
     private fun getFullPath(key: Key): String {
         val fileName = key.name
-        val namespace = key.ns
-        val parts = namespace.parts
-        val filePath = parts.joinToString("/")
-        return "$filePath/$fileName"
+        val filePath = getFullPath(key.ns)
+        return filePath + fileName
     }
 }
 
@@ -286,35 +294,9 @@ data class ShareInfo(val is_root: Boolean? = null, val is_owned: Boolean? = null
 
 @Serializable
 data class ResourceList(
-    val sort: String? = null, val items: Array<Resource>, val limit: Int? = null, val offset: Int? = null,
+    val sort: String? = null, val items: List<Resource>, val limit: Int? = null, val offset: Int? = null,
     val path: String, val total: Int? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as ResourceList
-
-        if (sort != other.sort) return false
-        if (!items.contentEquals(other.items)) return false
-        if (limit != other.limit) return false
-        if (offset != other.offset) return false
-        if (path != other.path) return false
-        if (total != other.total) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = sort?.hashCode() ?: 0
-        result = 31 * result + items.contentHashCode()
-        result = 31 * result + (limit ?: 0)
-        result = 31 * result + (offset ?: 0)
-        result = 31 * result + path.hashCode()
-        result = 31 * result + (total ?: 0)
-        return result
-    }
-}
+)
 
 @Serializable
 data class Exif(val date_time: String? = null)
