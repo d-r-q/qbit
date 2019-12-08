@@ -3,14 +3,16 @@ package qbit.q5bulk
 import qbit.api.db.Conn
 import qbit.api.db.attrIn
 import qbit.api.db.attrIs
+import qbit.api.db.pull
+import qbit.api.db.query
 import qbit.factorization.attrName
-import qbit.model.gid
+import qbit.model.impl.gid
 import qbit.platform.*
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
-import qbit.storage.MemStorage
 import java.io.File
+import qbit.storage.MemStorage
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -86,11 +88,11 @@ class Q5Test {
                                 lines++
                             }
                             device = trx.device
-                            assertNotNull(conn.db().query(attrIs(dateTime, trx.dateTime), attrIs(Trxes.device, trx.device)).firstOrNull())
-                            assertNotNull(conn.db().query(attrIs(Cats.name, trx.category.name)).firstOrNull())
+                            assertNotNull(conn.db().query<Trx>(attrIs(dateTime, trx.dateTime), attrIs(Trxes.device, trx.device)).firstOrNull())
+                            assertNotNull(conn.db().query<Category>(attrIs(Cats.name, trx.category.name)).firstOrNull())
                         }
                     }
-                    val trx = conn.db().query(attrIn(dateTime, fileDate, nextDate), attrIs(Trxes.device, device)).count()
+                    val trx = conn.db().query<Trx>(attrIn(dateTime, fileDate, nextDate), attrIs(Trxes.device, device)).count()
                     assertTrue(lines <= trx, "$lines lines were imported, but $trx trxes found")
                 }
 
@@ -135,7 +137,7 @@ class Q5Test {
         categories.values.forEach {
             val (cat) = trx.persist(it)
             categories[cat!!.name] = cat
-            assertNotNull(trx.db().pull(cat.gid!!))
+            assertNotNull(trx.db().pull<Category>(cat.gid!!))
         }
         trxes1 = trxes1.map {
             it.copy(category = categories[it.category.name]!!)
@@ -147,7 +149,7 @@ class Q5Test {
         trxes2.forEach { trx.persist(it) }
         trx.commit()
         categories.values.forEach {
-            assertNotNull(conn.db().pull(it.gid!!))
+            assertNotNull(conn.db().pull<Category>(it.gid!!))
         }
     }
 

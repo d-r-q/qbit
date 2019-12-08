@@ -1,6 +1,6 @@
 package qbit.storage
 
-import qbit.serialization.Storage
+import qbit.spi.Storage
 
 class MemStorageTest : StorageTest() {
 

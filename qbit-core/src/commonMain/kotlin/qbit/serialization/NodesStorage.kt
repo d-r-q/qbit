@@ -5,6 +5,7 @@ import qbit.api.model.Hash
 import qbit.api.model.hash
 import qbit.ns.Namespace
 import qbit.platform.asInput
+import qbit.spi.Storage
 
 private val nodes = Namespace("nodes")
 

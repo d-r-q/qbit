@@ -14,7 +14,7 @@ buildscript {
 }
 
 group 'org.qbit'
-version '0.1.0-SNAPSHOT'
+version '0.2.0-SNAPSHOT'
 
 allprojects {
     repositories {
@@ -25,6 +25,12 @@ allprojects {
 
 subprojects {
     apply plugin: 'maven'
-    apply plugin: 'info.solidsoft.pitest'
-    
+
+    tasks.withType(Test) {
+        testLogging {
+            events = ["failed"]
+            exceptionFormat "full"
+        }
+    }
+
 }

@@ -5,7 +5,6 @@ import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.DataType
 import qbit.api.model.Eav
-import qbit.api.model.Fact
 import qbit.api.model.QBoolean
 import qbit.api.model.QByte
 import qbit.api.model.QBytes
@@ -17,7 +16,7 @@ import qbit.api.model.QLong
 import qbit.api.model.QRef
 import qbit.api.model.QString
 import qbit.api.model.QZonedDateTime
-import qbit.api.model.Tombstone
+import qbit.model.Tombstone
 import qbit.api.model.isListOfVals
 import qbit.api.tombstone
 import qbit.platform.BigDecimal
@@ -220,5 +219,5 @@ fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
 fun KClass<*>.attrName(prop: KProperty0<*>): String =
         "." + this.qualifiedName!! + "/" + prop.name
 
-internal fun Tombstone.toFacts() = listOf(Fact(this.gid, tombstone, true))
+internal fun Tombstone.toFacts() = listOf(Eav(this.gid, tombstone, true))
 

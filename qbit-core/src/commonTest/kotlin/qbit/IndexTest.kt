@@ -11,7 +11,7 @@ import qbit.api.model.*
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.index.*
-import qbit.model.*
+import qbit.model.impl.eq
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.trx.toFacts
@@ -162,9 +162,9 @@ class IndexTest {
         val eid = Gid(0, 0)
         val _attr1 = Attr<Int>("attr1")
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Fact(eid, _attr1, 0))))
+        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
-                Fact(eid, tsAttr, true)
+                Eav(eid, tsAttr, true)
         )))
         val index = Indexer(null, null, identityNodeResolver).index(n2).index
         assertNull(index.entityById(eid))

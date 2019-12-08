@@ -1,7 +1,6 @@
 package qbit
 
 import qbit.api.*
-import qbit.api.db.Db
 import qbit.api.db.Fetch
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
@@ -11,6 +10,12 @@ import qbit.factorization.destruct
 import qbit.factorization.types
 import qbit.index.Index
 import qbit.index.IndexDb
+import qbit.index.InternalDb
+import qbit.model.Entity
+import qbit.model.StoredEntity
+import qbit.model.entity2gid
+import qbit.model.impl.DetachedEntity
+import qbit.model.impl.QStoredEntity
 import qbit.platform.*
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
@@ -19,7 +24,7 @@ import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
+internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): InternalDb {
     val addedAttrs = entities
             .filterIsInstance<Attr<*>>()
             .map { it.name to it }
@@ -28,9 +33,9 @@ fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): Db {
     return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 
-object EmptyDb : Db() {
+internal object EmptyDb : InternalDb() {
 
-    override fun pull(gid: Gid): StoredEntity? = null
+    override fun pullEntity(gid: Gid): StoredEntity? = null
 
     override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? = null
 
@@ -40,15 +45,15 @@ object EmptyDb : Db() {
 
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
-    override fun with(facts: Iterable<Eav>): Db {
+    override fun with(facts: Iterable<Eav>): InternalDb {
         return IndexDb(Index().addFacts(facts))
     }
 
 }
 
-class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db() {
+internal class EntityMapDb(private val map: Map<Gid, StoredEntity>) : InternalDb() {
 
-    override fun pull(gid: Gid): StoredEntity? {
+    override fun pullEntity(gid: Gid): StoredEntity? {
         return map[gid]
     }
 
@@ -64,7 +69,7 @@ class EntityMapDb(private val map: Map<Gid, StoredEntity>) : Db() {
         TODO("not implemented")
     }
 
-    override fun with(facts: Iterable<Eav>): Db {
+    override fun with(facts: Iterable<Eav>): InternalDb {
         TODO("not implemented")
     }
 
@@ -103,6 +108,14 @@ inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true
             unique,
             false
     )
+}
+
+fun Entity(gid: Gid, vararg entries: Any): Entity {
+    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
+}
+
+fun AttachedEntity(gid: Gid, entries: Map<Attr<Any>, Any>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
+    return QStoredEntity(gid, entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value }, resolveGid)
 }
 
 fun assertArrayEquals(arr1: Array<*>?, arr2: Array<*>?) {

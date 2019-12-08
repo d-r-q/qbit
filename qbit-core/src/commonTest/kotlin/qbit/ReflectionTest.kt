@@ -3,8 +3,8 @@
 package qbit
 
 import qbit.api.gid.Gid
-import qbit.model.QTombstone
-import qbit.model.gid
+import qbit.model.impl.QTombstone
+import qbit.model.impl.gid
 import qbit.platform.*
 import qbit.reflection.*
 import kotlin.test.Test

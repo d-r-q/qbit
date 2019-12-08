@@ -3,7 +3,7 @@ package qbit.typing
 import qbit.*
 import qbit.api.model.Attr
 import qbit.api.QBitException
-import qbit.api.model.StoredEntity
+import qbit.model.StoredEntity
 import qbit.api.gid.Gid
 import qbit.AttachedEntity
 import qbit.api.gid.nextGids

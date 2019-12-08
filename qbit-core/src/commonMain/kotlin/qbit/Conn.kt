@@ -5,19 +5,20 @@ import qbit.api.db.Conn
 import qbit.api.db.Db
 import qbit.api.db.Trx
 import qbit.api.db.WriteResult
+import qbit.api.db.pull
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
 import qbit.index.Indexer
-import qbit.index.pullT
+import qbit.index.InternalDb
 import qbit.ns.Namespace
 import qbit.serialization.Node
 import qbit.serialization.NodeRef
 import qbit.serialization.NodeVal
 import qbit.serialization.NodesStorage
-import qbit.serialization.Storage
+import qbit.spi.Storage
 import qbit.trx.CommitHandler
 import qbit.trx.QTrx
 import qbit.trx.QTrxLog
@@ -46,7 +47,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
 
     private val resolveNode = nodesResolver(nodesStorage)
 
-    private var db: Db = Indexer(null, null, resolveNode).index(head)
+    private var db: InternalDb = Indexer(null, null, resolveNode).index(head)
 
     override val head
         get() = trxLog.hash
@@ -58,7 +59,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
     }
 
     override fun trx(): Trx {
-        return QTrx(db.pullT(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
     }
 
     override fun <R : Any> persist(e: R): WriteResult<R?> {
@@ -69,7 +70,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
         }
     }
 
-    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: Db) {
+    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
         if (this.trxLog != trxLog) {
             throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
         }

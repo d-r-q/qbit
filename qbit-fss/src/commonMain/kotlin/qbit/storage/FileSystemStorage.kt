@@ -11,7 +11,7 @@ import qbit.platform.fileOutput
 import qbit.platform.listFiles
 import qbit.platform.readBytes
 import qbit.platform.resolve
-import qbit.serialization.Storage
+import qbit.spi.Storage
 
 class FileSystemStorage(private val root: File) : Storage {
 

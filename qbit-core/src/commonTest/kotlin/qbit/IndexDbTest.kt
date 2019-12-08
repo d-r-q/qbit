@@ -8,9 +8,10 @@ import qbit.Scientists.reviewer
 import qbit.api.db.Eager
 import qbit.api.db.attrIn
 import qbit.api.db.attrIs
+import qbit.api.db.pull
 import qbit.api.gid.Gid
 import qbit.api.model.Hash
-import qbit.model.gid
+import qbit.model.impl.gid
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.api.gid.nextGids
@@ -67,9 +68,9 @@ class DbTest {
         nodes[n2.hash] = n2
 
         db = Indexer(db, root.hash, nodeResolver).index(n2)
-        assertNotNull(db.pull(eCodd.gid!!))
-        assertNotNull(db.pull(pChen.gid!!))
-        assertNotNull(db.pull(mStonebreaker.gid!!))
+        assertNotNull(db.pull<Scientist>(eCodd.gid!!))
+        assertNotNull(db.pull<Scientist>(pChen.gid!!))
+        assertNotNull(db.pull<Scientist>(mStonebreaker.gid!!))
     }
 
     @Test

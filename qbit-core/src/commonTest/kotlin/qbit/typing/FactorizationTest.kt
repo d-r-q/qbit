@@ -51,7 +51,7 @@ class MappingTest {
 
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val se = db2.pull(facts.entityFacts[user]!!.first().gid)
+        val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)
         val lazyTyping = Typing(se!!, GraphQuery(MUser::class, emptyMap()), MUser::class)
         val u = lazyTyping.instantiate(se, MUser::class)
         assertEquals("login", u.login)
@@ -90,7 +90,7 @@ class MappingTest {
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
 
-        val se = db2.pull(facts.entityFacts[user]!!.first().gid)!!
+        val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
         val eagerTyping = Typing(se, EagerQuery(), MUser::class)
         val fullUser = eagerTyping.instantiate(se, MUser::class)
 
