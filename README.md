@@ -1,7 +1,7 @@
 # qbit
 ![Build Status](https://travis-ci.com/d-r-q/qbit.svg?branch=master)
 
-**Currently qbit is being rewritten from scracth. Please check [v3](https://github.com/d-r-q/qbit/tree/v3) branch for current status**
+**While early stages of development qbit code base has accumulated quite a few mistakes and design flaws, which blocking futher evolution. Currently I'm working on fixing these issues, please check [Clean up](https://github.com/d-r-q/qbit/milestone/5) milestone for current status**
 
 ## Vision
 qbit is a ACID kotlin-multiplatform embeddable distributed DB with lazy replication and flexible write conflicts resolution toolset.
