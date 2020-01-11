@@ -1,0 +1,27 @@
+plugins {
+    id 'kotlin-multiplatform'
+}
+
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = '1.6'
+            }
+        }
+    }
+
+    sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+        }
+        commonMain {
+            dependencies {
+                api kotlin("stdlib")
+                api "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
+                api "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2"
+                api "org.jetbrains.kotlinx:kotlinx-coroutines-core-common:1.3.2"
+            }
+        }
+    }
+}

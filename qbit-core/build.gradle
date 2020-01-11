@@ -22,6 +22,8 @@ kotlin {
                 api kotlin("stdlib")
                 api kotlin("reflect")
                 api "org.jetbrains.kotlinx:kotlinx-io:$kotlinIoVersion"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core-common:1.3.2"
             }
         }
         commonTest {

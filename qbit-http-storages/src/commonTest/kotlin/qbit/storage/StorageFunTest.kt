@@ -22,6 +22,9 @@ abstract class StorageTest {
         val rootNs = Namespace("test-root")
         val subNs = rootNs.subNs("test-sub")
 
+        (storage as YandexDiskStorage).deleteNamespace(ns(""))
+
+
         storage.add(rootNs["root-data"], rootBytes)
         storage.add(subNs["sub-data"], subBytes)
 
@@ -40,20 +43,13 @@ abstract class StorageTest {
         // initialize storage
         qbit(origin)
 
-        // actually it compiles
         val storage = storage()
+        (storage as YandexDiskStorage).deleteNamespace(ns(""))
         copyStorage(origin, storage)
         assertEquals(origin.subNamespaces(testNs.parent!!), storage.subNamespaces(testNs.parent!!))
-        assertEquals(storage.subNamespaces(root).sortedBy { it.name }, listOf(ns("nodes"), ns("refs")).sortedBy { it.name })
+        assertEquals(listOf(ns("nodes"), ns("refs")).sortedBy { it.name }, storage.subNamespaces(root).sortedBy { it.name })
     }
 
-}
-
-
-fun assertArrayEquals(arr1: Array<*>?, arr2: Array<*>?) {
-    arr1!!; arr2!!
-    assertEquals(arr1.size, arr2.size)
-    (arr1 zip arr2).forEach { assertEquals(it.first, it.second) }
 }
 
 fun assertArrayEquals(arr1: ByteArray?, arr2: ByteArray?) {
