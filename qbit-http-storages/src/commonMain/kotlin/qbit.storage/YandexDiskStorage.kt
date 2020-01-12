@@ -20,7 +20,7 @@ import kotlinx.serialization.json.JsonObject
 import qbit.api.QBitException
 import qbit.ns.Key
 import qbit.ns.Namespace
-import qbit.serialization.Storage
+import qbit.spi.Storage
 
 data class YandexDiskConfig(
     val YANDEX_DISK_API_GET_FILE_URL: String = "https://cloud-api.yandex.net/v1/disk/resources/upload",
