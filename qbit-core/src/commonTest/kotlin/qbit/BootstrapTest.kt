@@ -7,6 +7,7 @@ import qbit.api.model.Attr
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.api.system.Instance
+import qbit.factorization.destruct
 import qbit.ns.Namespace
 import qbit.storage.MemStorage
 import kotlin.test.Test
@@ -18,7 +19,7 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)))
+    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), ::destruct)
 
     @Test
     fun testInit() {

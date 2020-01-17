@@ -31,6 +31,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
+typealias Destruct = (Any, (String) -> Attr<*>?, Iterator<Gid>) -> EntityGraphFactorization
 
 val collectionTypes = setOf(List::class)
 
@@ -52,7 +53,7 @@ val valueTypes = types.values
         .filter { it.value() }
         .map { it.typeClass() }
 
-fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Gid>) {
+private fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Gid>) {
     if (idMap[root] != null) {
         return
     }
@@ -184,32 +185,11 @@ fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityG
     return EntityGraphFactorization(res)
 }
 
-fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
+private fun validate(type: KClass<*>, getters: List<KCallable<*>>) {
     val listsOfNullables = getters.filter { it.returnType.classifier == List::class && it.returnType.arguments[0].type!!.isMarkedNullable }
     if (listsOfNullables.isNotEmpty()) {
         val props = "${type.simpleName}.${listsOfNullables.joinToString(",", "(", ")") { it.name }}"
         throw QBitException("List of nullable elements is not supported. Properties: $props")
-    }
-}
-
-fun schemaFor(type: KClass<*>, unique: Set<String>): Collection<Attr<Any>> {
-    val getters = type.members.filterIsInstance<KProperty1<*, *>>()
-    val (ids, attrs) = getters.partition { it.name == "id" && it.returnType.classifier == Long::class }
-    val id = ids.firstOrNull()
-    id ?: throw IllegalArgumentException("Type $type does not contains id: Long property")
-    return attrs.map {
-        when (it.returnType.classifier) {
-            in valueTypes -> Attr(null, type.attrName(it), types.getValue(it.returnType.classifier as KClass<*>).code, type.attrName(it) in unique, false)
-            in collectionTypes -> {
-                when (val valueType = it.returnType.arguments[0].type!!.classifier as KClass<*>) {
-                    in valueTypes -> Attr(null, type.attrName(it), types.getValue(valueType).list().code, type.attrName(it) in unique, true)
-                    else -> Attr<Any>(null, type.attrName(it), QRef.list().code, type.attrName(it) in unique, true)
-                }
-            }
-            else -> {
-                Attr(null, type.attrName(it), QRef.code, type.attrName(it) in unique, false)
-            }
-        }
     }
 }
 

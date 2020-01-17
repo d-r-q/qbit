@@ -4,6 +4,7 @@ import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Eav
 import qbit.api.system.DbUuid
+import qbit.factorization.destruct
 import qbit.ns.Namespace
 import qbit.platform.currentTimeMillis
 import qbit.serialization.Leaf
@@ -17,7 +18,7 @@ import kotlin.test.Test
 class ConnTest {
 
     @Test
-    fun `Test update conn`() {
+    fun `Test head ref in storage is updated after updating connection head`() {
         val storage = MemStorage()
         val dbUuid = DbUuid(Iid(0, 4))
         val nodesStorage = NodesStorage(storage)
@@ -28,7 +29,7 @@ class ConnTest {
         val storedLeaf = nodesStorage.store(leaf)
         storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
-        val conn = QConn(dbUuid, storage, storedRoot)
+        val conn = QConn(dbUuid, storage, storedRoot, ::destruct)
 
         val newLog = FakeTrxLog(storedLeaf.hash)
         conn.update(conn.trxLog, newLog, EmptyDb)

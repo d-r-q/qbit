@@ -10,13 +10,14 @@ import qbit.api.model.DataType
 import qbit.api.model.Eav
 import qbit.model.Entity
 import qbit.api.system.Instance
-import qbit.factorization.destruct
+import qbit.factorization.Destruct
 import qbit.index.InternalDb
 import qbit.model.impl.gid
 import qbit.platform.collections.EmptyIterator
 
 
-internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb, private val commitHandler: CommitHandler) : Trx() {
+internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
+                    private val commitHandler: CommitHandler, private val destruct: Destruct) : Trx() {
 
     private var curDb: InternalDb? = null
 

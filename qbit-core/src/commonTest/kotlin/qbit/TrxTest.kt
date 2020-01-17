@@ -11,6 +11,7 @@ import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.model.impl.gid
 import qbit.api.system.Instance
+import qbit.factorization.destruct
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
@@ -55,10 +56,10 @@ class TrxTest {
     fun `Qbit should ignore persistence of not changed entity`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
-                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+        val entities = arrayOf(Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
-                extId), conn)
+                extId)
+        val trx = createTrx(conn, trxLog, *entities)
         trx.persist(extId)
         trx.commit()
         assertEquals(0, trxLog.appendsCalls)
@@ -69,12 +70,12 @@ class TrxTest {
     fun `When entity graph to store contains both updated and stored entities, only updated entity should be actually stored`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
-                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+        val entities = arrayOf(Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
                 Countries.name, Countries.population,
                 Regions.name, Regions.country,
-                nsk), conn)
+                nsk)
+        val trx = createTrx(conn, trxLog, *entities)
         trx.persist(nsk.copy(name = "Novonikolaevskaya obl."))
         trx.commit()
         assertEquals(1, trxLog.appendsCalls)
@@ -87,12 +88,12 @@ class TrxTest {
     fun `When entity graph to store contains both new and stored entities, only updated entity should be actually stored`() {
         val trxLog = FakeTrxLog()
         val conn = FakeConn()
-        val trx = QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
-                Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
+        val entities = arrayOf(Attrs.name, Attrs.type, Attrs.list, Attrs.unique,
                 Instances.iid, Instances.nextEid, Instances.forks,
                 Countries.name, Countries.population,
                 Regions.name, Regions.country,
-                ru), conn)
+                ru)
+        val trx = createTrx(conn, trxLog, *entities)
         trx.persist(Region(null, "Kemerovskaya obl.", ru))
         trx.commit()
         assertEquals(1, trxLog.appendsCalls)
@@ -100,6 +101,10 @@ class TrxTest {
         assertEquals(5, trxLog.appendedFacts[0].size, "5 facts (2 for region and 3 for instance) expected")
         assertTrue(trxLog.appendedFacts[0].any { it.value == "Kemerovskaya obl." })
     }
+
+    private fun createTrx(conn: FakeConn, trxLog: FakeTrxLog, vararg entities: Any) =
+            QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
+                    *entities), conn, ::destruct)
 
     @Ignore
     @Test

@@ -11,6 +11,8 @@ import qbit.api.gid.Iid
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
+import qbit.factorization.Destruct
+import qbit.factorization.destruct
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
@@ -33,13 +35,13 @@ fun qbit(storage: Storage): Conn {
         val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        QConn(dbUuid, storage, head)
+        QConn(dbUuid, storage, head, ::destruct)
     } else {
-        bootstrap(storage, dbUuid)
+        bootstrap(storage, dbUuid, ::destruct)
     }
 }
 
-internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>) : Conn(), CommitHandler {
+internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val destruct: Destruct) : Conn(), CommitHandler {
 
     private val nodesStorage = NodesStorage(storage)
 
@@ -59,7 +61,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
     }
 
     override fun trx(): Trx {
-        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this)
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, destruct)
     }
 
     override fun <R : Any> persist(e: R): WriteResult<R?> {

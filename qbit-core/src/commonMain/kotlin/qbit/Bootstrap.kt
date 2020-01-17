@@ -8,7 +8,7 @@ import qbit.api.model.Eav
 import qbit.api.protoInstance
 import qbit.api.system.DbUuid
 import qbit.api.tombstone
-import qbit.factorization.destruct
+import qbit.factorization.Destruct
 import qbit.ns.Namespace
 import qbit.platform.collections.EmptyIterator
 import qbit.platform.currentTimeMillis
@@ -29,7 +29,7 @@ internal val bootstrapSchema: Map<String, Attr<Any>> = mapOf(
         (tombstone.name to tombstone) as Pair<String, Attr<Any>>
 )
 
-internal fun bootstrap(storage: Storage, dbUuid: DbUuid): Conn {
+internal fun bootstrap(storage: Storage, dbUuid: DbUuid, destruct: Destruct): Conn {
     val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
             .flatMap { it.toFacts() }
             .plus(destruct(protoInstance, bootstrapSchema::get, EmptyIterator))
@@ -37,7 +37,7 @@ internal fun bootstrap(storage: Storage, dbUuid: DbUuid): Conn {
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
     storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
-    return QConn(dbUuid, storage, storedRoot)
+    return QConn(dbUuid, storage, storedRoot, destruct)
 }
 
 internal fun Attr<*>.toFacts(): List<Eav> = listOf(Eav(this.id!!, Attrs.name.name, this.name),
