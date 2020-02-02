@@ -133,5 +133,5 @@ object QGid : DataType<Gid>() {
 
 }
 
-internal fun isListOfVals(list: List<Any>?) =
+fun isListOfVals(list: List<Any>?) =
         list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value()  }?: true

@@ -70,7 +70,10 @@ fun <T : Any> default(type: KClass<T>): T =
                 List::class -> listOf<Any>()
                 ByteArray::class -> ByteArray(0)
                 else -> {
-                    val constr = type.constructors.first()
+                    val constr = type.constructors
+                            // a temporary workaround to make reflection factorization work with serializable entities
+                        .filter { it.parameters.none { it.name == "serializationConstructorMarker" } }
+                        .first()
                     val args = constr.parameters.map {
                         if (it.type.isMarkedNullable) {
                             it to null

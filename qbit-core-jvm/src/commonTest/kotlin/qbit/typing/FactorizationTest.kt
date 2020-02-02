@@ -1,5 +1,6 @@
 package qbit.typing
 
+import kotlinx.serialization.Serializable
 import qbit.*
 import qbit.api.*
 import qbit.api.gid.Gid
@@ -13,8 +14,10 @@ import qbit.query.GraphQuery
 import qbit.schema.schema
 import kotlin.test.*
 
+@Serializable
 data class Addr(val id: Long?, val addr: String)
 
+@Serializable
 data class MUser(
         val id: Long? = null,
         val login: String,
@@ -26,7 +29,18 @@ data class MUser(
 
 data class ListOfNullablesHolder(val id: Long?, val nullables: ListOfNullables)
 
-class MappingTest {
+abstract class MappingTest(val destruct: Destruct) {
+
+    val gids = Gid(0, 0).nextGids()
+
+    val testSchema = schema {
+        entity(MUser::class) {
+            uniqueString(it::login)
+        }
+        entity(Addr::class)
+    }
+        .map { it.name to it}
+        .toMap()
 
     @Test
     fun `Test simple entity mapping`() {

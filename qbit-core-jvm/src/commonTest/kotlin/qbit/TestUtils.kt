@@ -91,21 +91,21 @@ inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr<T>
 
 inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
     return Attr(
-            id,
-            name,
-            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
-            unique,
-            false
+        id,
+        name,
+        types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+        unique,
+        false
     )
 }
 
 inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true): Attr<T> {
     return Attr(
-            id,
-            name,
-            types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
-            unique,
-            false
+        id,
+        name,
+        types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+        unique,
+        false
     )
 }
 

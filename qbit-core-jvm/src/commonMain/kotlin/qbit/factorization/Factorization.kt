@@ -16,7 +16,7 @@ import qbit.api.model.QString
 import qbit.api.model.isListOfVals
 import qbit.api.tombstone
 import qbit.model.Tombstone
-import qbit.platform.IdentityHashMap
+import qbit.collections.IdentityMap
 import qbit.reflection.findProperties
 import kotlin.collections.contains
 import kotlin.collections.set
@@ -25,7 +25,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
-typealias Destruct = (Any, (String) -> Attr<*>?, Iterator<Gid>) -> EntityGraphFactorization
 
 val collectionTypes = setOf(List::class)
 
@@ -44,7 +43,7 @@ val valueTypes = types.values
         .filter { it.value() }
         .map { it.typeClass() }
 
-private fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityHashMap<Any, Gid>) {
+private fun identifyEntityGraph(root: Any, eids: Iterator<Gid>, idMap: IdentityMap<Any, Gid>) {
     if (idMap[root] != null) {
         return
     }
@@ -97,14 +96,14 @@ internal fun findGidProp(root: Any): KCallable<*> =
 
 fun destruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
     if (e is Tombstone) {
-        val entityFacts = IdentityHashMap<Any, List<Eav>>().apply {
+        val entityFacts = IdentityMap<Any, List<Eav>>().apply {
             this[e] = e.toFacts()
         }
         return EntityGraphFactorization(entityFacts)
     }
 
-    val res = IdentityHashMap<Any, List<Eav>>()
-    val idMap = IdentityHashMap<Any, Gid>()
+    val res = IdentityMap<Any, List<Eav>>()
+    val idMap = IdentityMap<Any, Gid>()
     val entities = HashMap<Gid, Any>()
 
     fun body(e: Any): List<Eav> {

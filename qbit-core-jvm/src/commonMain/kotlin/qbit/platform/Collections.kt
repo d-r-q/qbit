@@ -1,7 +1,5 @@
 package qbit.platform
 
-expect class IdentityHashMap<K, V>() : MutableMap<K, V>
-
 expect class ConcurrentHashMap<K, V>() {
     fun putIfAbsent(key: K, value: V): V?
     fun replace(key: K, value: V): V?
