@@ -1,5 +1,13 @@
 package qbit.collections
 
+fun <K : Any, V> IdentityMap(vararg entries: Pair<K, V>): IdentityMap<K, V> {
+    val res = IdentityMap<K, V>()
+    entries.forEach {
+        res[it.first] = it.second
+    }
+    return res
+}
+
 class IdentityMap<K : Any, V> : Map<K, V> {
 
     private val impl = HashMap<Key<K>, V>()

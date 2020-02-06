@@ -6,6 +6,7 @@ import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.AttrValue
+import qbit.api.model.eq
 import qbit.model.Entity
 import qbit.model.StoredEntity
 import qbit.model.Tombstone
@@ -121,12 +122,6 @@ private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, A
         return map.hashCode()
     }
 
-}
-
-internal infix fun <T : Any> Attr<T>.eq(v: T): AttrValue<Attr<T>, T> = QbitAttrValue(this, v)
-
-internal class QbitAttrValue<T : Any>(override val attr: Attr<T>, override val value: T) : AttrValue<Attr<T>, T> {
-    override fun toString(): String = "${attr.name}=$value"
 }
 
 internal val Any.gid: Gid?

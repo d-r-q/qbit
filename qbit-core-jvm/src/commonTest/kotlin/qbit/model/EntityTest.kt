@@ -9,10 +9,10 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.QInt
 import qbit.api.model.QRef
+import qbit.api.model.eq
 import qbit.assertArrayEquals
 import qbit.model.impl.DetachedEntity
 import qbit.model.impl.QTombstone
-import qbit.model.impl.eq
 import qbit.ns.Namespace
 import qbit.trx.toFacts
 import kotlin.test.*

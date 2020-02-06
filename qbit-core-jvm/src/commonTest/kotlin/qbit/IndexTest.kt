@@ -11,7 +11,6 @@ import qbit.api.model.*
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.index.*
-import qbit.model.impl.eq
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.trx.toFacts
