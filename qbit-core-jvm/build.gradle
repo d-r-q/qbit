@@ -23,6 +23,7 @@ kotlin {
         }
         commonTest {
             dependencies {
+                implementation project(":qbit-test-fixtures")
                 implementation 'org.jetbrains.kotlin:kotlin-test-common'
                 implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
             }

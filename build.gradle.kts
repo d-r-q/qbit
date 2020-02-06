@@ -27,8 +27,8 @@ subprojects {
         maven { url = URI("https://kotlin.bintray.com/kotlinx") }
     }
 
-    if (project.name == "qbit-core") {
-
+    if (project.name in setOf("qbit-core")) {
+        println("Enabling nodejs tests for ${project.name}")
 
         configure<NodeExtension> {
             yarnVersion = "1.12.3"
@@ -55,7 +55,7 @@ subprojects {
                             }
                             configurations["nodeJsTestRuntimeClasspath"].forEach {
                                 // quick fix
-                                if(it.isFile) {
+                                if (it.isFile) {
                                     from(zipTree(it.absolutePath).matching { include("*.js") })
                                 }
                             }
@@ -69,11 +69,11 @@ subprojects {
                     dependsOn(populateNodeModulesForTests)
                     setScript(file("$rootDir/node_modules/mocha/bin/mocha"))
                     setArgs(
-                            listOf(
-                                    compileTestKotlinNodeJs.outputFile,
-                                    "--reporter-options",
-                                    "topLevelSuite=${project.name}-tests"
-                            )
+                        listOf(
+                            compileTestKotlinNodeJs.outputFile,
+                            "--reporter-options",
+                            "topLevelSuite=${project.name}-tests"
+                        )
                     )
                 }
 

@@ -10,4 +10,5 @@ pluginManagement {
     }
 }
 rootProject.name = 'qbit'
-include ':qbit-core', ':qbit-core-jvm', ':qbit-fss', ':qbit-http-storages'
+include ':qbit-test-fixtures', ':qbit-core', ':qbit-core-jvm', ':qbit-fss', ':qbit-http-storages'
+

@@ -2,6 +2,7 @@ package qbit.factorization
 
 import kotlinx.serialization.*
 import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.getContextual
 import qbit.api.QBitException
 import qbit.api.gid.Gid
@@ -10,12 +11,38 @@ import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.eq
 import qbit.collections.IdentityMap
+import kotlin.reflect.KClass
+
+class ToStrSerialModuleCollector : SerialModuleCollector {
+
+    val buffer = StringBuilder()
+
+    override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
+        buffer.append("$kClass\n")
+    }
+
+    override fun <Base : Any, Sub : Base> polymorphic(
+        baseClass: KClass<Base>,
+        actualClass: KClass<Sub>,
+        actualSerializer: KSerializer<Sub>
+    ) {
+        buffer.append("$baseClass($actualClass)")
+    }
+
+}
+
+fun SerialModule.dump(): String {
+    val collector = ToStrSerialModuleCollector()
+    this.dumpTo(collector)
+    return collector.buffer.toString()
+}
 
 class KSFactorization(private val serialModule: SerialModule) {
 
     fun ksDestruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
         val encoder = EntityEncoder(schema, serialModule, gids)
-        serialModule.getContextual(e)!!.serialize(encoder, e)
+        val serializer = serialModule.getContextual(e) ?: throw QBitException("Cannon find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
+        serializer.serialize(encoder, e)
         val gid = encoder.gid
         val eavs = encoder.attrValues.map { it.toEav(gid) }.toMutableList()
         for (cEE in encoder.children) {
@@ -104,19 +131,19 @@ class EntityEncoder(
     }
 
     override fun encodeBooleanElement(desc: SerialDescriptor, index: Int, value: Boolean) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        attrValues += schema(attrName(desc, index))!! eq value
     }
 
     override fun encodeByteElement(desc: SerialDescriptor, index: Int, value: Byte) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        attrValues += schema(attrName(desc, index))!! eq value
     }
 
     override fun encodeIntElement(desc: SerialDescriptor, index: Int, value: Int) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        attrValues += schema(attrName(desc, index))!! eq value
     }
 
     override fun encodeLongElement(desc: SerialDescriptor, index: Int, value: Long) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        attrValues += schema(attrName(desc, index))!! eq value
     }
 
     override fun encodeNonSerializableElement(desc: SerialDescriptor, index: Int, value: Any) {
@@ -150,11 +177,10 @@ class EntityEncoder(
     }
 
     override fun encodeStringElement(desc: SerialDescriptor, index: Int, value: String) {
-        attrValues += schema(attrName(desc, index))!! eq value
+        val attrName = attrName(desc, index)
+        val attr = schema(attrName) ?: throw QBitException("Could not find attribute with name $attrName")
+        attrValues += attr eq value
     }
-
-    private fun attrName(desc: SerialDescriptor, index: Int) =
-        ".${desc.name}/${desc.getElementName(index)}"
 
     override fun encodeFloatElement(desc: SerialDescriptor, index: Int, value: Float) {
         throw QBitException("qbit does not support Float data type")
@@ -178,3 +204,7 @@ class EntityEncoder(
 
 
 }
+
+internal fun attrName(desc: SerialDescriptor, index: Int) =
+    ".${desc.name}/${desc.getElementName(index)}"
+

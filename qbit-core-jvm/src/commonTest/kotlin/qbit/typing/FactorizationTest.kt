@@ -1,31 +1,21 @@
 package qbit.typing
 
-import kotlinx.serialization.Serializable
 import qbit.*
-import qbit.api.*
+import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
-import qbit.factorization.*
+import qbit.factorization.Destruct
+import qbit.factorization.findGidProp
+import qbit.factorization.types
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.schema.schema
+import qbit.test.model.Addr
+import qbit.test.model.MUser
 import kotlin.test.*
-
-@Serializable
-data class Addr(val id: Long?, val addr: String)
-
-@Serializable
-data class MUser(
-        val id: Long? = null,
-        val login: String,
-        val strs: List<String>,
-        val addr: Addr,
-        val optAddr: Addr?,
-        val addrs: List<Addr>
-)
 
 data class ListOfNullablesHolder(val id: Long?, val nullables: ListOfNullables)
 

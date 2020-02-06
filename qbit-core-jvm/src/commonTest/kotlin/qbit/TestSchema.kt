@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.serialization.Serializable
 import qbit.api.model.Attr
 import qbit.api.db.Conn
 import qbit.platform.collections.EmptyIterator
@@ -208,6 +209,7 @@ data class Bomb(val id: Long?,
 
 data class ListOfNullables(val id: Long?, val lst: List<Int?>, val refLst: List<Scientist?>)
 
+@Serializable
 data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
 
 data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
