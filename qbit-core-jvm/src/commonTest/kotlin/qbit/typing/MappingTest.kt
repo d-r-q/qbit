@@ -13,7 +13,7 @@ import qbit.index.IndexDb
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.schema.schema
-import qbit.test.model.Addr
+import qbit.test.model.TheSimplestEntity
 import qbit.test.model.MUser
 import kotlin.test.*
 
@@ -27,7 +27,7 @@ abstract class MappingTest(val destruct: Destruct) {
         entity(MUser::class) {
             uniqueString(it::login)
         }
-        entity(Addr::class)
+        entity(TheSimplestEntity::class)
     }
         .map { it.name to it}
         .toMap()
@@ -40,7 +40,7 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(MUser::class) {
                 uniqueString(it::login)
             }
-            entity(Addr::class)
+            entity(TheSimplestEntity::class)
         }
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
@@ -48,9 +48,9 @@ abstract class MappingTest(val destruct: Destruct) {
         val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
-                addr = Addr(null, "addr"),
-                optAddr = Addr(null, "optAddr"),
-                addrs = listOf(Addr(null, "lstAddr"))
+                theSimplestEntity = TheSimplestEntity(null, "addr"),
+                optTheSimplestEntity = TheSimplestEntity(null, "optAddr"),
+                theSimplestEntities = listOf(TheSimplestEntity(null, "lstAddr"))
         )
 
         val facts = destruct(user, db::attr, gids)
@@ -60,13 +60,13 @@ abstract class MappingTest(val destruct: Destruct) {
         val u = lazyTyping.instantiate(se, MUser::class)
         assertEquals("login", u.login)
         assertEquals(listOf("str1", "str2"), u.strs)
-        assertEquals("addr", u.addr.addr)
-        assertNull(u.optAddr)
-        assertEquals("lstAddr", u.addrs[0].addr)
+        assertEquals("addr", u.theSimplestEntity.scalar)
+        assertNull(u.optTheSimplestEntity)
+        assertEquals("lstAddr", u.theSimplestEntities[0].scalar)
 
         val eagerTyping = Typing(se, EagerQuery(), MUser::class)
         val fullUser = eagerTyping.instantiate(se, MUser::class)
-        assertEquals("optAddr", fullUser.optAddr!!.addr)
+        assertEquals("optAddr", fullUser.optTheSimplestEntity!!.scalar)
     }
 
     @Test
@@ -78,18 +78,18 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(MUser::class) {
                 uniqueString(it::login)
             }
-            entity(Addr::class)
+            entity(TheSimplestEntity::class)
         }
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
-        val addr = Addr(null, "addr")
+        val addr = TheSimplestEntity(null, "addr")
         val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
-                addr = addr,
-                optAddr = addr,
-                addrs = listOf(addr)
+                theSimplestEntity = addr,
+                optTheSimplestEntity = addr,
+                theSimplestEntities = listOf(addr)
         )
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
@@ -98,8 +98,8 @@ abstract class MappingTest(val destruct: Destruct) {
         val eagerTyping = Typing(se, EagerQuery(), MUser::class)
         val fullUser = eagerTyping.instantiate(se, MUser::class)
 
-        assertTrue(fullUser.addr == fullUser.optAddr && fullUser.optAddr == fullUser.addrs[0])
-        assertTrue(fullUser.addr === fullUser.optAddr && fullUser.optAddr === fullUser.addrs[0])
+        assertTrue(fullUser.theSimplestEntity == fullUser.optTheSimplestEntity && fullUser.optTheSimplestEntity == fullUser.theSimplestEntities[0])
+        assertTrue(fullUser.theSimplestEntity === fullUser.optTheSimplestEntity && fullUser.optTheSimplestEntity === fullUser.theSimplestEntities[0])
     }
 
     @Ignore
@@ -109,20 +109,20 @@ abstract class MappingTest(val destruct: Destruct) {
 
         val testSchema = schema {
             entity(MUser::class)
-            entity(Addr::class)
+            entity(TheSimplestEntity::class)
         }
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
-        val addr = Addr(1, "addr")
+        val addr = TheSimplestEntity(1, "addr")
         val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
-                addr = addr,
-                optAddr = addr,
-                addrs = listOf(addr)
+                theSimplestEntity = addr,
+                optTheSimplestEntity = addr,
+                theSimplestEntities = listOf(addr)
         )
-        val userWithAddr = user.copy(addr = user.addr.copy(addr = "newAddr"))
+        val userWithAddr = user.copy(theSimplestEntity = user.theSimplestEntity.copy(scalar = "newAddr"))
 
         assertThrows<QBitException> {
             destruct(userWithAddr, db::attr, gids)

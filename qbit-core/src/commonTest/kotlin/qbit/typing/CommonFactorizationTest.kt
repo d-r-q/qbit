@@ -3,16 +3,19 @@ package qbit.typing
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
+import qbit.api.model.QInt
 import qbit.api.model.QRef
 import qbit.api.model.QString
 import qbit.factorization.Destruct
 import qbit.factorization.attrName
-import qbit.test.model.Addr
-import qbit.test.model.UserWithAddr
+import qbit.test.model.TheSimplestEntity
+import qbit.test.model.EntityWithRef
+import qbit.test.model.EntityWithScalarList
 import kotlin.js.JsName
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 
 abstract class CommonFactorizationTest(val destruct: Destruct) {
@@ -25,70 +28,119 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
     }
 
     private val testSchema = mapOf(
-        ".qbit.test.model.Addr/addr" to Attr<String>(
+        ".qbit.test.model.TheSimplestEntity/scalar" to Attr<String>(
             gids.next(),
-            ".qbit.test.model.Addr/addr",
+            ".qbit.test.model.TheSimplestEntity/scalar",
             QString.code,
-            false,
-            false
+            unique = false,
+            list = false
         ),
 
-
-        ".qbit.test.model.UserWithAddr/addr" to Attr<Addr>(
+        ".qbit.test.model.EntityWithRef/ref" to Attr<TheSimplestEntity>(
             gids.next(),
-            ".qbit.test.model.UserWithAddr/addr",
+            ".qbit.test.model.EntityWithRef/ref",
             QRef.code,
-            false,
-            false
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.EntityWithScalarList/scalars" to Attr<List<Int>>(
+            gids.next(),
+            ".qbit.test.model.EntityWithScalarList/scalars",
+            QInt.code,
+            unique = false,
+            list = false
         )
     )
 
     @JsName("Test_simple_entity_factorization")
     @Test
     fun `Test simple entity factorization`() {
-        val addr = Addr(null, "addrValue")
+        // Given the simplest entity
+        val entity = TheSimplestEntity(null, "addrValue")
 
-        val factorization = destruct(addr, testSchema::get, gids)
+        // When it factorized
+        val factorization = destruct(entity, testSchema::get, gids)
+
+        // Then factorization contains single fact with correct attribute name and value
         assertEquals(1, factorization.size, "Factorization of single entity should produce facts for one entity")
         val facts = factorization.entityFacts.values.first()
         assertEquals(1, facts.size, "Factorization of single entity with single attr should produce single fact")
-        assertEquals(".qbit.test.model.Addr/addr", facts[0].attr)
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", facts[0].attr)
         assertEquals("addrValue", facts[0].value)
     }
 
     @JsName("Test_simple_persisted_entity_factorization")
     @Test
     fun `Test simple persisted entity factorization`() {
-        val addr = Addr(1, "addrValue")
+        // Given a persisted enitity (with id != null)
+        val entity = TheSimplestEntity(1, "addrValue")
 
-        val factorization = destruct(addr, testSchema::get, gids)
+        // When it factorized
+        val factorization = destruct(entity, testSchema::get, gids)
+
+        // Then factorization contains single fact with correct gid, attribute name and value
         assertEquals(1, factorization.size, "Factorization of single entity should produce facts for one entity")
         val facts = factorization.entityFacts.values.first()
         assertEquals(1, facts.size, "Factorization of single entity with single attr should produce single fact")
         assertEquals(Gid(1), facts[0].gid)
-        assertEquals(".qbit.test.model.Addr/addr", facts[0].attr)
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", facts[0].attr)
         assertEquals("addrValue", facts[0].value)
     }
 
     @JsName("Test_entity_with_ref_factorization")
     @Test
     fun `Test entity with ref factorization`() {
-        val user = UserWithAddr(null, Addr(null, "addrValue"))
+        // Given entity graph with two entities
+        val entity = EntityWithRef(null, TheSimplestEntity(null, "addrValue"))
 
-        val factorization = destruct(user, testSchema::get, gids)
+        // When it factorized
+        val factorization = destruct(entity, testSchema::get, gids)
+
+        // Then factorization contains fact for both entities in graph
+        val root = factorization.entityFacts[entity]
+        val referredEntity = factorization.entityFacts[entity.ref]
+
         assertEquals(2, factorization.size, "Factorization of entity with ref should produce facts for both entities")
-        val facts = factorization.entityFacts.values.first()
-        assertEquals(2, facts.size, "Factorization of two entities with single attr should produce two facts")
-        assertEquals(".qbit.test.model.UserWithAddr/addr", facts[0].attr)
-        assertEquals(Gid(1), facts[0].value)
-        assertEquals(".qbit.test.model.Addr/addr", facts[1].attr)
-        assertEquals("addrValue", facts[1].value)
+
+        assertNotNull(root, "There is no factorization for root entity")
+        assertNotNull(referredEntity, "There is no factorization for referred entity")
+
+        assertEquals(2, factorization.size, "Factorization of two entities with single attr should produce two facts")
+
+        assertEquals(".qbit.test.model.EntityWithRef/ref", root[0].attr)
+
+        assertEquals(root[0].value, referredEntity[0].gid)
+
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", referredEntity[0].attr)
+        assertEquals("addrValue", referredEntity[0].value)
+    }
+
+    @JsName("Test_entity_with_scalars_list_factorization")
+    @Test
+    fun `Test entity with scalars list factorization`() {
+        // Given an entity with scalars list
+        val entity = EntityWithScalarList(null, listOf(0, 1, 2))
+
+        // When it factorized
+        val factorization = destruct(entity, testSchema::get, gids)
+
+        // Then it contains eav for each item in the list in the same order
+        assertEquals(3, factorization.size)
+        val entityEavs = factorization.entityFacts[entity]!!
+
+        assertEquals(0, entityEavs[0].value)
+        assertEquals(1, entityEavs[1].value)
+        assertEquals(2, entityEavs[2].value)
+
+        // And eavs has correct attr
+        assertEquals(".qbit.test.model.EntityWithScalarList/scalars", entityEavs[0].attr)
     }
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")
     @Test
     fun `Test SerialDescriptor to attr name conversion`() {
-        assertEquals(".qbit.test.model.Addr/addr", attrName(Addr.serializer().descriptor, 1))
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", attrName(TheSimplestEntity.serializer().descriptor, 1))
     }
 
 }

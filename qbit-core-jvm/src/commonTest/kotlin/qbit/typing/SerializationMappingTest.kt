@@ -5,7 +5,9 @@ import kotlinx.serialization.modules.serializersModuleOf
 import qbit.NullableScalar
 import qbit.api.model.Attr
 import qbit.factorization.KSFactorization
-import qbit.test.model.Addr
+import qbit.test.model.EntityWithRef
+import qbit.test.model.EntityWithScalarList
+import qbit.test.model.TheSimplestEntity
 import qbit.test.model.MUser
 import kotlin.reflect.KClass
 
@@ -26,9 +28,11 @@ class FakeSerializer<T> : KSerializer<T> {
 
 private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     Attr::class to Attr.serializer(FakeSerializer<Any>()),
-    Addr::class to Addr.serializer(),
+    TheSimplestEntity::class to TheSimplestEntity.serializer(),
     MUser::class to MUser.serializer(),
-    NullableScalar::class to NullableScalar.serializer()
+    NullableScalar::class to NullableScalar.serializer(),
+    EntityWithRef::class to EntityWithRef.serializer(),
+    EntityWithScalarList::class to EntityWithScalarList.serializer()
 )
 
-//class SerializationFactorizationTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)
+class SerializationFactorizationTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)

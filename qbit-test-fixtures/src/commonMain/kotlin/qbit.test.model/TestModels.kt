@@ -3,21 +3,24 @@ package qbit.test.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Addr(val id: Long?, val addr: String)
+data class TheSimplestEntity(val id: Long?, val scalar: String)
 
 @Serializable
-data class UserWithAddr(
+data class EntityWithRef(
     val id: Long? = null,
-    val addr: Addr
+    val ref: TheSimplestEntity
 )
+
+@Serializable
+data class EntityWithScalarList(val id: Long?, val scalars: List<Int>)
 
 @Serializable
 data class MUser(
     val id: Long? = null,
     val login: String,
     val strs: List<String>,
-    val addr: Addr,
-    val optAddr: Addr?,
-    val addrs: List<Addr>
+    val theSimplestEntity: TheSimplestEntity,
+    val optTheSimplestEntity: TheSimplestEntity?,
+    val theSimplestEntities: List<TheSimplestEntity>
 )
 

@@ -1,16 +1,20 @@
 package qbit.factorization
 
 import kotlinx.serialization.*
+import kotlinx.serialization.PrimitiveKind.*
 import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.getContextual
 import qbit.api.QBitException
 import qbit.api.gid.Gid
+import qbit.api.gid.NullGid
 import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.eq
+import qbit.api.model.impl.QbitAttrValue
 import qbit.collections.IdentityMap
+import qbit.collections.Stack
 import kotlin.reflect.KClass
 
 class ToStrSerialModuleCollector : SerialModuleCollector {
@@ -40,16 +44,12 @@ fun SerialModule.dump(): String {
 class KSFactorization(private val serialModule: SerialModule) {
 
     fun ksDestruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
-        val encoder = EntityEncoder(schema, serialModule, gids)
-        val serializer = serialModule.getContextual(e) ?: throw QBitException("Cannon find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
+        val encoder = EntityEncoder(e, schema, serialModule, gids)
+        val serializer = serialModule.getContextual(e)
+            ?: throw QBitException("Cannon find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
         serializer.serialize(encoder, e)
-        val gid = encoder.gid
-        val eavs = encoder.attrValues.map { it.toEav(gid) }.toMutableList()
-        for (cEE in encoder.children) {
-            val g = cEE.gid
-            eavs += cEE.attrValues.map { it.toEav(g) }
-        }
-        return EntityGraphFactorization(IdentityMap(e to eavs))
+        val eavs: List<Pair<Any, List<Eav>>> = encoder.entityInfos.map { it.key to it.value.eavs() }.toList()
+        return EntityGraphFactorization(IdentityMap(*eavs.toTypedArray()))
     }
 
 }
@@ -57,25 +57,50 @@ class KSFactorization(private val serialModule: SerialModule) {
 private fun AttrValue<*, *>.toEav(gid: Gid): Eav =
     Eav(gid, this.attr, this.value)
 
+data class EntityInfo(
+    val entity: Any,
+    val attr: Attr<*>?,
+    var gid: Gid = NullGid,
+    val attrValues: ArrayList<AttrValue<Attr<*>, *>> = ArrayList(),
+    val type: StructureKind
+) {
+
+    fun eavs(): List<Eav> =
+        attrValues.map { it.toEav(gid) }
+}
+
 class EntityEncoder(
+    internal val entity: Any,
     private val schema: (String) -> Attr<*>?,
     override val context: SerialModule,
     private val gids: Iterator<Gid>
 ) : Encoder,
     CompositeEncoder {
 
-    internal val attrValues = ArrayList<AttrValue<*, *>>()
+    private val structuresStack = Stack<EntityInfo>().apply {
+        push(EntityInfo(entity, null, type = StructureKind.CLASS))
+    }
+
+    internal val entityInfos = IdentityMap<Any, EntityInfo>()
 
     internal var gid: Gid = Gid(0)
 
-    internal val children = ArrayList<EntityEncoder>()
-
     override fun beginStructure(desc: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeEncoder {
+        println("beginStructure: $desc")
         return this
     }
 
     override fun endStructure(desc: SerialDescriptor) {
-        gid = gids.next()
+        println("endStructure: $desc")
+        val ei = structuresStack.peek()
+        if (ei.type == StructureKind.CLASS && ei.gid == Gid(0)) {
+            ei.gid = gids.next()
+        }
+
+        if (structuresStack.size == 1) {
+            // end of graph root
+            entityInfos[entity] = structuresStack.pop()
+        }
     }
 
     override fun encodeBoolean(value: Boolean) {
@@ -131,19 +156,20 @@ class EntityEncoder(
     }
 
     override fun encodeBooleanElement(desc: SerialDescriptor, index: Int, value: Boolean) {
-        attrValues += schema(attrName(desc, index))!! eq value
+        addAttrValue(AttrValue(desc, index, value))
     }
 
     override fun encodeByteElement(desc: SerialDescriptor, index: Int, value: Byte) {
-        attrValues += schema(attrName(desc, index))!! eq value
+        addAttrValue(AttrValue(desc, index, value))
     }
 
     override fun encodeIntElement(desc: SerialDescriptor, index: Int, value: Int) {
-        attrValues += schema(attrName(desc, index))!! eq value
+        println("encodeIntElement: $desc $index $value")
+        addAttrValue(AttrValue(desc, index, value))
     }
 
     override fun encodeLongElement(desc: SerialDescriptor, index: Int, value: Long) {
-        attrValues += schema(attrName(desc, index))!! eq value
+        addAttrValue(AttrValue(desc, index, value))
     }
 
     override fun encodeNonSerializableElement(desc: SerialDescriptor, index: Int, value: Any) {
@@ -160,7 +186,7 @@ class EntityEncoder(
             if (value is Long && desc.getElementName(index) == "id") {
                 gid = Gid(value)
             } else {
-                attrValues += schema(attrName(desc, index))!! eq value
+                addAttrValue(AttrValue(desc, index, value))
             }
         }
     }
@@ -171,15 +197,52 @@ class EntityEncoder(
         serializer: SerializationStrategy<T>,
         value: T
     ) {
-        children.add(EntityEncoder(schema, context, gids))
-        serializer.serialize(children.last(), value)
-        attrValues += schema(attrName(desc, index))!! eq children.last().gid
+        val elementDescriptor = desc.getElementDescriptor(index)
+        println("encodeSerializableElement: $elementDescriptor")
+        if (value == null) {
+            return
+        }
+
+        when (elementDescriptor.kind) {
+            StructureKind.CLASS -> {
+                structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.CLASS))
+                entityInfos[structuresStack.peek().entity] = structuresStack.peek()
+                serializer.serialize(this, value)
+                val entityInfo =
+                    entityInfos.get(value as Any) ?: throw QBitException("Entity info not found after serialization")
+                structuresStack.pop()
+                addAttrValue(AttrValue(desc, index, entityInfo.gid))
+            }
+            StructureKind.LIST -> {
+                structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))
+                serializer.serialize(this, value)
+                val listAttrVals = structuresStack.pop()
+                structuresStack.peek().attrValues.addAll(listAttrVals.attrValues)
+            }
+            INT, UNIT, BOOLEAN, BYTE, SHORT, LONG, FLOAT, DOUBLE, CHAR, STRING -> {
+                structuresStack.peek().attrValues.add(QbitAttrValue<Any>(structuresStack.peek().attr!!, value))
+            }
+            else -> throw QBitException("Serialization of $elementDescriptor isn't supported")
+        }
     }
 
     override fun encodeStringElement(desc: SerialDescriptor, index: Int, value: String) {
+        println("encodeStringElement: $desc, $index, $value")
+        addAttrValue(AttrValue(desc, index, value))
+    }
+
+    private fun addAttrValue(attrVal: AttrValue<Attr<*>, *>) {
+        structuresStack.peek().attrValues.add(attrVal)
+    }
+
+    private fun AttrValue(desc: SerialDescriptor, index: Int, value: Any): AttrValue<Attr<Any>, Any> {
+        val attr = Attr(desc, index)
+        return attr eq value
+    }
+
+    private fun Attr(desc: SerialDescriptor, index: Int): Attr<*> {
         val attrName = attrName(desc, index)
-        val attr = schema(attrName) ?: throw QBitException("Could not find attribute with name $attrName")
-        attrValues += attr eq value
+        return schema(attrName) ?: throw QBitException("Could not find attribute with name $attrName")
     }
 
     override fun encodeFloatElement(desc: SerialDescriptor, index: Int, value: Float) {
@@ -201,7 +264,6 @@ class EntityEncoder(
     override fun encodeDoubleElement(desc: SerialDescriptor, index: Int, value: Double) {
         throw QBitException("qbit does not support Double data type")
     }
-
 
 }
 
