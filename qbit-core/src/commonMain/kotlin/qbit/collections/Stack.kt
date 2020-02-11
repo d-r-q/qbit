@@ -1,6 +1,6 @@
 package qbit.collections
 
-inline class Stack<T : Any>(private val arrayList: ArrayList<T> = ArrayList()) : Collection<T> {
+class Stack<T : Any>(private val arrayList: ArrayList<T> = ArrayList()) : Collection<T> {
 
     fun push(e: T) {
         arrayList.add(e)

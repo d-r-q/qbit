@@ -35,4 +35,4 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     EntityWithScalarList::class to EntityWithScalarList.serializer()
 )
 
-class SerializationFactorizationTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)
+//class SerializationFactorizationTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)

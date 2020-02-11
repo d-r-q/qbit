@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 val kotlin_serialization_version: String by rootProject.extra
 val kotlin_io_version: String by rootProject.extra
 
