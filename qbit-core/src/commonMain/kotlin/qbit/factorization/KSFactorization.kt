@@ -205,13 +205,17 @@ class EntityEncoder(
 
         when (elementDescriptor.kind) {
             StructureKind.CLASS -> {
-                structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.CLASS))
+                val attr = when (structuresStack.peek().type) {
+                    StructureKind.LIST -> structuresStack.peek().attr!!
+                    else -> Attr(desc, index)
+                }
+                structuresStack.push(EntityInfo(value, attr, type = StructureKind.CLASS))
                 entityInfos[structuresStack.peek().entity] = structuresStack.peek()
                 serializer.serialize(this, value)
                 val entityInfo =
                     entityInfos.get(value as Any) ?: throw QBitException("Entity info not found after serialization")
                 structuresStack.pop()
-                addAttrValue(AttrValue(desc, index, entityInfo.gid))
+                addAttrValue(attr eq entityInfo.gid.value())
             }
             StructureKind.LIST -> {
                 structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))

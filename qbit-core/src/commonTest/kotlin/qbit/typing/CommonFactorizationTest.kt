@@ -10,6 +10,7 @@ import qbit.factorization.Destruct
 import qbit.factorization.attrName
 import qbit.test.model.TheSimplestEntity
 import qbit.test.model.EntityWithRef
+import qbit.test.model.EntityWithRefList
 import qbit.test.model.EntityWithScalarList
 import kotlin.js.JsName
 import kotlin.test.BeforeTest
@@ -49,7 +50,15 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             ".qbit.test.model.EntityWithScalarList/scalars",
             QInt.code,
             unique = false,
-            list = false
+            list = true
+        ),
+
+        ".qbit.test.model.EntityWithRefList/refs" to Attr<List<TheSimplestEntity>>(
+            gids.next(),
+            ".qbit.test.model.EntityWithRefList/refs",
+            QRef.code,
+            unique = false,
+            list = true
         )
     )
 
@@ -110,7 +119,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
 
         assertEquals(".qbit.test.model.EntityWithRef/ref", root[0].attr)
 
-        assertEquals(root[0].value, referredEntity[0].gid)
+        assertEquals(root[0].value, referredEntity[0].gid.value())
 
         assertEquals(".qbit.test.model.TheSimplestEntity/scalar", referredEntity[0].attr)
         assertEquals("addrValue", referredEntity[0].value)
@@ -135,6 +144,33 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
 
         // And eavs has correct attr
         assertEquals(".qbit.test.model.EntityWithScalarList/scalars", entityEavs[0].attr)
+    }
+
+    @JsName("Test_entity_with_refs_list_factorization")
+    @Test
+    fun `Test entity with refs list factorization`() {
+        // Given an entity with refs list
+        val firstReferred = TheSimplestEntity(null, "0")
+        val secondReferred = TheSimplestEntity(null, "1")
+        val root = EntityWithRefList(null, listOf(firstReferred, secondReferred))
+
+        // When it factorized
+        val factorization = destruct(root, testSchema::get, gids)
+
+        // Then it contains eav for each item in the list in the same order and for each scalar value
+        assertEquals(4, factorization.size)
+        val rootEavs = factorization.entityFacts[root]!!
+        val firstReferredEavs = factorization.entityFacts[firstReferred]!!
+        val secondReferredEavs = factorization.entityFacts[secondReferred]!!
+
+        assertEquals(Gid(0, 1).value(), rootEavs[0].value)
+        assertEquals(Gid(0, 2).value(), rootEavs[1].value)
+        assertEquals("0", firstReferredEavs[0].value)
+        assertEquals("1", secondReferredEavs[0].value)
+
+        // And eavs has correct attr
+        assertEquals(".qbit.test.model.EntityWithRefList/refs", rootEavs[0].attr)
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", firstReferredEavs[0].attr)
     }
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")

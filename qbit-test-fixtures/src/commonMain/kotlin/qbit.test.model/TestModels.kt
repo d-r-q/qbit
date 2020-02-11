@@ -15,6 +15,9 @@ data class EntityWithRef(
 data class EntityWithScalarList(val id: Long?, val scalars: List<Int>)
 
 @Serializable
+data class EntityWithRefList(val id: Long?, val refs: List<TheSimplestEntity>)
+
+@Serializable
 data class MUser(
     val id: Long? = null,
     val login: String,
