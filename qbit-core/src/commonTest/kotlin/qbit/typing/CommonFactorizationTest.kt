@@ -13,10 +13,7 @@ import qbit.test.model.EntityWithRef
 import qbit.test.model.EntityWithRefList
 import qbit.test.model.EntityWithScalarList
 import kotlin.js.JsName
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.*
 
 
 abstract class CommonFactorizationTest(val destruct: Destruct) {
@@ -119,10 +116,24 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
 
         assertEquals(".qbit.test.model.EntityWithRef/ref", root[0].attr)
 
-        assertEquals(root[0].value, referredEntity[0].gid.value())
+        assertEquals(root[0].value, referredEntity[0].gid)
 
         assertEquals(".qbit.test.model.TheSimplestEntity/scalar", referredEntity[0].attr)
         assertEquals("addrValue", referredEntity[0].value)
+    }
+
+    @JsName("Test_that_factorization_of_ref_produces_eav_with_value_type_==_Gid")
+    @Test
+    fun `Test that factorization of ref produces eav with value type == Gid`() {
+        // Given entity graph with two entities
+        val entity = EntityWithRef(null, TheSimplestEntity(null, "addrValue"))
+
+        // When it factorized
+        val factorization = destruct(entity, testSchema::get, gids)
+
+        // Then factorization of root entity contains eav with value type == Gid
+        val root = factorization.entityFacts[entity]!!
+        assertTrue(root[0].value is Gid, "Value of type ${Gid::class} is expected, but got value of type ${root[0].value::class}")
     }
 
     @JsName("Test_entity_with_scalars_list_factorization")
@@ -163,8 +174,8 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val firstReferredEavs = factorization.entityFacts[firstReferred]!!
         val secondReferredEavs = factorization.entityFacts[secondReferred]!!
 
-        assertEquals(Gid(0, 1).value(), rootEavs[0].value)
-        assertEquals(Gid(0, 2).value(), rootEavs[1].value)
+        assertEquals(Gid(0, 1), rootEavs[0].value)
+        assertEquals(Gid(0, 2), rootEavs[1].value)
         assertEquals("0", firstReferredEavs[0].value)
         assertEquals("1", secondReferredEavs[0].value)
 

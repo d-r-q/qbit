@@ -215,7 +215,7 @@ class EntityEncoder(
                 val entityInfo =
                     entityInfos.get(value as Any) ?: throw QBitException("Entity info not found after serialization")
                 structuresStack.pop()
-                addAttrValue(attr eq entityInfo.gid.value())
+                addAttrValue(attr eq entityInfo.gid)
             }
             StructureKind.LIST -> {
                 structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))
