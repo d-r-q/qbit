@@ -182,11 +182,12 @@ class EntityEncoder(
         serializer: SerializationStrategy<T>,
         value: T?
     ) {
+        println("encodeNullableSerializableElement: $desc $index $value")
         if (value != null) {
             if (value is Long && desc.getElementName(index) == "id") {
                 gid = Gid(value)
             } else {
-                addAttrValue(AttrValue(desc, index, value))
+                encodeSerializableElement(desc, index, serializer, value)
             }
         }
     }
