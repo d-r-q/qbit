@@ -1,5 +1,6 @@
 package qbit.typing
 
+import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
@@ -8,10 +9,7 @@ import qbit.api.model.QRef
 import qbit.api.model.QString
 import qbit.factorization.Destruct
 import qbit.factorization.attrName
-import qbit.test.model.TheSimplestEntity
-import qbit.test.model.EntityWithRef
-import qbit.test.model.EntityWithRefList
-import qbit.test.model.EntityWithScalarList
+import qbit.test.model.*
 import kotlin.js.JsName
 import kotlin.test.*
 
@@ -53,6 +51,14 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         ".qbit.test.model.EntityWithRefList/refs" to Attr<List<TheSimplestEntity>>(
             gids.next(),
             ".qbit.test.model.EntityWithRefList/refs",
+            QRef.code,
+            unique = false,
+            list = true
+        ),
+
+        ".qbit.test.model.ListOfNullablesHolder/nullables" to Attr<List<ListOfNullables>>(
+            gids.next(),
+            ".qbit.test.model.ListOfNullablesHolder/nullables",
             QRef.code,
             unique = false,
             list = true
@@ -184,10 +190,28 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals(".qbit.test.model.TheSimplestEntity/scalar", firstReferredEavs[0].attr)
     }
 
+
+    @JsName("destruction_of_graph_with_entity_with_list_of_nullable_elements_in_props_should_fail")
+    @Test
+    fun `destruction of graph with entity with list of nullable elements in props should fail`() {
+        val ex = assertFailsWith<QBitException> {
+            destruct(
+                ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), testSchema::get, gids
+            )
+        }
+        assertEquals("List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)", ex.message)
+    }
+
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")
     @Test
     fun `Test SerialDescriptor to attr name conversion`() {
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", attrName(TheSimplestEntity.serializer().descriptor, 1))
+        assertEquals(
+            ".qbit.test.model.TheSimplestEntity/scalar",
+            attrName(TheSimplestEntity.serializer().descriptor, 1)
+        )
     }
+
+    // todo: list of same entities
+    // todo: entity tree
 
 }

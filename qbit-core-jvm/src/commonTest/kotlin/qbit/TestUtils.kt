@@ -18,6 +18,7 @@ import qbit.model.impl.DetachedEntity
 import qbit.model.impl.QStoredEntity
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
+import qbit.test.model.Country
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals

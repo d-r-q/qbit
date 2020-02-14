@@ -12,6 +12,7 @@ import qbit.serialization.NodeData
 import qbit.serialization.NodesStorage
 import qbit.serialization.Root
 import qbit.storage.MemStorage
+import qbit.test.model.IntEntity
 import kotlin.test.Test
 
 

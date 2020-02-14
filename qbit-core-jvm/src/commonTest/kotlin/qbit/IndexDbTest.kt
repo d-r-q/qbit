@@ -22,6 +22,7 @@ import qbit.serialization.Leaf
 import qbit.serialization.NodeData
 import qbit.serialization.NodeVal
 import qbit.serialization.Root
+import qbit.test.model.Scientist
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 

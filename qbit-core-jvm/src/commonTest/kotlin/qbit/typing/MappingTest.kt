@@ -13,24 +13,11 @@ import qbit.index.IndexDb
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.schema.schema
-import qbit.test.model.TheSimplestEntity
-import qbit.test.model.MUser
+import qbit.test.model.*
 import kotlin.test.*
 
-data class ListOfNullablesHolder(val id: Long?, val nullables: ListOfNullables)
 
 abstract class MappingTest(val destruct: Destruct) {
-
-    val gids = Gid(0, 0).nextGids()
-
-    val testSchema = schema {
-        entity(MUser::class) {
-            uniqueString(it::login)
-        }
-        entity(TheSimplestEntity::class)
-    }
-        .map { it.name to it}
-        .toMap()
 
     @Test
     fun `Test simple entity mapping`() {
@@ -144,37 +131,6 @@ abstract class MappingTest(val destruct: Destruct) {
         assertFailsWith<IllegalArgumentException> {
             findGidProp(objWithouId)
         }
-    }
-
-    @Test
-    fun `destruction of entity with list of nullable elements in props should fail`() {
-        val gids = Gid(0, 0).nextGids()
-
-        val testSchema = schema {
-            entity(ListOfNullables::class)
-        }
-
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val ex = assertFailsWith<QBitException> {
-            destruct(ListOfNullables(null, listOf(null), listOf(null)), db::attr, gids)
-        }
-        assertEquals("List of nullable elements is not supported. Properties: ListOfNullables.(lst,refLst)", ex.message)
-    }
-
-    @Test
-    fun `destruction of graph with entity with list of nullable elements in props should fail`() {
-        val gids = Gid(0, 0).nextGids()
-
-        val testSchema = schema {
-            entity(ListOfNullablesHolder::class)
-            entity(ListOfNullables::class)
-        }
-
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val ex = assertFailsWith<QBitException> {
-            destruct(ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), db::attr, gids)
-        }
-        assertEquals("List of nullable elements is not supported. Properties: ListOfNullables.(lst,refLst)", ex.message)
     }
 
     @Test

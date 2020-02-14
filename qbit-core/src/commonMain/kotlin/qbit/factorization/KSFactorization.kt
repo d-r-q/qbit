@@ -86,12 +86,13 @@ class EntityEncoder(
     internal var gid: Gid = Gid(0)
 
     override fun beginStructure(desc: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeEncoder {
-        println("beginStructure: $desc")
+        validateEntity(desc)
+        //println("beginStructure: $desc")
         return this
     }
 
     override fun endStructure(desc: SerialDescriptor) {
-        println("endStructure: $desc")
+        //println("endStructure: $desc")
         val ei = structuresStack.peek()
         if (ei.type == StructureKind.CLASS && ei.gid == Gid(0)) {
             ei.gid = gids.next()
@@ -199,7 +200,7 @@ class EntityEncoder(
         value: T
     ) {
         val elementDescriptor = desc.getElementDescriptor(index)
-        println("encodeSerializableElement: $elementDescriptor")
+        //println("encodeSerializableElement: $elementDescriptor")
         if (value == null) {
             return
         }
@@ -228,6 +229,24 @@ class EntityEncoder(
                 structuresStack.peek().attrValues.add(QbitAttrValue<Any>(structuresStack.peek().attr!!, value))
             }
             else -> throw QBitException("Serialization of $elementDescriptor isn't supported")
+        }
+    }
+
+    private fun validateEntity(desc: SerialDescriptor) {
+        val nullableListProps =
+            desc.elementDescriptors()
+                .withIndex()
+                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                .map { it.second }
+        if (nullableListProps.isNotEmpty()) {
+            throw QBitException(
+                "List of nullable elements is not supported. Properties: ${desc.name}.${nullableListProps.map { it }.joinToString(
+                    ",",
+                    "(",
+                    ")"
+                )}"
+            )
         }
     }
 

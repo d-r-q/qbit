@@ -10,6 +10,7 @@ import qbit.reflection.findMutableProperties
 import qbit.reflection.findPrimaryConstructor
 import qbit.reflection.propertyFor
 import qbit.reflection.setableProps
+import qbit.test.model.Scientist
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
