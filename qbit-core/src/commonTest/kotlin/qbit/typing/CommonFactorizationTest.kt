@@ -122,9 +122,9 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals("addrValue", referredEntity[0].value)
     }
 
-    @JsName("Test_that_factorization_of_ref_produces_eav_with_value_type_==_Gid")
+    @JsName("Test_that_factorization_of_ref_produces_eav_with_value_type_is_Gid")
     @Test
-    fun `Test that factorization of ref produces eav with value type == Gid`() {
+    fun `Test that factorization of ref produces eav with value type is Gid`() {
         // Given entity graph with two entities
         val entity = EntityWithRef(null, TheSimplestEntity(null, "addrValue"))
 
