@@ -3,10 +3,7 @@ package qbit.typing
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.Attr
-import qbit.api.model.QInt
-import qbit.api.model.QRef
-import qbit.api.model.QString
+import qbit.api.model.*
 import qbit.factorization.Destruct
 import qbit.factorization.attrName
 import qbit.test.model.*
@@ -62,6 +59,14 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             QRef.code,
             unique = false,
             list = true
+        ),
+
+        ".qbit.test.model.NullableList/placeholder" to Attr<Long>(
+            gids.next(),
+            ".qbit.test.model.NullableList/placeholder",
+            QLong.code,
+            unique = false,
+            list = false
         )
     )
 
@@ -201,6 +206,14 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         }
         assertEquals("List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)", ex.message)
     }
+
+    @JsName("Test_destruction_of_entity_with_null_list")
+    @Test
+    fun `Test destruction of entity with null list`() {
+        val facts = destruct(NullableList(null, null, 0), testSchema::get, gids)
+        assertEquals(1, facts.size, "Only fact for placeholder should be generated")
+    }
+
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")
     @Test

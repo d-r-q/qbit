@@ -147,19 +147,6 @@ abstract class MappingTest(val destruct: Destruct) {
     }
 
     @Test
-    fun `Test destruction of entity with null list`() {
-        val gids = Gid(0, 0).nextGids()
-
-        val testSchema = schema {
-            entity(NullableList::class)
-        }
-
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val facts = destruct(NullableList(null, null, 0), db::attr, gids)
-        assertEquals(1, facts.size, "Only fact for placeholder should be generated")
-    }
-
-    @Test
     fun `Test bomb with nulls deconstruction`() {
         val gids = Gid(0, 0).nextGids()
 

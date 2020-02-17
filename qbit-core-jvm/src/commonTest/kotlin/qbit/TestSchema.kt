@@ -11,10 +11,7 @@ import qbit.api.gid.nextGids
 import qbit.storage.MemStorage
 import qbit.spi.Storage
 import qbit.schema.schema
-import qbit.test.model.Country
-import qbit.test.model.IntEntity
-import qbit.test.model.ListOfNullables
-import qbit.test.model.Scientist
+import qbit.test.model.*
 
 
 fun Scientist.toFacts() =
@@ -181,8 +178,6 @@ data class Bomb(val id: Long?,
 data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
 
 data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
-
-data class NullableList(val id: Long?, val lst: List<Byte>?, val placeholder: Long)
 
 data class NullableRef(val id: Long?, val ref: IntEntity?, val placeholder: Long)
 
