@@ -189,7 +189,7 @@ class FunTest {
         val ex = assertFailsWith<QBitException> {
             conn.persist(rg)
         }
-        assertTrue(ex.message!!.contains("Uniqueness violation for attr (.qbit.Scientist/externalId, 100), entities"))
+        assertTrue(ex.message!!.contains("Uniqueness violation for attr (.qbit.test.model.Scientist/externalId, 100), entities"), "Message ${ex.message} doesn't contains expected explanation")
     }
 
     @Ignore
