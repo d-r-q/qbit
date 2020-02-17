@@ -34,4 +34,4 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     NullableList::class to NullableList.serializer()
 )
 
-//class SerializationFactorizationTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)
+//class SerializationMappingTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)

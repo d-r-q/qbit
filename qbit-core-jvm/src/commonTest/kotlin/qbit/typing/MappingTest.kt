@@ -70,13 +70,13 @@ abstract class MappingTest(val destruct: Destruct) {
 
         val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
 
-        val addr = TheSimplestEntity(null, "addr")
+        val entity = TheSimplestEntity(null, "addr")
         val user = MUser(
                 login = "login",
                 strs = listOf("str1", "str2"),
-                theSimplestEntity = addr,
-                optTheSimplestEntity = addr,
-                theSimplestEntities = listOf(addr)
+                theSimplestEntity = entity,
+                optTheSimplestEntity = entity,
+                theSimplestEntities = listOf(entity)
         )
         val facts = destruct(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))

@@ -67,6 +67,46 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             QLong.code,
             unique = false,
             list = false
+        ),
+
+        ".qbit.test.model.MUser/login" to Attr<String>(
+            gids.next(),
+            ".qbit.test.model.MUser/login",
+            QString.code,
+            unique = true,
+            list = false
+        ),
+
+        ".qbit.test.model.MUser/strs" to Attr<List<String>>(
+            gids.next(),
+            ".qbit.test.model.MUser/strs",
+            QString.code,
+            unique = false,
+            list = true
+        ),
+
+        ".qbit.test.model.MUser/theSimplestEntity" to Attr<TheSimplestEntity>(
+            gids.next(),
+            ".qbit.test.model.MUser/theSimplestEntity",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.MUser/optTheSimplestEntity" to Attr<TheSimplestEntity>(
+            gids.next(),
+            ".qbit.test.model.MUser/optTheSimplestEntity",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.MUser/theSimplestEntities" to Attr<List<TheSimplestEntity>>(
+            gids.next(),
+            ".qbit.test.model.MUser/theSimplestEntities",
+            QRef.code,
+            unique = false,
+            list = true
         )
     )
 
@@ -196,9 +236,9 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
     }
 
 
-    @JsName("destruction_of_graph_with_entity_with_list_of_nullable_elements_in_props_should_fail")
+    @JsName("Destruction_of_graph_with_entity_with_list_of_nullable_elements_in_props_should_fail")
     @Test
-    fun `destruction of graph with entity with list of nullable elements in props should fail`() {
+    fun `Destruction of graph with entity with list of nullable elements in props should fail`() {
         val ex = assertFailsWith<QBitException> {
             destruct(
                 ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), testSchema::get, gids
@@ -214,6 +254,27 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
     }
 
+    @JsName("Test_that_destruction_of_entity_graph_where_the_same_not_persisted_entity_occurs_multiple_times_produces_factorization_that_refers_to_the_entity_using_the_same_Gid")
+    @Test
+    fun `Test that destruction of entity graph where the same not persisted entity occurs multiple times produces factorization that refers to the entity using the same Gid`() {
+        // Given no persisted entity and entity that refers to the entity using several references
+        val theEntity = TheSimplestEntity(null, "theEntity")
+        val referringEntity = EntityWithRefList(null, listOf(theEntity, theEntity))
+
+        // When referencing entity is factorized
+        val factorization = destruct(referringEntity, testSchema::get, gids)
+
+        // Then factorization of referencing entity contains two facts with the same value
+        val referrencingFacts = factorization.entityFacts[referringEntity]!!
+        assertTrue(referrencingFacts.size == 2, "Expected")
+        assertEquals(referrencingFacts[0].value, referrencingFacts[1].value)
+
+        // And the entity has single eav
+        val theEntityFacts = factorization.entityFacts[theEntity]!!
+        assertTrue(theEntityFacts.size == 1, "Expected single fact but got $theEntityFacts")
+        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", theEntityFacts[0].attr)
+        assertEquals("theEntity", theEntityFacts[0].value)
+    }
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")
     @Test

@@ -99,8 +99,9 @@ class Typing<T : Any>(internal val root: StoredEntity, internal val query: Query
                         }
                     }
                     else -> {
+                        val referedEntity = entities[e[attr] as Gid] ?: throw QBitException("There is no entity for gid: ${e[attr]}, attr: $attr")
                         @Suppress("UNCHECKED_CAST")
-                        val instance = instantiate(entities[e[attr] as Gid]!!, param.type.classifier as KClass<Any>)
+                        val instance = instantiate(referedEntity, param.type.classifier as KClass<Any>)
                         param to instance
                     }
                 }
