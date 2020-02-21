@@ -23,8 +23,6 @@ data class City(val id: Long?, val name: String, val region: Region)
 
 data class Paper(val id: Long?, val name: String, val editor: Scientist?)
 
-data class ResearchGroup(val id: Long?, val members: List<Scientist>)
-
 data class Bomb(val id: Long?,
 
                 val bool: Boolean,

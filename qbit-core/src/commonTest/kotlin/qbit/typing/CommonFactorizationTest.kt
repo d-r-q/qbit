@@ -69,6 +69,8 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             list = false
         ),
 
+        // MUser
+
         ".qbit.test.model.MUser/login" to Attr<String>(
             gids.next(),
             ".qbit.test.model.MUser/login",
@@ -107,6 +109,84 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             QRef.code,
             unique = false,
             list = true
+        ),
+
+        // Research group
+
+        ".qbit.test.model.ResearchGroup/members" to Attr<List<Scientist>>(
+            gids.next(),
+            ".qbit.test.model.ResearchGroup/members",
+            QRef.code,
+            unique = false,
+            list = true
+        ),
+
+        // Scientist
+
+        ".qbit.test.model.Scientist/externalId" to Attr<Int>(
+            gids.next(),
+            ".qbit.test.model.Scientist/externalId",
+            QRef.code,
+            unique = true,
+            list = false
+        ),
+
+        ".qbit.test.model.Scientist/name" to Attr<String>(
+            gids.next(),
+            ".qbit.test.model.Scientist/name",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.Scientist/name" to Attr<String>(
+            gids.next(),
+            ".qbit.test.model.Scientist/name",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.Scientist/nicks" to Attr<List<String>>(
+            gids.next(),
+            ".qbit.test.model.Scientist/nicks",
+            QRef.code,
+            unique = false,
+            list = true
+        ),
+
+        ".qbit.test.model.Scientist/country" to Attr<Country>(
+            gids.next(),
+            ".qbit.test.model.Scientist/country",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.Scientist/reviewer" to Attr<Scientist>(
+            gids.next(),
+            ".qbit.test.model.Scientist/reviewer",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        // Country
+
+        ".qbit.test.model.Country/name" to Attr<String>(
+            gids.next(),
+            ".qbit.test.model.Country/name",
+            QRef.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.Country/population" to Attr<Int>(
+            gids.next(),
+            ".qbit.test.model.Country/population",
+            QRef.code,
+            unique = false,
+            list = false
         )
     )
 
@@ -143,6 +223,24 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals(Gid(1), facts[0].gid)
         assertEquals(".qbit.test.model.TheSimplestEntity/scalar", facts[0].attr)
         assertEquals("addrValue", facts[0].value)
+    }
+
+    @JsName("Test_non_root_persisted_entity_factorization")
+    @Test
+    fun `Test non root persisted entity factorization`() {
+        // Given persisted entity referenced by not persisted root
+        val theEntityGid = gids.next()
+        val peristedEntity = TheSimplestEntity(theEntityGid.value(), "Persisted entity")
+        val ref = EntityWithRef(null, peristedEntity)
+
+        // When it factorized
+        val factorization = destruct(ref, testSchema::get, gids)
+
+        // Then eavs for the entity has the same gid
+        val theEntityEavs = factorization.entityFacts[peristedEntity]!!
+        assertTrue(
+            theEntityEavs.all { it.gid == theEntityGid },
+            "Expected gid = $theEntityGid, actual gids = ${theEntityEavs.map { it.gid }}")
     }
 
     @JsName("Test_entity_with_ref_factorization")
@@ -276,6 +374,52 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals("theEntity", theEntityFacts[0].value)
     }
 
+    @JsName("Test_destruction_of_graph_with_different_objects_for_the_same_entity_state")
+    @Test
+    fun `Test destruction of graph with different objects for the same entity state`() {
+        // Given entity graph, that contains two different object for same gid with same state
+        val theScientistGid = gids.next()
+        val theCountryGid = gids.next()
+        val s1 = Scientist(
+            theScientistGid.value(),
+            1,
+            "Name",
+            emptyList(),
+            Country(theCountryGid.value(), "Country", null),
+            null
+        )
+        val s2 = Scientist(
+            theScientistGid.value(),
+            1,
+            "Name",
+            emptyList(),
+            Country(theCountryGid.value(), "Country", null),
+            null
+        )
+        val rg = ResearchGroup(null, listOf(s1, s2))
+
+        val factorization = destruct(rg, testSchema::get, gids)
+
+        // When it factorized
+        val factorizationGids = factorization.map { it.gid }.toSet()
+
+        // todo: remove manual deduplication, when it will be moved into EntityGraphFactorization
+        // Then factorization contains only single set of the entity's eavs
+        assertEquals(
+            3,
+            factorizationGids.size,
+            "Expected facts for 3 entities (group, scientist and country), but got ${factorizationGids.size}"
+        )
+
+        val theScientistNameEavs = factorization.distinct().filter { it.gid == theScientistGid && it.attr == ".qbit.test.model.Scientist/name" }
+
+        assertEquals(
+            1,
+            theScientistNameEavs.size,
+            "Expected single eav for the scientist name, but got ${theScientistNameEavs.size}"
+        )
+    }
+
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")
     @Test
     fun `Test SerialDescriptor to attr name conversion`() {
@@ -285,7 +429,6 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         )
     }
 
-    // todo: list of same entities
     // todo: entity tree
 
 }

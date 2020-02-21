@@ -73,3 +73,7 @@ data class Scientist(val id: Long?, val externalId: Int, val name: String, val n
         return result
     }
 }
+
+@Serializable
+data class ResearchGroup(val id: Long?, val members: List<Scientist>)
+

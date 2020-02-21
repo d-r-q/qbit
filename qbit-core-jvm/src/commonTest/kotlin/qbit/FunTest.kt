@@ -13,10 +13,7 @@ import qbit.index.InternalDb
 import qbit.serialization.NodeRef
 import qbit.serialization.NodesStorage
 import qbit.storage.MemStorage
-import qbit.test.model.Country
-import qbit.test.model.IntEntity
-import qbit.test.model.NullableList
-import qbit.test.model.Scientist
+import qbit.test.model.*
 import kotlin.test.*
 
 

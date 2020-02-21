@@ -83,7 +83,7 @@ class EntityEncoder(
 
     internal val entityInfos = IdentityMap<Any, EntityInfo>()
 
-    internal var gid: Gid = NullGid
+    internal val gidEntityInfos = HashMap<Gid, MutableList<EntityInfo>>()
 
     override fun beginStructure(desc: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeEncoder {
         validateEntity(desc)
@@ -96,6 +96,9 @@ class EntityEncoder(
         val ei = structuresStack.peek()
         if (ei.type == StructureKind.CLASS && ei.gid == NullGid) {
             ei.gid = gids.next()
+        }
+        if (ei.gid !in gidEntityInfos) {
+            gidEntityInfos.getOrPut(ei.gid, { ArrayList() }) += ei
         }
 
         if (structuresStack.size == 1) {
@@ -186,7 +189,7 @@ class EntityEncoder(
         println("encodeNullableSerializableElement: $desc $index $value")
         if (value != null) {
             if (value is Long && desc.getElementName(index) == "id") {
-                gid = Gid(value)
+                structuresStack.peek().gid = Gid(value)
             } else {
                 encodeSerializableElement(desc, index, serializer, value)
             }
@@ -213,9 +216,9 @@ class EntityEncoder(
                 }
                 val entityInfo = if ((value as Any) !in entityInfos) {
                     val entityInfo = EntityInfo(value, attr, type = StructureKind.CLASS)
-                    entityInfos[value] = entityInfo
                     structuresStack.push(entityInfo)
                     serializer.serialize(this, value)
+                    entityInfos[value] = gidEntityInfos[entityInfo.gid]?.firstOrNull() ?: throw QBitException("Could not find entity info for gid ${entityInfo.gid}")
                     structuresStack.pop()
                 } else {
                     entityInfos[value] ?: throw QBitException("Entity info for $value not found after serialization")

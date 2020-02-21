@@ -235,20 +235,5 @@ abstract class MappingTest(val destruct: Destruct) {
         assertEquals(QString.list().code, attrs[35].type)
         assertEquals(QString.list().code, attrs[36].type)
     }
-
-    @Test
-    fun `Test destruction of graph with different objects for the same entity state`() {
-        val gids = Gid(0, 2).nextGids()
-        val testSchema = schema {
-            entity(Country::class)
-            entity(Scientist::class)
-            entity(ResearchGroup::class)
-        }
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val s1 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
-        val s2 = Scientist(0, 1, "Name", emptyList(), Country(1, "Country", null), null)
-        val rg = ResearchGroup(null, listOf(s1, s2))
-        assertEquals(1, destruct(rg, db::attr, gids).filter { it.gid == Gid(0) && it.attr == Scientists.extId.name }.size)
-    }
 }
 

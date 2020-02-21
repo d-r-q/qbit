@@ -11,6 +11,7 @@ import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.test.model.Country
 import qbit.test.model.NullableList
+import qbit.test.model.ResearchGroup
 import qbit.test.model.Scientist
 import kotlin.test.*
 
