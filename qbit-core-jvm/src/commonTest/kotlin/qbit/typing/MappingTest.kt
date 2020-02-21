@@ -174,6 +174,8 @@ abstract class MappingTest(val destruct: Destruct) {
         assertEquals(100, facts.size)
     }
 
+    // Support of self-refefencing entitys is under question now
+    @Ignore
     @Test
     fun `Test destruction of self-referencing entity`() {
         val gids = Gid(0, 0).nextGids()
