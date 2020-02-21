@@ -172,8 +172,6 @@ data class Bomb(val id: Long?,
 }
 
 
-@Serializable
-data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
 
 data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
 

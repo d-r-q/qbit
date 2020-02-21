@@ -187,6 +187,23 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             QRef.code,
             unique = false,
             list = false
+        ),
+
+        // Nullable scalar
+        ".qbit.test.model.NullableScalar/scalar" to Attr<Byte>(
+            gids.next(),
+            ".qbit.test.model.NullableScalar/scalar",
+            QByte.code,
+            unique = false,
+            list = false
+        ),
+
+        ".qbit.test.model.NullableScalar/placeholder" to Attr<Long>(
+            gids.next(),
+            ".qbit.test.model.NullableScalar/placeholder",
+            QLong.code,
+            unique = false,
+            list = false
         )
     )
 
@@ -418,6 +435,21 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             theScientistNameEavs.size,
             "Expected single eav for the scientist name, but got ${theScientistNameEavs.size}"
         )
+    }
+
+    @JsName("Test_destruction_of_entity_with_null_scalar")
+    @Test
+    fun `Test destruction of entity with null scalar`() {
+        // Given an entity with null for nullable scalar attribute
+        val entityWithNullScalar = NullableScalar(null, null, 0)
+
+        // When it factorized
+        val facts = destruct(entityWithNullScalar, testSchema::get, gids)
+
+        // Than its factorzation contains single eav for placeholder
+        assertEquals(1, facts.size, "Only fact for placeholder should be generated")
+        assertEquals(".qbit.test.model.NullableScalar/placeholder", facts.first().attr)
+        assertEquals(0L, facts.first().value)
     }
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")

@@ -1,18 +1,14 @@
 package qbit.typing
 
 import qbit.*
-import qbit.api.model.Attr
 import qbit.api.QBitException
-import qbit.model.StoredEntity
 import qbit.api.gid.Gid
-import qbit.AttachedEntity
 import qbit.api.gid.nextGids
+import qbit.api.model.Attr
+import qbit.model.StoredEntity
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
-import qbit.test.model.Country
-import qbit.test.model.NullableList
-import qbit.test.model.ResearchGroup
-import qbit.test.model.Scientist
+import qbit.test.model.*
 import kotlin.test.*
 
 

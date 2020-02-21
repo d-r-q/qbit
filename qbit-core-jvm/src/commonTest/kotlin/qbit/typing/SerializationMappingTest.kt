@@ -1,8 +1,10 @@
 package qbit.typing
 
-import kotlinx.serialization.*
+import kotlinx.serialization.Decoder
+import kotlinx.serialization.Encoder
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialDescriptor
 import kotlinx.serialization.modules.serializersModuleOf
-import qbit.NullableScalar
 import qbit.api.model.Attr
 import qbit.factorization.KSFactorization
 import qbit.test.model.*

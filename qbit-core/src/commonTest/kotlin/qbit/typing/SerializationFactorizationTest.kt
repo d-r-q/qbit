@@ -16,7 +16,8 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     NullableList::class to NullableList.serializer(),
     MUser::class to MUser.serializer(),
     ResearchGroup::class to ResearchGroup.serializer(),
-    Scientist::class to Scientist.serializer()
+    Scientist::class to Scientist.serializer(),
+    NullableScalar::class to NullableScalar.serializer()
 )
 
 class SerializationFactorizationTest :

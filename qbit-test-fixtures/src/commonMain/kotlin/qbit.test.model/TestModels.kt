@@ -30,6 +30,9 @@ data class ListOfNullablesHolder(val id: Long?, val nullables: ListOfNullables)
 data class NullableList(val id: Long?, val lst: List<Byte>?, val placeholder: Long)
 
 @Serializable
+data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
+
+@Serializable
 data class MUser(
     val id: Long? = null,
     val login: String,
