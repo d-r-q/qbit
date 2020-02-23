@@ -38,4 +38,4 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     Scientist::class to Scientist.serializer()
 )
 
-//class SerializationMappingTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)
+class SerializationMappingTest : MappingTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)

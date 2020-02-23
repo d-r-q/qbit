@@ -1,5 +1,6 @@
 package qbit.storage
 
+import qbit.assertArrayEquals
 import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
@@ -49,9 +50,3 @@ abstract class StorageTest {
 
 }
 
-
-fun assertArrayEquals(arr1: ByteArray?, arr2: ByteArray?) {
-    arr1!!; arr2!!
-    assertEquals(arr1.size, arr2.size)
-    (arr1 zip arr2).forEach { assertEquals(it.first, it.second) }
-}

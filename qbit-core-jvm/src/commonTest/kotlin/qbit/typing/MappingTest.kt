@@ -133,34 +133,6 @@ abstract class MappingTest(val destruct: Destruct) {
         }
     }
 
-    @Test
-    fun `Test bomb with nulls deconstruction`() {
-        val gids = Gid(0, 0).nextGids()
-
-        val testSchema = schema {
-            entity(Country::class)
-            entity(Bomb::class)
-        }
-
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val facts = destruct(createBombWithNulls(), db::attr, gids)
-        assertEquals(41, facts.size)
-    }
-
-    @Test
-    fun `Test bomb without nulls deconstruction`() {
-        val gids = Gid(0, 0).nextGids()
-
-        val testSchema = schema {
-            entity(Country::class)
-            entity(Bomb::class)
-        }
-
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
-        val facts = destruct(createBombWithoutNulls(), db::attr, gids)
-        assertEquals(100, facts.size)
-    }
-
     // Support of self-refefencing entitys is under question now
     @Ignore
     @Test

@@ -17,12 +17,16 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib-common"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$kotlin_serialization_version")
+
+                api(kotlin("test-common"))
+                api(kotlin("test-annotations-common"))
             }
         }
         val jvmMain by getting {
             dependencies {
                 api(kotlin("stdlib-jdk8"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version")
+                implementation(kotlin("test-junit"))
             }
         }
         val linuxMain by getting {
@@ -35,6 +39,7 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib-js"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$kotlin_serialization_version")
+                implementation(kotlin("test-js"))
             }
         }
     }

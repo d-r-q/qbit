@@ -4,6 +4,9 @@ import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
+import qbit.assertArrayEquals
+import qbit.createBombWithNulls
+import qbit.createBombWithoutNulls
 import qbit.factorization.Destruct
 import qbit.factorization.attrName
 import qbit.test.model.*
@@ -11,7 +14,7 @@ import kotlin.js.JsName
 import kotlin.test.*
 
 
-abstract class CommonFactorizationTest(val destruct: Destruct) {
+abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map<String, Attr<*>>) {
 
     private var gids = Gid(0, 0).nextGids()
 
@@ -19,22 +22,6 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
     fun setUp() {
         gids = Gid(0, 1).nextGids()
     }
-
-    private val attrsMap = listOf(
-        TheSimplestEntity.serializer(),
-        EntityWithRef.serializer(),
-        EntityWithScalarList.serializer(),
-        EntityWithRefList.serializer(),
-        ListOfNullablesHolder.serializer(),
-        NullableList.serializer(),
-        NullableScalar.serializer(),
-        MUser.serializer(),
-        ResearchGroup.serializer(),
-        Scientist.serializer(),
-        Country.serializer()
-    ).flatMap { readSchema(it.descriptor) }
-        .map { it.name to it }
-        .toMap()
 
     private val testSchema: (String) -> Attr<Any>? = { name -> attrsMap[name] }
 
@@ -88,7 +75,8 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val theEntityEavs = factorization.entityFacts[peristedEntity]!!
         assertTrue(
             theEntityEavs.all { it.gid == theEntityGid },
-            "Expected gid = $theEntityGid, actual gids = ${theEntityEavs.map { it.gid }}")
+            "Expected gid = $theEntityGid, actual gids = ${theEntityEavs.map { it.gid }}"
+        )
     }
 
     @JsName("Test_entity_with_ref_factorization")
@@ -130,7 +118,10 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
 
         // Then factorization of root entity contains eav with value type == Gid
         val root = factorization.entityFacts[entity]!!
-        assertTrue(root[0].value is Gid, "Value of type ${Gid::class} is expected, but got value of type ${root[0].value::class}")
+        assertTrue(
+            root[0].value is Gid,
+            "Value of type ${Gid::class} is expected, but got value of type ${root[0].value::class}"
+        )
     }
 
     @JsName("Test_entity_with_scalars_list_factorization")
@@ -190,7 +181,10 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
                 ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), testSchema, gids
             )
         }
-        assertEquals("List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)", ex.message)
+        assertEquals(
+            "List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)",
+            ex.message
+        )
     }
 
     @JsName("Test_destruction_of_entity_with_null_list")
@@ -259,7 +253,8 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
             "Expected facts for 3 entities (group, scientist and country), but got ${factorizationGids.size}"
         )
 
-        val theScientistNameEavs = factorization.distinct().filter { it.gid == theScientistGid && it.attr == ".qbit.test.model.Scientist/name" }
+        val theScientistNameEavs = factorization.distinct()
+            .filter { it.gid == theScientistGid && it.attr == ".qbit.test.model.Scientist/name" }
 
         assertEquals(
             1,
@@ -281,6 +276,72 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
         assertEquals(".qbit.test.model.NullableScalar/placeholder", facts.first().attr)
         assertEquals(0L, facts.first().value)
+    }
+
+    @JsName("Test_bomb_with_nulls_deconstruction")
+    @Test
+    fun `Test bomb with nulls deconstruction`() {
+        val facts = destruct(createBombWithNulls(Gid(2, 102).value()), testSchema, gids)
+        assertEquals(40, facts.size)
+    }
+
+
+    @JsName("Test_bomb_without_nulls_deconstruction")
+    @Test
+    fun `Test bomb without nulls deconstruction`() {
+        val facts = destruct(createBombWithoutNulls(Gid(2, 102).value()), testSchema, gids)
+        assertEquals(101, facts.size)
+    }
+
+    @JsName("Test_serialization_of_list_of_primitives")
+    @Test
+    fun `Test serialization of list of primitives`() {
+        // Given an entity with ref to entity with non-null value of nullable primitive
+        val root = EntityWithRefToNullableInt(null, NullableIntEntity(null, 2))
+
+        // When it factorized
+        val factorization = destruct(root, testSchema, gids)
+
+        // Then it contains eav for primitive value with correct attribute
+        assertTrue(
+            factorization.any { it.attr == ".qbit.test.model.NullableIntEntity/int" && it.value == 2 },
+            "Cannot find expected eav for NullableIntEntity.int in ${factorization.toList()}"
+        )
+    }
+
+    @JsName("Test_byte_array_factorization")
+    @Test
+    fun `Test byte array factorization`() {
+        // Given entity with byte array attr
+        val byteArray = ByteArrayEntity(null, byteArrayOf(1, 2, 3))
+
+        // When it factorized
+        val factorization = destruct(byteArray, testSchema, gids)
+
+        // Then it's factorization contains eav with byte array
+        val eav = factorization.toList()[0]
+        assertEquals(".qbit.test.model.ByteArrayEntity/byteArray", eav.attr)
+        assertArrayEquals(byteArrayOf(1, 2, 3), eav.value as ByteArray)
+    }
+
+    @JsName("Test_list_of_byte_arrays_factorization")
+    @Test
+    fun `Test byte list of arrays factorization`() {
+        // Given entity with list of byte arrays attr
+        val firstByteArray = byteArrayOf(11, 12, 13)
+        val secondByteArray = byteArrayOf(21, 22, 23)
+        val thirdByteArray = byteArrayOf(31, 32, 33)
+        val listOfByteArrays = ListOfByteArraysEntity(null, listOf(firstByteArray, secondByteArray, thirdByteArray))
+
+        // When it factorized
+        val factorization = destruct(listOfByteArrays, testSchema, gids)
+
+        // Then it's factorization contains eav with byte array
+        val eav = factorization.toList()[0]
+        assertEquals(".qbit.test.model.ListOfByteArraysEntity/byteArrays", eav.attr)
+        assertArrayEquals(firstByteArray, eav.value as ByteArray)
+        assertArrayEquals(secondByteArray, factorization.toList()[1].value as ByteArray)
+        assertArrayEquals(thirdByteArray, factorization.toList()[2].value as ByteArray)
     }
 
     @JsName("Test_SerialDescriptor_to_attr_name_conversion")

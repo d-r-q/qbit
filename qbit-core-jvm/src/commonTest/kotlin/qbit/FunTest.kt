@@ -245,7 +245,7 @@ class FunTest {
     @Test
     fun `Test bomb with nulls handling`() {
         val conn = setupTestData()
-        val bomb = createBombWithNulls()
+        val bomb = createBombWithNulls(Gid(2, 102).value())
         conn.persist(bomb)
         val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).firstOrNull()
         assertNotNull(storedBomb)
@@ -274,7 +274,7 @@ class FunTest {
     fun `Test bomb without nulls handling`() {
         val conn = setupTestData()
         val inst = conn.db().pull<Instance>(theInstanceGid)!!
-        val bomb = createBombWithoutNulls()
+        val bomb = createBombWithoutNulls(Gid(2, 102).value())
         conn.persist(bomb)
         val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()
 
@@ -324,7 +324,6 @@ class FunTest {
         assertEquals(bomb.mutCountriesListOpt, storedBomb.mutCountriesListOpt)
 
         assertEquals(Gid(2, 102).value(), storedBomb.optBomb!!.id)
-        assertEquals(storedBomb.id, storedBomb.optBomb?.optBomb?.id)
     }
 
 }

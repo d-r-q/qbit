@@ -17,8 +17,20 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     MUser::class to MUser.serializer(),
     ResearchGroup::class to ResearchGroup.serializer(),
     Scientist::class to Scientist.serializer(),
-    NullableScalar::class to NullableScalar.serializer()
+    Country::class to Country.serializer(),
+    NullableScalar::class to NullableScalar.serializer(),
+    Bomb::class to Bomb.serializer(),
+    NullableIntEntity::class to NullableIntEntity.serializer(),
+    EntityWithRefToNullableInt::class to EntityWithRefToNullableInt.serializer(),
+    ByteArrayEntity::class to ByteArrayEntity.serializer(),
+    ListOfByteArraysEntity::class to ListOfByteArraysEntity.serializer()
 )
 
+private val attrsMap = serializers
+    .flatMap { readSchema(it.value.descriptor) }
+    .map { it.name to it }
+    .toMap()
+
+
 class SerializationFactorizationTest :
-    CommonFactorizationTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct)
+    CommonFactorizationTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct, attrsMap)

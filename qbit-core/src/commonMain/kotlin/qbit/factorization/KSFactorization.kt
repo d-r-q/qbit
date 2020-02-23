@@ -226,13 +226,25 @@ class EntityEncoder(
                 addAttrValue(attr eq entityInfo.gid)
             }
             StructureKind.LIST -> {
-                structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))
-                serializer.serialize(this, value)
-                val listAttrVals = structuresStack.pop()
-                structuresStack.peek().attrValues.addAll(listAttrVals.attrValues)
+                if (value is List<*>) {
+                    structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))
+                    serializer.serialize(this, value)
+                    val listAttrVals = structuresStack.pop()
+                    structuresStack.peek().attrValues.addAll(listAttrVals.attrValues)
+                } else if (value is ByteArray) {
+                    if (structuresStack.peek().type == StructureKind.LIST) {
+                        structuresStack.peek().attrValues.add(QbitAttrValue(structuresStack.peek().attr!!, value))
+                    } else {
+                        structuresStack.peek().attrValues.add(AttrValue(desc, index, value))
+                    }
+                }
             }
             INT, UNIT, BOOLEAN, BYTE, SHORT, LONG, FLOAT, DOUBLE, CHAR, STRING -> {
-                structuresStack.peek().attrValues.add(QbitAttrValue<Any>(structuresStack.peek().attr!!, value))
+                if (structuresStack.peek().type == StructureKind.LIST) {
+                    structuresStack.peek().attrValues.add(QbitAttrValue<Any>(structuresStack.peek().attr!!, value))
+                } else {
+                    structuresStack.peek().attrValues.add(AttrValue(desc, index, value))
+                }
             }
             else -> throw QBitException("Serialization of $elementDescriptor isn't supported")
         }
