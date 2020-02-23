@@ -3,7 +3,7 @@ package qbit.typing
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.*
+import qbit.api.model.Attr
 import qbit.factorization.Destruct
 import qbit.factorization.attrName
 import qbit.test.model.*
@@ -20,192 +20,23 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         gids = Gid(0, 1).nextGids()
     }
 
-    private val testSchema = mapOf(
-        ".qbit.test.model.TheSimplestEntity/scalar" to Attr<String>(
-            gids.next(),
-            ".qbit.test.model.TheSimplestEntity/scalar",
-            QString.code,
-            unique = false,
-            list = false
-        ),
+    private val attrsMap = listOf(
+        TheSimplestEntity.serializer(),
+        EntityWithRef.serializer(),
+        EntityWithScalarList.serializer(),
+        EntityWithRefList.serializer(),
+        ListOfNullablesHolder.serializer(),
+        NullableList.serializer(),
+        NullableScalar.serializer(),
+        MUser.serializer(),
+        ResearchGroup.serializer(),
+        Scientist.serializer(),
+        Country.serializer()
+    ).flatMap { readSchema(it.descriptor) }
+        .map { it.name to it }
+        .toMap()
 
-        ".qbit.test.model.EntityWithRef/ref" to Attr<TheSimplestEntity>(
-            gids.next(),
-            ".qbit.test.model.EntityWithRef/ref",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.EntityWithScalarList/scalars" to Attr<List<Int>>(
-            gids.next(),
-            ".qbit.test.model.EntityWithScalarList/scalars",
-            QInt.code,
-            unique = false,
-            list = true
-        ),
-
-        ".qbit.test.model.EntityWithRefList/refs" to Attr<List<TheSimplestEntity>>(
-            gids.next(),
-            ".qbit.test.model.EntityWithRefList/refs",
-            QRef.code,
-            unique = false,
-            list = true
-        ),
-
-        ".qbit.test.model.ListOfNullablesHolder/nullables" to Attr<List<ListOfNullables>>(
-            gids.next(),
-            ".qbit.test.model.ListOfNullablesHolder/nullables",
-            QRef.code,
-            unique = false,
-            list = true
-        ),
-
-        ".qbit.test.model.NullableList/placeholder" to Attr<Long>(
-            gids.next(),
-            ".qbit.test.model.NullableList/placeholder",
-            QLong.code,
-            unique = false,
-            list = false
-        ),
-
-        // MUser
-
-        ".qbit.test.model.MUser/login" to Attr<String>(
-            gids.next(),
-            ".qbit.test.model.MUser/login",
-            QString.code,
-            unique = true,
-            list = false
-        ),
-
-        ".qbit.test.model.MUser/strs" to Attr<List<String>>(
-            gids.next(),
-            ".qbit.test.model.MUser/strs",
-            QString.code,
-            unique = false,
-            list = true
-        ),
-
-        ".qbit.test.model.MUser/theSimplestEntity" to Attr<TheSimplestEntity>(
-            gids.next(),
-            ".qbit.test.model.MUser/theSimplestEntity",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.MUser/optTheSimplestEntity" to Attr<TheSimplestEntity>(
-            gids.next(),
-            ".qbit.test.model.MUser/optTheSimplestEntity",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.MUser/theSimplestEntities" to Attr<List<TheSimplestEntity>>(
-            gids.next(),
-            ".qbit.test.model.MUser/theSimplestEntities",
-            QRef.code,
-            unique = false,
-            list = true
-        ),
-
-        // Research group
-
-        ".qbit.test.model.ResearchGroup/members" to Attr<List<Scientist>>(
-            gids.next(),
-            ".qbit.test.model.ResearchGroup/members",
-            QRef.code,
-            unique = false,
-            list = true
-        ),
-
-        // Scientist
-
-        ".qbit.test.model.Scientist/externalId" to Attr<Int>(
-            gids.next(),
-            ".qbit.test.model.Scientist/externalId",
-            QRef.code,
-            unique = true,
-            list = false
-        ),
-
-        ".qbit.test.model.Scientist/name" to Attr<String>(
-            gids.next(),
-            ".qbit.test.model.Scientist/name",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.Scientist/name" to Attr<String>(
-            gids.next(),
-            ".qbit.test.model.Scientist/name",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.Scientist/nicks" to Attr<List<String>>(
-            gids.next(),
-            ".qbit.test.model.Scientist/nicks",
-            QRef.code,
-            unique = false,
-            list = true
-        ),
-
-        ".qbit.test.model.Scientist/country" to Attr<Country>(
-            gids.next(),
-            ".qbit.test.model.Scientist/country",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.Scientist/reviewer" to Attr<Scientist>(
-            gids.next(),
-            ".qbit.test.model.Scientist/reviewer",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        // Country
-
-        ".qbit.test.model.Country/name" to Attr<String>(
-            gids.next(),
-            ".qbit.test.model.Country/name",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.Country/population" to Attr<Int>(
-            gids.next(),
-            ".qbit.test.model.Country/population",
-            QRef.code,
-            unique = false,
-            list = false
-        ),
-
-        // Nullable scalar
-        ".qbit.test.model.NullableScalar/scalar" to Attr<Byte>(
-            gids.next(),
-            ".qbit.test.model.NullableScalar/scalar",
-            QByte.code,
-            unique = false,
-            list = false
-        ),
-
-        ".qbit.test.model.NullableScalar/placeholder" to Attr<Long>(
-            gids.next(),
-            ".qbit.test.model.NullableScalar/placeholder",
-            QLong.code,
-            unique = false,
-            list = false
-        )
-    )
+    private val testSchema: (String) -> Attr<Any>? = { name -> attrsMap[name] }
 
     @JsName("Test_simple_entity_factorization")
     @Test
@@ -214,7 +45,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entity = TheSimplestEntity(null, "addrValue")
 
         // When it factorized
-        val factorization = destruct(entity, testSchema::get, gids)
+        val factorization = destruct(entity, testSchema, gids)
 
         // Then factorization contains single fact with correct attribute name and value
         assertEquals(1, factorization.size, "Factorization of single entity should produce facts for one entity")
@@ -231,7 +62,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entity = TheSimplestEntity(1, "addrValue")
 
         // When it factorized
-        val factorization = destruct(entity, testSchema::get, gids)
+        val factorization = destruct(entity, testSchema, gids)
 
         // Then factorization contains single fact with correct gid, attribute name and value
         assertEquals(1, factorization.size, "Factorization of single entity should produce facts for one entity")
@@ -251,7 +82,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val ref = EntityWithRef(null, peristedEntity)
 
         // When it factorized
-        val factorization = destruct(ref, testSchema::get, gids)
+        val factorization = destruct(ref, testSchema, gids)
 
         // Then eavs for the entity has the same gid
         val theEntityEavs = factorization.entityFacts[peristedEntity]!!
@@ -267,7 +98,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entity = EntityWithRef(null, TheSimplestEntity(null, "addrValue"))
 
         // When it factorized
-        val factorization = destruct(entity, testSchema::get, gids)
+        val factorization = destruct(entity, testSchema, gids)
 
         // Then factorization contains fact for both entities in graph
         val root = factorization.entityFacts[entity]
@@ -295,7 +126,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entity = EntityWithRef(null, TheSimplestEntity(null, "addrValue"))
 
         // When it factorized
-        val factorization = destruct(entity, testSchema::get, gids)
+        val factorization = destruct(entity, testSchema, gids)
 
         // Then factorization of root entity contains eav with value type == Gid
         val root = factorization.entityFacts[entity]!!
@@ -309,7 +140,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entity = EntityWithScalarList(null, listOf(0, 1, 2))
 
         // When it factorized
-        val factorization = destruct(entity, testSchema::get, gids)
+        val factorization = destruct(entity, testSchema, gids)
 
         // Then it contains eav for each item in the list in the same order
         assertEquals(3, factorization.size)
@@ -332,7 +163,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val root = EntityWithRefList(null, listOf(firstReferred, secondReferred))
 
         // When it factorized
-        val factorization = destruct(root, testSchema::get, gids)
+        val factorization = destruct(root, testSchema, gids)
 
         // Then it contains eav for each item in the list in the same order and for each scalar value
         assertEquals(4, factorization.size)
@@ -356,7 +187,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
     fun `Destruction of graph with entity with list of nullable elements in props should fail`() {
         val ex = assertFailsWith<QBitException> {
             destruct(
-                ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), testSchema::get, gids
+                ListOfNullablesHolder(null, ListOfNullables(null, listOf(null), listOf(null))), testSchema, gids
             )
         }
         assertEquals("List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)", ex.message)
@@ -365,7 +196,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
     @JsName("Test_destruction_of_entity_with_null_list")
     @Test
     fun `Test destruction of entity with null list`() {
-        val facts = destruct(NullableList(null, null, 0), testSchema::get, gids)
+        val facts = destruct(NullableList(null, null, 0), testSchema, gids)
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
     }
 
@@ -377,7 +208,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val referringEntity = EntityWithRefList(null, listOf(theEntity, theEntity))
 
         // When referencing entity is factorized
-        val factorization = destruct(referringEntity, testSchema::get, gids)
+        val factorization = destruct(referringEntity, testSchema, gids)
 
         // Then factorization of referencing entity contains two facts with the same value
         val referrencingFacts = factorization.entityFacts[referringEntity]!!
@@ -415,7 +246,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         )
         val rg = ResearchGroup(null, listOf(s1, s2))
 
-        val factorization = destruct(rg, testSchema::get, gids)
+        val factorization = destruct(rg, testSchema, gids)
 
         // When it factorized
         val factorizationGids = factorization.map { it.gid }.toSet()
@@ -444,7 +275,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct) {
         val entityWithNullScalar = NullableScalar(null, null, 0)
 
         // When it factorized
-        val facts = destruct(entityWithNullScalar, testSchema::get, gids)
+        val facts = destruct(entityWithNullScalar, testSchema, gids)
 
         // Than its factorzation contains single eav for placeholder
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
