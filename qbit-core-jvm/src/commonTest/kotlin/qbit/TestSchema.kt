@@ -1,22 +1,32 @@
 package qbit
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.modules.serializersModuleOf
 import qbit.api.model.Attr
 import qbit.api.db.Conn
 import qbit.platform.collections.EmptyIterator
 import qbit.factorization.attrName
-import qbit.factorization.destruct
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
+import qbit.factorization.KSFactorization
 import qbit.storage.MemStorage
 import qbit.spi.Storage
 import qbit.schema.schema
 import qbit.test.model.*
+import qbit.typing.FakeSerializer
+import kotlin.reflect.KClass
 
+val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerializer<*>>(
+    Scientist::class to Scientist.serializer(),
+    Attr::class to Attr.serializer(FakeSerializer<Any>()),
+    Region::class to Region.serializer(),
+    Country::class to Country.serializer()
+)
+val testSchemaFactorization = KSFactorization(serializersModuleOf(serializersMap))
 
 fun Scientist.toFacts() =
-    destruct(this, schemaMap::get, EmptyIterator)
+    testSchemaFactorization.ksDestruct(this, schemaMap::get, EmptyIterator)
 
-data class Region(val id: Long?, val name: String, val country: Country)
 
 data class City(val id: Long?, val name: String, val region: Region)
 
