@@ -188,8 +188,8 @@ class EntityEncoder(
     ) {
         println("encodeNullableSerializableElement: $desc $index $value")
         if (value != null) {
-            if (value is Long && desc.getElementName(index) == "id") {
-                structuresStack.peek().gid = Gid(value)
+            if ((value is Long || value is Gid) && desc.getElementName(index) == "id") {
+                structuresStack.peek().gid = (value as? Gid) ?: (value as Long).let { Gid(it) }
             } else {
                 encodeSerializableElement(desc, index, serializer, value)
             }
