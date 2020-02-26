@@ -58,6 +58,9 @@ data class MUser(
 data class Country(val id: Long?, val name: String, val population: Int?)
 
 @Serializable
+data class Region(val id: Long?, val name: String, val country: Country)
+
+@Serializable
 data class Scientist(val id: Long?, val externalId: Int, val name: String, val nicks: List<String>, val country: Country, var reviewer: Scientist? = null) {
 
     override fun toString(): String {

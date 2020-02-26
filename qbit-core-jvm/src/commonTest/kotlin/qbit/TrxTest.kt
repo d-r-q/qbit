@@ -15,6 +15,7 @@ import qbit.factorization.destruct
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
+import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.trx.QTrx
 import kotlin.test.*

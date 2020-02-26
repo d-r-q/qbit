@@ -30,7 +30,7 @@ internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: A
             .filterIsInstance<Attr<*>>()
             .map { it.name to it }
             .toMap()
-    val facts = entities.flatMap { destruct(it, (bootstrapSchema + addedAttrs)::get, eids) }
+    val facts = entities.flatMap { testSchemaFactorization.ksDestruct(it, (bootstrapSchema + addedAttrs)::get, eids) }
     return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 

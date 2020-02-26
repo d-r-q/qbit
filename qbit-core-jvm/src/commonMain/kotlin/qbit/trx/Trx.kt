@@ -8,6 +8,7 @@ import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.api.model.DataType
 import qbit.api.model.Eav
+import qbit.api.model.EavComparator
 import qbit.model.Entity
 import qbit.api.system.Instance
 import qbit.factorization.Destruct
@@ -43,7 +44,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
                 .toMap()
         val updatedFacts = facts.groupBy { it.gid }
                 .filter { ue ->
-                    ue.value != entities[ue.key]
+                    ue.value.sortedWith(EavComparator) != entities[ue.key]?.sortedWith(EavComparator)
                 }
                 .values
                 .flatten()
