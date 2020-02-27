@@ -15,7 +15,6 @@ import qbit.model.impl.gid
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.api.gid.nextGids
-import qbit.factorization.destruct
 import qbit.index.Indexer
 import qbit.platform.currentTimeMillis
 import qbit.serialization.Leaf
@@ -55,7 +54,7 @@ class DbTest {
 
         val gids = eBrewer.gid!!.nextGids()
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
-                testSchema.flatMap { destruct(it, bootstrapSchema::get, gids) } +
+                testSchema.flatMap { testSchemaFactorization.ksDestruct(it, bootstrapSchema::get, gids) } +
                 extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
