@@ -345,12 +345,26 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         assertArrayEquals(thirdByteArray, factorization.toList()[2].value as ByteArray)
     }
 
+    @JsName("Test_entity_with_nullable_Gid_id_factorization")
+    @Test
+    fun `Test entity with Gid? id factorization`() {
+        // Given an entity identified by object of Gid? type
+        val entityGid = Gid(1, 1)
+        val anEntity = GidEntity(entityGid, true)
+
+        // When it factorized
+        val factorization = destruct(anEntity, testSchema, gids)
+
+        // Then it's eavs gid's is equal to the gid
+        assertTrue(factorization.all { it.gid == entityGid })
+    }
+
     @JsName("Test_entity_with_Gid_id_factorization")
     @Test
     fun `Test entity with Gid id factorization`() {
         // Given an entity identified by object of Gid type
         val entityGid = Gid(1, 1)
-        val anEntity = GidEntity(entityGid, true)
+        val anEntity = NotNullableGidEntity(entityGid, true)
 
         // When it factorized
         val factorization = destruct(anEntity, testSchema, gids)
@@ -374,3 +388,6 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
 
 @Serializable
 data class GidEntity(val id: Gid?, val bool: Boolean)
+
+@Serializable
+data class NotNullableGidEntity(val id: Gid, val bool: Boolean)

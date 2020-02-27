@@ -24,7 +24,8 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     EntityWithRefToNullableInt::class to EntityWithRefToNullableInt.serializer(),
     ByteArrayEntity::class to ByteArrayEntity.serializer(),
     ListOfByteArraysEntity::class to ListOfByteArraysEntity.serializer(),
-    GidEntity::class to GidEntity.serializer()
+    GidEntity::class to GidEntity.serializer(),
+    NotNullableGidEntity::class to NotNullableGidEntity.serializer()
 )
 
 private val attrsMap = serializers

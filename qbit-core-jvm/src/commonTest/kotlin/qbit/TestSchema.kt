@@ -8,6 +8,7 @@ import qbit.platform.collections.EmptyIterator
 import qbit.factorization.attrName
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
+import qbit.api.system.Instance
 import qbit.factorization.KSFactorization
 import qbit.storage.MemStorage
 import qbit.spi.Storage
@@ -20,7 +21,8 @@ val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerialize
     Scientist::class to Scientist.serializer(),
     Attr::class to Attr.serializer(FakeSerializer<Any>()),
     Region::class to Region.serializer(),
-    Country::class to Country.serializer()
+    Country::class to Country.serializer(),
+    Instance::class to Instance.serializer()
 )
 val testSchemaFactorization = KSFactorization(serializersModuleOf(serializersMap))
 

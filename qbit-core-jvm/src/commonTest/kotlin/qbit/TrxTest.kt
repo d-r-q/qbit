@@ -11,7 +11,6 @@ import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.model.impl.gid
 import qbit.api.system.Instance
-import qbit.factorization.destruct
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.storage.MemStorage
@@ -105,8 +104,8 @@ class TrxTest {
     }
 
     private fun createTrx(conn: FakeConn, trxLog: FakeTrxLog, vararg entities: Any) =
-            QTrx(Instance(Gid(0, 0), 0, 0, 0), trxLog, dbOf(Gid(0, 0).nextGids(),
-                    *entities), conn, ::destruct)
+            QTrx(Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(Gid(0, 0).nextGids(),
+                    *entities), conn, testSchemaFactorization::ksDestruct)
 
     @Ignore
     @Test

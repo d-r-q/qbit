@@ -9,7 +9,6 @@ import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.Hash
-import qbit.factorization.destruct
 import qbit.factorization.types
 import qbit.index.Index
 import qbit.index.IndexDb

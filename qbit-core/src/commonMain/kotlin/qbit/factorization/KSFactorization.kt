@@ -188,11 +188,7 @@ class EntityEncoder(
     ) {
         println("encodeNullableSerializableElement: $desc $index $value")
         if (value != null) {
-            if ((value is Long || value is Gid) && desc.getElementName(index) == "id") {
-                structuresStack.peek().gid = (value as? Gid) ?: (value as Long).let { Gid(it) }
-            } else {
-                encodeSerializableElement(desc, index, serializer, value)
-            }
+            encodeSerializableElement(desc, index, serializer, value)
         }
     }
 
@@ -205,6 +201,11 @@ class EntityEncoder(
         val elementDescriptor = desc.getElementDescriptor(index)
         //println("encodeSerializableElement: $elementDescriptor")
         if (value == null) {
+            return
+        }
+
+        tryToTreatAsGid(value, desc.getElementName(index))?.let { gid ->
+            structuresStack.peek().gid = gid
             return
         }
 
@@ -249,6 +250,13 @@ class EntityEncoder(
             else -> throw QBitException("Serialization of $elementDescriptor isn't supported")
         }
     }
+
+    private fun tryToTreatAsGid(value: Any, name: String): Gid? =
+        if ((value is Long || value is Gid) && name == "id") {
+            (value as? Gid) ?: Gid((value as Long))
+        } else {
+            null
+        }
 
     private fun validateEntity(desc: SerialDescriptor) {
         val nullableListProps =
