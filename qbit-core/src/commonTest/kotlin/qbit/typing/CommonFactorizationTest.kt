@@ -398,7 +398,24 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         assertEquals(Eav(Gid(0, 1), ".qbit.api/tombstone", true), factorization.first())
     }
 
+    @JsName("Test_check_for_factorization_of_different_states_for_the_same_entity")
+    @Test
+    fun `Test check for factorization of different states for the same entity`() {
+        // Given two different states for the same entity and refs to them
+        val state1 = TheSimplestEntity(Gid(2, 0).value(), "0")
+        val state2 = TheSimplestEntity(Gid(2, 0).value(), "1")
+        val ref = EntityWithRefList(null, listOf(state1, state2))
+
+        // Then it files, when it factorized
+        val ex = assertFailsWith(QBitException::class) {
+            destruct(ref, testSchema, gids)
+        }
+        assertTrue(ex.message?.contains("Entity ${Gid(2, 0)} has several different states to store") == true)
+    }
+
     // todo: entity tree
+
+    // todo: lists does not pulls values from gids
 
 }
 

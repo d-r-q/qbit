@@ -119,6 +119,11 @@ class EntityEncoder(
         }
         if (ei.gid !in gidEntityInfos) {
             gidEntityInfos.getOrPut(ei.gid, { ArrayList() }) += ei
+        } else if (ei.type != StructureKind.LIST) {
+            val states = gidEntityInfos[ei.gid]?.map { it.entity }
+            if (states?.any { it != ei.entity } == true) {
+                throw QBitException("Entity ${ei.gid} has several different states to store: ${states + ei.entity}")
+            }
         }
 
         if (structuresStack.size == 1) {
