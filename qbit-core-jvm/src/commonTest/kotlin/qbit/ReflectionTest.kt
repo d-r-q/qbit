@@ -3,8 +3,8 @@
 package qbit
 
 import qbit.api.gid.Gid
-import qbit.model.impl.QTombstone
-import qbit.model.impl.gid
+import qbit.api.model.impl.QTombstone
+import qbit.api.model.impl.gid
 import qbit.reflection.default
 import qbit.reflection.findMutableProperties
 import qbit.reflection.findPrimaryConstructor

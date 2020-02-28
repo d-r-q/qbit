@@ -5,15 +5,11 @@ import qbit.api.db.Trx
 import qbit.api.db.WriteResult
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.Attr
-import qbit.api.model.DataType
-import qbit.api.model.Eav
-import qbit.api.model.EavComparator
-import qbit.model.Entity
+import qbit.api.model.*
 import qbit.api.system.Instance
 import qbit.factorization.Destruct
 import qbit.index.InternalDb
-import qbit.model.impl.gid
+import qbit.api.model.impl.gid
 import qbit.platform.collections.EmptyIterator
 
 

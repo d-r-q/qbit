@@ -2,6 +2,8 @@ package qbit.typing
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.serializersModuleOf
+import qbit.api.model.impl.QTombstone
+import qbit.api.tombstone
 import qbit.factorization.KSFactorization
 import qbit.test.model.*
 import kotlin.reflect.KClass
@@ -25,13 +27,16 @@ private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
     ByteArrayEntity::class to ByteArrayEntity.serializer(),
     ListOfByteArraysEntity::class to ListOfByteArraysEntity.serializer(),
     GidEntity::class to GidEntity.serializer(),
-    NotNullableGidEntity::class to NotNullableGidEntity.serializer()
+    NotNullableGidEntity::class to NotNullableGidEntity.serializer(),
+    QTombstone::class to QTombstone.serializer()
 )
 
-private val attrsMap = serializers
+val schemaAttrs = serializers
     .flatMap { readSchema(it.value.descriptor) }
     .map { it.name to it }
     .toMap()
+
+private val attrsMap = schemaAttrs + (tombstone.name to tombstone)
 
 
 class SerializationFactorizationTest :

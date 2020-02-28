@@ -15,7 +15,7 @@ import qbit.api.model.QRef
 import qbit.api.model.QString
 import qbit.api.model.isListOfVals
 import qbit.api.tombstone
-import qbit.model.Tombstone
+import qbit.api.model.Tombstone
 import qbit.collections.IdentityMap
 import qbit.reflection.findProperties
 import kotlin.collections.contains

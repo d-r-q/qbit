@@ -1,9 +1,9 @@
 package qbit
 
 import qbit.api.gid.Gid
-import qbit.model.Tombstone
-import qbit.model.impl.QTombstone
-import qbit.model.impl.gid
+import qbit.api.model.Tombstone
+import qbit.api.model.impl.QTombstone
+import qbit.api.model.impl.gid
 
 fun Tombstone(eid: Gid): Tombstone = QTombstone(eid)
 

@@ -13,11 +13,11 @@ import qbit.factorization.types
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.index.InternalDb
-import qbit.model.Entity
-import qbit.model.StoredEntity
-import qbit.model.entity2gid
-import qbit.model.impl.DetachedEntity
-import qbit.model.impl.QStoredEntity
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
+import qbit.api.model.entity2gid
+import qbit.api.model.impl.DetachedEntity
+import qbit.api.model.impl.QStoredEntity
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
 import kotlin.reflect.KClass

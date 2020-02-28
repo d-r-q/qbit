@@ -5,9 +5,9 @@ import qbit.api.db.Query
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.DataType
-import qbit.model.Entity
+import qbit.api.model.Entity
 import qbit.api.model.QList
-import qbit.model.StoredEntity
+import qbit.api.model.StoredEntity
 import qbit.factorization.valueTypes
 import qbit.reflection.findPrimaryConstructor
 import qbit.reflection.getListElementClass

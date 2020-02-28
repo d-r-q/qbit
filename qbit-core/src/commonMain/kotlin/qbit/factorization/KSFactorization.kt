@@ -12,7 +12,9 @@ import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.eq
+import qbit.api.model.impl.QTombstone
 import qbit.api.model.impl.QbitAttrValue
+import qbit.api.tombstone
 import qbit.collections.IdentityMap
 import qbit.collections.Stack
 import kotlin.reflect.KClass
@@ -46,7 +48,7 @@ class KSFactorization(private val serialModule: SerialModule) {
     fun ksDestruct(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactorization {
         val encoder = EntityEncoder(e, schema, serialModule, gids)
         val serializer = serialModule.getContextual(e)
-            ?: throw QBitException("Cannon find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
+            ?: throw QBitException("Cannot find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
         serializer.serialize(encoder, e)
         val eavs: List<Pair<Any, List<Eav>>> = encoder.entityInfos.map { it.key to it.value.eavs() }.toList()
         return EntityGraphFactorization(IdentityMap(*eavs.toTypedArray()))
@@ -83,12 +85,30 @@ class EntityEncoder(
 
     internal val entityInfos = IdentityMap<Any, EntityInfo>()
 
-    internal val gidEntityInfos = HashMap<Gid, MutableList<EntityInfo>>()
+    private val gidEntityInfos = HashMap<Gid, MutableList<EntityInfo>>()
 
     override fun beginStructure(desc: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeEncoder {
         validateEntity(desc)
         //println("beginStructure: $desc")
         return this
+    }
+
+    private fun validateEntity(desc: SerialDescriptor) {
+        val nullableListProps =
+            desc.elementDescriptors()
+                .withIndex()
+                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                .map { it.second }
+        if (nullableListProps.isNotEmpty()) {
+            throw QBitException(
+                "List of nullable elements is not supported. Properties: ${desc.name}.${nullableListProps.map { it }.joinToString(
+                    ",",
+                    "(",
+                    ")"
+                )}"
+            )
+        }
     }
 
     override fun endStructure(desc: SerialDescriptor) {
@@ -206,6 +226,9 @@ class EntityEncoder(
 
         tryToTreatAsGid(value, desc.getElementName(index))?.let { gid ->
             structuresStack.peek().gid = gid
+            if ("QTombstone" in desc.name) {
+                addAttrValue(QbitAttrValue(tombstone, true))
+            }
             return
         }
 
@@ -252,29 +275,11 @@ class EntityEncoder(
     }
 
     private fun tryToTreatAsGid(value: Any, name: String): Gid? =
-        if ((value is Long || value is Gid) && name == "id") {
+        if ((value is Long || value is Gid) && (name == "id" || name == "gid")) {
             (value as? Gid) ?: Gid((value as Long))
         } else {
             null
         }
-
-    private fun validateEntity(desc: SerialDescriptor) {
-        val nullableListProps =
-            desc.elementDescriptors()
-                .withIndex()
-                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
-                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
-                .map { it.second }
-        if (nullableListProps.isNotEmpty()) {
-            throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.name}.${nullableListProps.map { it }.joinToString(
-                    ",",
-                    "(",
-                    ")"
-                )}"
-            )
-        }
-    }
 
     override fun encodeStringElement(desc: SerialDescriptor, index: Int, value: String) {
         println("encodeStringElement: $desc, $index, $value")

@@ -5,6 +5,9 @@ import qbit.test.model.Country
 import kotlin.random.Random
 import kotlin.test.assertEquals
 
+fun Gid(iid: Int, eid: Int) =
+    (iid.toLong() shl 32) or eid.toLong()
+
 fun createBombWithoutNulls(gid: Long): Bomb {
     val country = Country(0, "Country", 0)
     val bomb = Bomb(

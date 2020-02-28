@@ -1,23 +1,24 @@
 @file:Suppress("UNCHECKED_CAST")
 
-package qbit.model.impl
+package qbit.api.model.impl
 
+import kotlinx.serialization.Serializable
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.eq
-import qbit.model.Entity
-import qbit.model.StoredEntity
-import qbit.model.Tombstone
-import qbit.model.entity2gid
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
+import qbit.api.model.Tombstone
+import qbit.api.model.entity2gid
 import kotlin.reflect.KProperty1
 
 fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
     return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v) }.toMap(), resolveGid)
 }
 
-internal sealed class QRoEntity(override val gid: Gid) : Entity() {
+sealed class QRoEntity(override val gid: Gid) : Entity() {
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = keys.map {
@@ -28,7 +29,8 @@ internal sealed class QRoEntity(override val gid: Gid) : Entity() {
 
 }
 
-internal class QTombstone(override val gid: Gid) : Tombstone() {
+@Serializable
+class QTombstone(override val gid: Gid) : Tombstone() {
 
     override val entries: Set<AttrValue<Attr<Any>, Any>>
         get() = emptySet()
@@ -45,9 +47,9 @@ internal class QTombstone(override val gid: Gid) : Tombstone() {
 
 }
 
-internal sealed class QEntity(eid: Gid) : QRoEntity(eid)
+sealed class QEntity(eid: Gid) : QRoEntity(eid)
 
-internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid) {
+class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid) {
 
     private val delegate = MapEntity(eid, map)
 
@@ -76,7 +78,7 @@ internal class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid)
 
 }
 
-internal class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : StoredEntity() {
+class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : StoredEntity() {
 
     private val delegate = MapEntity(gid, map)
 
@@ -123,21 +125,3 @@ private class MapEntity(override val gid: Gid, private val map: Map<Attr<Any>, A
     }
 
 }
-
-internal val Any.gid: Gid?
-    get() {
-        if (this is Entity) {
-            return this.gid
-        }
-
-        val id = this::class.members
-                .filterIsInstance<KProperty1<Any, *>>()
-                .firstOrNull { it.name == "id" }
-                ?.get(this)
-        return when (id) {
-            null -> null
-            is Long -> Gid(id)
-            is Gid -> id
-            else -> throw QBitException("Unsupported id type: $id of entity $this")
-        }
-    }

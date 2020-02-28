@@ -69,11 +69,11 @@ object Instances {
 
 }
 
-internal val theInstanceGid = Gid(Iid(1, 4), 8)
+val theInstanceGid = Gid(Iid(1, 4), 8)
 
-internal val theInstanceEid = theInstanceGid.eid
+val theInstanceEid = theInstanceGid.eid
 
-internal const val firstInstanceEid = 9
+const val firstInstanceEid = 9
 
 val protoInstance = Instance(Gid(Iid(1, 4), theInstanceEid), 1, 0, firstInstanceEid)
 

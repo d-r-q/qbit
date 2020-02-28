@@ -7,7 +7,7 @@ import qbit.api.db.hasAttr
 import qbit.api.db.pull
 import qbit.api.db.query
 import qbit.api.gid.Gid
-import qbit.model.impl.gid
+import qbit.api.model.impl.gid
 import qbit.api.system.Instance
 import qbit.index.InternalDb
 import qbit.serialization.NodeRef

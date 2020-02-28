@@ -5,7 +5,7 @@ import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
-import qbit.model.StoredEntity
+import qbit.api.model.StoredEntity
 import qbit.query.EagerQuery
 import qbit.query.GraphQuery
 import qbit.test.model.*

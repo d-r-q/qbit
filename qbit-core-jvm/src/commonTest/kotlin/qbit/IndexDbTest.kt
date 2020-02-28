@@ -11,7 +11,7 @@ import qbit.api.db.attrIs
 import qbit.api.db.pull
 import qbit.api.gid.Gid
 import qbit.api.model.Hash
-import qbit.model.impl.gid
+import qbit.api.model.impl.gid
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.api.gid.nextGids

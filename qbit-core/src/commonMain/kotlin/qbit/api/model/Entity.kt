@@ -1,11 +1,8 @@
-package qbit.model
+package qbit.api.model
 
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.AttrValue
-import qbit.api.model.isListOfVals
 
-internal fun entity2gid(e: Any): Any {
+fun entity2gid(e: Any): Any {
     @Suppress("UNCHECKED_CAST")
     return when {
         e is Entity -> e.gid

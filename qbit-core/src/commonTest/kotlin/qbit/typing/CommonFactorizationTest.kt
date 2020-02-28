@@ -5,6 +5,8 @@ import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
+import qbit.api.model.Eav
+import qbit.api.model.impl.QTombstone
 import qbit.assertArrayEquals
 import qbit.createBombWithNulls
 import qbit.createBombWithoutNulls
@@ -382,6 +384,20 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         )
     }
 
+    @JsName("Test_factorization_of_tombstone")
+    @Test
+    fun `Test factorization of tombstone`() {
+        // Given id only entity
+        val anEntity = QTombstone(Gid(0, 1))
+
+        // When it factorized
+        val factorization = destruct(anEntity, testSchema, gids)
+
+        // Then it's factorization contains single placeholder eav
+        assertEquals(1, factorization.size)
+        assertEquals(Eav(Gid(0, 1), ".qbit.api/tombstone", true), factorization.first())
+    }
+
     // todo: entity tree
 
 }
@@ -391,3 +407,4 @@ data class GidEntity(val id: Gid?, val bool: Boolean)
 
 @Serializable
 data class NotNullableGidEntity(val id: Gid, val bool: Boolean)
+

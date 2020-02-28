@@ -5,8 +5,8 @@ import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.Eav
-import qbit.model.Entity
-import qbit.model.StoredEntity
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
 
 
 internal abstract class InternalDb : Db() {

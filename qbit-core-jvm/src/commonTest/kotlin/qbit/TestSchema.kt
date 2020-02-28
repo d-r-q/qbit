@@ -10,6 +10,7 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.system.Instance
 import qbit.factorization.KSFactorization
+import qbit.api.model.impl.QTombstone
 import qbit.storage.MemStorage
 import qbit.spi.Storage
 import qbit.schema.schema
@@ -22,7 +23,11 @@ val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerialize
     Attr::class to Attr.serializer(FakeSerializer<Any>()),
     Region::class to Region.serializer(),
     Country::class to Country.serializer(),
-    Instance::class to Instance.serializer()
+    Instance::class to Instance.serializer(),
+    ResearchGroup::class to ResearchGroup.serializer(),
+    IntEntity::class to IntEntity.serializer(),
+    Bomb::class to Bomb.serializer(),
+    QTombstone::class to QTombstone.serializer()
 )
 val testSchemaFactorization = KSFactorization(serializersModuleOf(serializersMap))
 

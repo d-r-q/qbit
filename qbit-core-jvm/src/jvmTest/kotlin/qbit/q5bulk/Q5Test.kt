@@ -1,12 +1,19 @@
 package qbit.q5bulk
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.serializersModuleOf
 import qbit.api.db.*
+import qbit.api.model.Attr
+import qbit.api.system.Instance
+import qbit.factorization.KSFactorization
 import qbit.factorization.attrName
-import qbit.model.impl.gid
+import qbit.api.model.impl.gid
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
 import qbit.storage.MemStorage
+import qbit.typing.FakeSerializer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -27,6 +34,7 @@ import kotlin.collections.set
 import kotlin.collections.toCollection
 import kotlin.collections.toList
 import kotlin.collections.toMap
+import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -38,8 +46,10 @@ const val timePattern = "HH:mm"
 val dateTimeFormat = SimpleDateFormat("$datePattern $timePattern")
 val dateTimeFormatV1 = SimpleDateFormat("yy.MM.dd HH:mm")
 
+@Serializable
 data class Category(val id: Long?, val name: String)
 
+@Serializable
 data class Trx(val id: Long?, val sum: Long, val dateTime: Long, val category: Category, val comment: String, val source: String, val device: String)
 
 val q5Schema = schema {

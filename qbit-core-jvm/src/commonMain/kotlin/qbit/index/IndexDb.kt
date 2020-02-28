@@ -12,9 +12,9 @@ import qbit.api.db.hasAttr
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.Eav
-import qbit.model.Entity
-import qbit.model.StoredEntity
-import qbit.model.impl.AttachedEntity
+import qbit.api.model.Entity
+import qbit.api.model.StoredEntity
+import qbit.api.model.impl.AttachedEntity
 import qbit.platform.WeakHashMap
 import qbit.platform.set
 import qbit.query.EagerQuery

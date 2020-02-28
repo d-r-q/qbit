@@ -1,11 +1,12 @@
 package qbit
 
-import qbit.api.*
+import qbit.api.Attrs
+import qbit.api.Instances
 import qbit.api.db.attrIs
 import qbit.api.db.query
+import qbit.api.gid.Iid
 import qbit.api.model.Attr
 import qbit.api.system.DbUuid
-import qbit.api.gid.Iid
 import qbit.api.system.Instance
 import qbit.factorization.destruct
 import qbit.ns.Namespace
