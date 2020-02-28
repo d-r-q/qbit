@@ -13,7 +13,7 @@ import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
 import qbit.storage.MemStorage
-import qbit.typing.FakeSerializer
+import qbit.test.model.FakeSerializer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -74,6 +74,13 @@ object Cats {
 
 }
 
+val types: Map<KClass<*>, KSerializer<*>> = mapOf(
+    Attr::class to Attr.serializer(FakeSerializer<Any>()),
+    Instance::class to Instance.serializer(),
+    Trx::class to Trx.serializer(),
+    Category::class to Category.serializer()
+)
+
 class Q5Test {
 
     @Test
@@ -85,7 +92,7 @@ class Q5Test {
         }
         val dataFiles = dataDir.listFiles()
 
-        val conn = qbit(MemStorage())
+        val conn = qbit(MemStorage(), KSFactorization(serializersModuleOf(types))::ksDestruct)
 
         q5Schema.forEach { conn.persist(it) }
         val categories = HashMap<String, Category>()

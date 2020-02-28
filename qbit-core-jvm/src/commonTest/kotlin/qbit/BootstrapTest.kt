@@ -8,7 +8,6 @@ import qbit.api.gid.Iid
 import qbit.api.model.Attr
 import qbit.api.system.DbUuid
 import qbit.api.system.Instance
-import qbit.factorization.destruct
 import qbit.ns.Namespace
 import qbit.storage.MemStorage
 import kotlin.test.Test
@@ -20,11 +19,11 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), ::destruct)
+    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorization::ksDestruct)
 
     @Test
     fun testInit() {
-        val db = qbit(storage)
+        val db = qbit(storage, testSchemaFactorization::ksDestruct)
         assertNotNull(db)
         assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
     }

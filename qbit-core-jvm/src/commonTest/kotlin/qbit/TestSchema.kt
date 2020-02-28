@@ -15,7 +15,7 @@ import qbit.storage.MemStorage
 import qbit.spi.Storage
 import qbit.schema.schema
 import qbit.test.model.*
-import qbit.typing.FakeSerializer
+import qbit.test.model.FakeSerializer
 import kotlin.reflect.KClass
 
 val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerializer<*>>(
@@ -158,7 +158,7 @@ val mStonebreaker = Scientist(gids.next().value(), 3, "Michael Stonebreaker", li
 val eBrewer = Scientist(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
 
 fun setupTestSchema(storage: Storage = MemStorage()): Conn {
-    val conn = qbit(storage)
+    val conn = qbit(storage, testSchemaFactorization::ksDestruct)
     testSchema.forEach {
         conn.persist(it)
     }

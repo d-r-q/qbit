@@ -35,7 +35,7 @@ class TrxTest {
 
     @Test
     fun `Qbit should detect concurrent transactions`() {
-        val conn = qbit(MemStorage())
+        val (conn, _) = openEmptyConn()
         val trx1 = conn.trx()
         val trx2 = conn.trx()
 
@@ -106,14 +106,14 @@ class TrxTest {
     }
 
     private fun createTrx(conn: FakeConn, trxLog: FakeTrxLog, vararg entities: Any) =
-            QTrx(Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(Gid(0, 0).nextGids(),
+            QTrx(
+                Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(Gid(0, 0).nextGids(),
                     *entities), conn, testSchemaFactorization::ksDestruct)
 
     @Ignore
     @Test
     fun `In case of transaction commit abort, transaction should clean up written data`() {
-        val storage = MemStorage()
-        val conn = qbit(storage)
+        val (conn, storage) = openEmptyConn()
         val trx = conn.trx()
         conn.trx().persist(extId)
         try {
@@ -139,8 +139,7 @@ class TrxTest {
 
     @Test
     fun `Commit of rolled back transaction should fail`() {
-        val storage = MemStorage()
-        val conn = qbit(storage)
+        val (conn, _) = openEmptyConn()
         val trx = conn.trx()
         trx.rollback()
         val ex = assertFailsWith<QBitException> {
@@ -151,8 +150,7 @@ class TrxTest {
 
     @Test
     fun `Persist with rolled back transaction should fail`() {
-        val storage = MemStorage()
-        val conn = qbit(storage)
+        val (conn, _) = openEmptyConn()
         val trx = conn.trx()
         trx.rollback()
         val ex = assertFailsWith<QBitException> {
@@ -160,4 +158,11 @@ class TrxTest {
         }
         assertEquals("Transaction already has been rollbacked", ex.message)
     }
+
+    private fun openEmptyConn(): Pair<Conn, Storage> {
+        val storage = MemStorage()
+        val conn = qbit(storage, testSchemaFactorization::ksDestruct)
+        return conn to storage
+    }
+    
 }

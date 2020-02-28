@@ -1,6 +1,8 @@
 package qbit.storage
 
+import kotlinx.serialization.modules.serializersModuleOf
 import qbit.assertArrayEquals
+import qbit.factorization.KSFactorization
 import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
@@ -39,7 +41,7 @@ abstract class StorageTest {
 
         val origin = MemStorage()
         // initialize storage
-        qbit(origin)
+        qbit(origin, KSFactorization(serializersModuleOf(mapOf()))::ksDestruct)
 
         // actually it compiles
         val storage = storage()

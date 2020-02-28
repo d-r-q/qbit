@@ -12,7 +12,6 @@ import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
 import qbit.factorization.Destruct
-import qbit.factorization.destruct
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
@@ -27,7 +26,7 @@ import qbit.trx.QTrxLog
 import qbit.trx.TrxLog
 import qbit.trx.Writer
 
-fun qbit(storage: Storage): Conn {
+fun qbit(storage: Storage, destruct: Destruct): Conn {
     val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
@@ -35,9 +34,9 @@ fun qbit(storage: Storage): Conn {
         val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        QConn(dbUuid, storage, head, ::destruct)
+        QConn(dbUuid, storage, head, destruct)
     } else {
-        bootstrap(storage, dbUuid, ::destruct)
+        bootstrap(storage, dbUuid, destruct)
     }
 }
 

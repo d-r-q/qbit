@@ -9,7 +9,7 @@ fun Gid(iid: Int, eid: Int) =
     (iid.toLong() shl 32) or eid.toLong()
 
 fun createBombWithoutNulls(gid: Long): Bomb {
-    val country = Country(0, "Country", 0)
+    val country = Country(Gid(3, 1), "Country1", 0)
     val bomb = Bomb(
         null,
 
@@ -70,7 +70,7 @@ fun createBombWithoutNulls(gid: Long): Bomb {
 }
 
 fun createBombWithNulls(gid: Long): Bomb {
-    val country = Country(0, "Country", 0)
+    val country = Country(Gid(3, 2), "Country", 0)
     val bomb = Bomb(
         gid,
 
