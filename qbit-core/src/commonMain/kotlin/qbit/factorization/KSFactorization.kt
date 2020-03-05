@@ -12,7 +12,6 @@ import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.eq
-import qbit.api.model.impl.QTombstone
 import qbit.api.model.impl.QbitAttrValue
 import qbit.api.tombstone
 import qbit.collections.IdentityMap
@@ -87,8 +86,8 @@ class EntityEncoder(
 
     private val gidEntityInfos = HashMap<Gid, MutableList<EntityInfo>>()
 
-    override fun beginStructure(desc: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeEncoder {
-        validateEntity(desc)
+    override fun beginStructure(descriptor: SerialDescriptor, vararg typeSerializers: KSerializer<*>): CompositeEncoder {
+        validateEntity(descriptor)
         //println("beginStructure: $desc")
         return this
     }
@@ -102,7 +101,7 @@ class EntityEncoder(
                 .map { it.second }
         if (nullableListProps.isNotEmpty()) {
             throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.name}.${nullableListProps.map { it }.joinToString(
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.map { it }.joinToString(
                     ",",
                     "(",
                     ")"
@@ -111,7 +110,7 @@ class EntityEncoder(
         }
     }
 
-    override fun endStructure(desc: SerialDescriptor) {
+    override fun endStructure(descriptor: SerialDescriptor) {
         //println("endStructure: $desc")
         val ei = structuresStack.peek()
         if (ei.type == StructureKind.CLASS && ei.gid == NullGid) {
@@ -148,7 +147,7 @@ class EntityEncoder(
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun encodeEnum(enumDescription: SerialDescriptor, ordinal: Int) {
+    override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -184,54 +183,51 @@ class EntityEncoder(
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun encodeBooleanElement(desc: SerialDescriptor, index: Int, value: Boolean) {
-        addAttrValue(AttrValue(desc, index, value))
+    override fun encodeBooleanElement(descriptor: SerialDescriptor, index: Int, value: Boolean) {
+        addAttrValue(AttrValue(descriptor, index, value))
     }
 
-    override fun encodeByteElement(desc: SerialDescriptor, index: Int, value: Byte) {
-        addAttrValue(AttrValue(desc, index, value))
+    override fun encodeByteElement(descriptor: SerialDescriptor, index: Int, value: Byte) {
+        addAttrValue(AttrValue(descriptor, index, value))
     }
 
-    override fun encodeIntElement(desc: SerialDescriptor, index: Int, value: Int) {
-        println("encodeIntElement: $desc $index $value")
-        addAttrValue(AttrValue(desc, index, value))
+    override fun encodeIntElement(descriptor: SerialDescriptor, index: Int, value: Int) {
+        println("encodeIntElement: $descriptor $index $value")
+        addAttrValue(AttrValue(descriptor, index, value))
     }
 
-    override fun encodeLongElement(desc: SerialDescriptor, index: Int, value: Long) {
-        addAttrValue(AttrValue(desc, index, value))
-    }
-
-    override fun encodeNonSerializableElement(desc: SerialDescriptor, index: Int, value: Any) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun encodeLongElement(descriptor: SerialDescriptor, index: Int, value: Long) {
+        addAttrValue(AttrValue(descriptor, index, value))
     }
 
     override fun <T : Any> encodeNullableSerializableElement(
-        desc: SerialDescriptor,
+        descriptor: SerialDescriptor,
         index: Int,
         serializer: SerializationStrategy<T>,
         value: T?
     ) {
-        println("encodeNullableSerializableElement: $desc $index $value")
+        println("encodeNullableSerializableElement: $descriptor $index $value")
         if (value != null) {
-            encodeSerializableElement(desc, index, serializer, value)
+            encodeSerializableElement(descriptor, index, serializer, value)
         }
     }
 
     override fun <T> encodeSerializableElement(
-        desc: SerialDescriptor,
+        descriptor: SerialDescriptor,
         index: Int,
         serializer: SerializationStrategy<T>,
         value: T
     ) {
-        val elementDescriptor = desc.getElementDescriptor(index)
+        val di = if (descriptor.kind == StructureKind.LIST) 0 else index
+        val elementDescriptor = descriptor.getElementDescriptor(di)
         //println("encodeSerializableElement: $elementDescriptor")
         if (value == null) {
             return
         }
 
-        tryToTreatAsGid(value, desc.getElementName(index))?.let { gid ->
+        tryToTreatAsGid(value, descriptor.getElementName(di))?.let { gid ->
             structuresStack.peek().gid = gid
-            if ("QTombstone" in desc.name) {
+            if ("QTombstone" in descriptor.serialName) {
                 addAttrValue(QbitAttrValue(tombstone, true))
             }
             return
@@ -241,7 +237,7 @@ class EntityEncoder(
             StructureKind.CLASS -> {
                 val attr = when (structuresStack.peek().type) {
                     StructureKind.LIST -> structuresStack.peek().attr!!
-                    else -> Attr(desc, index)
+                    else -> Attr(descriptor, di)
                 }
                 val entityInfo = if ((value as Any) !in entityInfos) {
                     val entityInfo = EntityInfo(value, attr, type = StructureKind.CLASS)
@@ -256,7 +252,7 @@ class EntityEncoder(
             }
             StructureKind.LIST -> {
                 if (value is List<*>) {
-                    structuresStack.push(EntityInfo(value, Attr(desc, index), type = StructureKind.LIST))
+                    structuresStack.push(EntityInfo(value, Attr(descriptor, di), type = StructureKind.LIST))
                     serializer.serialize(this, value)
                     val listAttrVals = structuresStack.pop()
                     structuresStack.peek().attrValues.addAll(listAttrVals.attrValues)
@@ -264,15 +260,15 @@ class EntityEncoder(
                     if (structuresStack.peek().type == StructureKind.LIST) {
                         structuresStack.peek().attrValues.add(QbitAttrValue(structuresStack.peek().attr!!, value))
                     } else {
-                        structuresStack.peek().attrValues.add(AttrValue(desc, index, value))
+                        structuresStack.peek().attrValues.add(AttrValue(descriptor, di, value))
                     }
                 }
             }
-            INT, UNIT, BOOLEAN, BYTE, SHORT, LONG, FLOAT, DOUBLE, CHAR, STRING -> {
+            INT, BOOLEAN, BYTE, SHORT, LONG, FLOAT, DOUBLE, CHAR, STRING -> {
                 if (structuresStack.peek().type == StructureKind.LIST) {
                     structuresStack.peek().attrValues.add(QbitAttrValue<Any>(structuresStack.peek().attr!!, value))
                 } else {
-                    structuresStack.peek().attrValues.add(AttrValue(desc, index, value))
+                    structuresStack.peek().attrValues.add(AttrValue(descriptor, di, value))
                 }
             }
             else -> throw QBitException("Serialization of $elementDescriptor isn't supported")
@@ -286,47 +282,47 @@ class EntityEncoder(
             null
         }
 
-    override fun encodeStringElement(desc: SerialDescriptor, index: Int, value: String) {
-        println("encodeStringElement: $desc, $index, $value")
-        addAttrValue(AttrValue(desc, index, value))
+    override fun encodeStringElement(descriptor: SerialDescriptor, index: Int, value: String) {
+        println("encodeStringElement: $descriptor, $index, $value")
+        addAttrValue(AttrValue(descriptor, index, value))
     }
 
     private fun addAttrValue(attrVal: AttrValue<Attr<*>, *>) {
         structuresStack.peek().attrValues.add(attrVal)
     }
 
-    private fun AttrValue(desc: SerialDescriptor, index: Int, value: Any): AttrValue<Attr<Any>, Any> {
-        val attr = Attr(desc, index)
+    private fun AttrValue(descriptor: SerialDescriptor, index: Int, value: Any): AttrValue<Attr<Any>, Any> {
+        val attr = Attr(descriptor, index)
         return attr eq value
     }
 
-    private fun Attr(desc: SerialDescriptor, index: Int): Attr<*> {
-        val attrName = attrName(desc, index)
+    private fun Attr(descriptor: SerialDescriptor, index: Int): Attr<*> {
+        val attrName = attrName(descriptor, index)
         return schema(attrName) ?: throw QBitException("Could not find attribute with name $attrName")
     }
 
-    override fun encodeFloatElement(desc: SerialDescriptor, index: Int, value: Float) {
+    override fun encodeFloatElement(descriptor: SerialDescriptor, index: Int, value: Float) {
         throw QBitException("qbit does not support Float data type")
     }
 
-    override fun encodeShortElement(desc: SerialDescriptor, index: Int, value: Short) {
+    override fun encodeShortElement(descriptor: SerialDescriptor, index: Int, value: Short) {
         throw QBitException("qbit does not support Short data type")
     }
 
-    override fun encodeUnitElement(desc: SerialDescriptor, index: Int) {
+    override fun encodeUnitElement(descriptor: SerialDescriptor, index: Int) {
         throw QBitException("qbit does not support Unit data type")
     }
 
-    override fun encodeCharElement(desc: SerialDescriptor, index: Int, value: Char) {
+    override fun encodeCharElement(descriptor: SerialDescriptor, index: Int, value: Char) {
         throw QBitException("qbit does not support Char data type")
     }
 
-    override fun encodeDoubleElement(desc: SerialDescriptor, index: Int, value: Double) {
+    override fun encodeDoubleElement(descriptor: SerialDescriptor, index: Int, value: Double) {
         throw QBitException("qbit does not support Double data type")
     }
 
 }
 
 internal fun attrName(desc: SerialDescriptor, index: Int) =
-    ".${desc.name}/${desc.getElementName(index)}"
+    ".${desc.serialName}/${desc.getElementName(index)}"
 

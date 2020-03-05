@@ -3,13 +3,15 @@ import com.moowork.gradle.node.task.NodeTask
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import java.net.URI
 
+
 group = "org.qbit"
 version = "0.3.0-SNAPSHOT"
 
 plugins {
-    kotlin("multiplatform") version "1.3.61" apply false
+    val kotlin_version: String by System.getProperties()
+    kotlin("multiplatform") version kotlin_version apply false
     id("com.moowork.node") version "1.3.1" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.61" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version kotlin_version apply false
 }
 
 subprojects {
