@@ -218,6 +218,7 @@ class EntityEncoder(
         serializer: SerializationStrategy<T>,
         value: T
     ) {
+        // workaround for: https://github.com/Kotlin/kotlinx.serialization/issues/739
         val di = if (descriptor.kind == StructureKind.LIST) 0 else index
         val elementDescriptor = descriptor.getElementDescriptor(di)
         //println("encodeSerializableElement: $elementDescriptor")
