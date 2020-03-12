@@ -1,40 +1,21 @@
 package qbit.q5bulk
 
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.serializersModuleOf
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.db.*
-import qbit.api.model.Attr
-import qbit.api.system.Instance
-import qbit.factorization.KSFactorization
-import qbit.factorization.attrName
 import qbit.api.model.impl.gid
+import qbit.factorization.attrName
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
 import qbit.storage.MemStorage
-import qbit.test.model.FakeSerializer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.Map
-import kotlin.collections.contains
-import kotlin.collections.filter
-import kotlin.collections.forEach
-import kotlin.collections.forEachIndexed
-import kotlin.collections.getValue
-import kotlin.collections.isNotEmpty
-import kotlin.collections.map
 import kotlin.collections.set
-import kotlin.collections.toCollection
-import kotlin.collections.toList
-import kotlin.collections.toMap
-import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -74,12 +55,10 @@ object Cats {
 
 }
 
-val types: Map<KClass<*>, KSerializer<*>> = mapOf(
-    Attr::class to Attr.serializer(FakeSerializer<Any>()),
-    Instance::class to Instance.serializer(),
-    Trx::class to Trx.serializer(),
-    Category::class to Category.serializer()
-)
+val q5SerialModule = SerializersModule {
+    contextual(Trx::class, Trx.serializer())
+    contextual(Category::class, Category.serializer())
+}
 
 class Q5Test {
 
@@ -92,7 +71,7 @@ class Q5Test {
         }
         val dataFiles = dataDir.listFiles()
 
-        val conn = qbit(MemStorage(), KSFactorization(serializersModuleOf(types))::ksDestruct)
+        val conn = qbit(MemStorage(), q5SerialModule)
 
         q5Schema.forEach { conn.persist(it) }
         val categories = HashMap<String, Category>()

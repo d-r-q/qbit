@@ -1,34 +1,14 @@
 package qbit.storage
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.modules.serializersModuleOf
-import qbit.api.model.Attr
-import qbit.api.model.impl.QTombstone
-import qbit.api.system.Instance
-import qbit.factorization.KSFactorization
 import qbit.ns.Namespace
 import qbit.ns.ns
 import qbit.ns.root
 import qbit.qbit
 import qbit.spi.Storage
 import qbit.spi.copyStorage
-import qbit.test.model.*
-import kotlin.reflect.KClass
+import qbit.test.model.testsSerialModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
-val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerializer<*>>(
-    Scientist::class to Scientist.serializer(),
-    Attr::class to Attr.serializer(FakeSerializer<Any>()),
-    Region::class to Region.serializer(),
-    Country::class to Country.serializer(),
-    Instance::class to Instance.serializer(),
-    ResearchGroup::class to ResearchGroup.serializer(),
-    IntEntity::class to IntEntity.serializer(),
-    Bomb::class to Bomb.serializer(),
-    QTombstone::class to QTombstone.serializer()
-)
-val testSchemaFactorization = KSFactorization(serializersModuleOf(serializersMap))
 
 // It's duplication of the same class in qbit-core - study multiplatform builds and get rid of this duplication
 abstract class StorageTest {
@@ -59,7 +39,7 @@ abstract class StorageTest {
 
         val origin = MemStorage()
         // initialize storage
-        qbit(origin, testSchemaFactorization::ksDestruct)
+        qbit(origin, testsSerialModule)
 
         // actually it compiles
         val storage = storage()

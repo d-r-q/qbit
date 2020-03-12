@@ -10,6 +10,7 @@ import qbit.api.system.DbUuid
 import qbit.api.system.Instance
 import qbit.ns.Namespace
 import qbit.storage.MemStorage
+import qbit.test.model.testsSerialModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -23,7 +24,7 @@ class BootstrapTest {
 
     @Test
     fun testInit() {
-        val db = qbit(storage, testSchemaFactorization::ksDestruct)
+        val db = qbit(storage, testsSerialModule)
         assertNotNull(db)
         assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
     }

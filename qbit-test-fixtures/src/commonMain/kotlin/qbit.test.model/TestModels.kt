@@ -1,6 +1,7 @@
 package qbit.test.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
 
 @Serializable
 data class TheSimplestEntity(val id: Long?, val scalar: String)
@@ -242,4 +243,26 @@ data class Bomb(val id: Long?,
     }
 
 
+}
+
+val testsSerialModule = SerializersModule {
+    contextual(TheSimplestEntity::class, TheSimplestEntity.serializer())
+    contextual(EntityWithRef::class, EntityWithRef.serializer())
+    contextual(EntityWithScalarList::class, EntityWithScalarList.serializer())
+    contextual(EntityWithRefList::class, EntityWithRefList.serializer())
+    contextual(ListOfNullablesHolder::class, ListOfNullablesHolder.serializer())
+    contextual(ListOfNullables::class, ListOfNullables.serializer())
+    contextual(NullableList::class, NullableList.serializer())
+    contextual(MUser::class, MUser.serializer())
+    contextual(ResearchGroup::class, ResearchGroup.serializer())
+    contextual(Scientist::class, Scientist.serializer())
+    contextual(Country::class, Country.serializer())
+    contextual(NullableScalar::class, NullableScalar.serializer())
+    contextual(Bomb::class, Bomb.serializer())
+    contextual(NullableIntEntity::class, NullableIntEntity.serializer())
+    contextual(EntityWithRefToNullableInt::class, EntityWithRefToNullableInt.serializer())
+    contextual(ByteArrayEntity::class, ByteArrayEntity.serializer())
+    contextual(ListOfByteArraysEntity::class, ListOfByteArraysEntity.serializer())
+    contextual(IntEntity::class, IntEntity.serializer())
+    contextual(Region::class, Region.serializer())
 }

@@ -1,35 +1,19 @@
 package qbit
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.modules.serializersModuleOf
-import qbit.api.model.Attr
+import kotlinx.serialization.modules.plus
 import qbit.api.db.Conn
-import qbit.platform.collections.EmptyIterator
-import qbit.factorization.attrName
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.system.Instance
+import qbit.api.model.Attr
 import qbit.factorization.KSFactorization
-import qbit.api.model.impl.QTombstone
-import qbit.storage.MemStorage
-import qbit.spi.Storage
+import qbit.factorization.attrName
+import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
+import qbit.spi.Storage
+import qbit.storage.MemStorage
 import qbit.test.model.*
-import qbit.test.model.FakeSerializer
-import kotlin.reflect.KClass
 
-val serializersMap: Map<KClass<*>, KSerializer<*>> = mapOf<KClass<*>, KSerializer<*>>(
-    Scientist::class to Scientist.serializer(),
-    Attr::class to Attr.serializer(FakeSerializer<Any>()),
-    Region::class to Region.serializer(),
-    Country::class to Country.serializer(),
-    Instance::class to Instance.serializer(),
-    ResearchGroup::class to ResearchGroup.serializer(),
-    IntEntity::class to IntEntity.serializer(),
-    Bomb::class to Bomb.serializer(),
-    QTombstone::class to QTombstone.serializer()
-)
-val testSchemaFactorization = KSFactorization(serializersModuleOf(serializersMap))
+val testSchemaFactorization = KSFactorization(qbitSerialModule + testsSerialModule)
 
 fun Scientist.toFacts() =
     testSchemaFactorization.ksDestruct(this, schemaMap::get, EmptyIterator)
@@ -158,7 +142,7 @@ val mStonebreaker = Scientist(gids.next().value(), 3, "Michael Stonebreaker", li
 val eBrewer = Scientist(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
 
 fun setupTestSchema(storage: Storage = MemStorage()): Conn {
-    val conn = qbit(storage, testSchemaFactorization::ksDestruct)
+    val conn = qbit(storage, testsSerialModule)
     testSchema.forEach {
         conn.persist(it)
     }

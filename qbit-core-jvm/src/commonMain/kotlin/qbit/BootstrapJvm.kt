@@ -17,18 +17,6 @@ import qbit.serialization.NodesStorage
 import qbit.serialization.Root
 import qbit.spi.Storage
 
-
-internal val bootstrapSchema: Map<String, Attr<Any>> = mapOf(
-        (Attrs.name.name to Attrs.name) as Pair<String, Attr<Any>>,
-        (Attrs.type.name to Attrs.type) as Pair<String, Attr<Any>>,
-        (Attrs.unique.name to Attrs.unique) as Pair<String, Attr<Any>>,
-        (Attrs.list.name to Attrs.list) as Pair<String, Attr<Any>>,
-        (Instances.forks.name to Instances.forks) as Pair<String, Attr<Any>>,
-        (Instances.nextEid.name to Instances.nextEid) as Pair<String, Attr<Any>>,
-        (Instances.iid.name to Instances.iid) as Pair<String, Attr<Any>>,
-        (tombstone.name to tombstone) as Pair<String, Attr<Any>>
-)
-
 internal fun bootstrap(storage: Storage, dbUuid: DbUuid, destruct: Destruct): Conn {
     val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
             .flatMap { it.toFacts() }

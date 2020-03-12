@@ -235,11 +235,11 @@ class FunTest {
         val storage = MemStorage()
         setupTestSchema(storage)
 
-        val conn1 = qbit(storage, testSchemaFactorization::ksDestruct)
+        val conn1 = qbit(storage, testsSerialModule)
         assertNotNull((conn1.db() as InternalDb).attr(Scientists.name.name))
         conn1.persist(IntEntity(null, 2))
 
-        val conn2 = qbit(storage, testSchemaFactorization::ksDestruct)
+        val conn2 = qbit(storage, testsSerialModule)
         assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
     }
 

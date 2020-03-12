@@ -1,5 +1,7 @@
 package qbit
 
+import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
 import qbit.api.db.Conn
 import qbit.api.db.Db
@@ -12,6 +14,7 @@ import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
 import qbit.factorization.Destruct
+import qbit.factorization.KSFactorization
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
@@ -26,17 +29,18 @@ import qbit.trx.QTrxLog
 import qbit.trx.TrxLog
 import qbit.trx.Writer
 
-fun qbit(storage: Storage, destruct: Destruct): Conn {
+fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
+    val systemSerialModule = qbitSerialModule + appSerialModule
     return if (headHash != null) {
         val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        QConn(dbUuid, storage, head, destruct)
+        QConn(dbUuid, storage, head, KSFactorization(systemSerialModule)::ksDestruct)
     } else {
-        bootstrap(storage, dbUuid, destruct)
+        bootstrap(storage, dbUuid, KSFactorization(systemSerialModule)::ksDestruct)
     }
 }
 

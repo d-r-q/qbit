@@ -1,37 +1,23 @@
 package qbit.typing
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.modules.serializersModuleOf
-import qbit.api.model.impl.QTombstone
+import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerialModuleCollector
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.tombstone
 import qbit.factorization.KSFactorization
-import qbit.test.model.*
+import qbit.qbitSerialModule
+import qbit.test.model.testsSerialModule
 import kotlin.reflect.KClass
 
-private val serializers: Map<KClass<*>, KSerializer<*>> = mapOf(
-    TheSimplestEntity::class to TheSimplestEntity.serializer(),
-    EntityWithRef::class to EntityWithRef.serializer(),
-    EntityWithScalarList::class to EntityWithScalarList.serializer(),
-    EntityWithRefList::class to EntityWithRefList.serializer(),
-    ListOfNullablesHolder::class to ListOfNullablesHolder.serializer(),
-    ListOfNullables::class to ListOfNullables.serializer(),
-    NullableList::class to NullableList.serializer(),
-    MUser::class to MUser.serializer(),
-    ResearchGroup::class to ResearchGroup.serializer(),
-    Scientist::class to Scientist.serializer(),
-    Country::class to Country.serializer(),
-    NullableScalar::class to NullableScalar.serializer(),
-    Bomb::class to Bomb.serializer(),
-    NullableIntEntity::class to NullableIntEntity.serializer(),
-    EntityWithRefToNullableInt::class to EntityWithRefToNullableInt.serializer(),
-    ByteArrayEntity::class to ByteArrayEntity.serializer(),
-    ListOfByteArraysEntity::class to ListOfByteArraysEntity.serializer(),
-    GidEntity::class to GidEntity.serializer(),
-    NotNullableGidEntity::class to NotNullableGidEntity.serializer(),
-    QTombstone::class to QTombstone.serializer()
-)
+private val qbitCoreTestsSerialModule = SerializersModule {
+    include(qbitSerialModule)
+    include(testsSerialModule)
+    contextual(GidEntity::class, GidEntity.serializer())
+    contextual(NotNullableGidEntity::class, NotNullableGidEntity.serializer())
+}
 
-val schemaAttrs = serializers
+val schemaAttrs = (qbitCoreTestsSerialModule).serializers()
     .flatMap { readSchema(it.value.descriptor) }
     .map { it.name to it }
     .toMap()
@@ -40,4 +26,21 @@ private val attrsMap = schemaAttrs + (tombstone.name to tombstone)
 
 
 class SerializationFactorizationTest :
-    CommonFactorizationTest(KSFactorization(serializersModuleOf(serializers))::ksDestruct, attrsMap)
+    CommonFactorizationTest(KSFactorization(qbitCoreTestsSerialModule)::ksDestruct, attrsMap)
+
+fun SerialModule.serializers() =
+    HashMap<KClass<*>, KSerializer<*>>().apply {
+        this@serializers.dumpTo(object : SerialModuleCollector {
+            override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
+                this@apply[kClass] = serializer
+            }
+
+            override fun <Base : Any, Sub : Base> polymorphic(
+                baseClass: KClass<Base>,
+                actualClass: KClass<Sub>,
+                actualSerializer: KSerializer<Sub>
+            ) {
+                this@apply[baseClass] = actualSerializer
+            }
+        })
+    }

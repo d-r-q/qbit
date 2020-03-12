@@ -18,6 +18,7 @@ import qbit.spi.Storage
 import qbit.storage.MemStorage
 import qbit.test.model.Region
 import qbit.test.model.Scientist
+import qbit.test.model.testsSerialModule
 import qbit.trx.QTrx
 import kotlin.test.*
 
@@ -161,7 +162,7 @@ class TrxTest {
 
     private fun openEmptyConn(): Pair<Conn, Storage> {
         val storage = MemStorage()
-        val conn = qbit(storage, testSchemaFactorization::ksDestruct)
+        val conn = qbit(storage, testsSerialModule)
         return conn to storage
     }
     
