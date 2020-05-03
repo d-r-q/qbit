@@ -406,11 +406,29 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         val state2 = TheSimplestEntity(Gid(2, 0).value(), "1")
         val ref = EntityWithRefList(null, listOf(state1, state2))
 
-        // Then it files, when it factorized
+        // Then it fails, when it factorized
         val ex = assertFailsWith(QBitException::class) {
             destruct(ref, testSchema, gids)
         }
         assertTrue(ex.message?.contains("Entity ${Gid(2, 0)} has several different states to store") == true)
+    }
+
+    @Ignore // enable when eav's deduplication will be moved into factorization
+    @Test
+    fun `Test factorization of objects with identical states`() {
+        // Given two different states for the same entity and refs to them
+        val state1 = TheSimplestEntity(Gid(2, 0).value(), "1")
+        val state2 = TheSimplestEntity(Gid(2, 0).value(), "1")
+        val ref = EntityWithRefList(null, listOf(state1, state2))
+
+        // When it factorized
+        val factorization = destruct(ref, testSchema, gids)
+
+        // Then factorization contains the same list for both states
+        assertEquals(factorization.entityFacts[state1], factorization.entityFacts[state2])
+
+        // And factorizatoin contains only 3 eavs, 2 refs and one scalar
+        assertEquals(3, factorization.size)
     }
 
     @JsName("Test_that_persisting_of_new_entity_with_list_attr_pulls_only_one_new_gid")
@@ -424,7 +442,11 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         destruct(anEntity, testSchema, gids)
 
         // Then only one gid is pulled from source
-        assertEquals(gids.next().value(), baseGid.value() + 2, "Destruction of entity with list has pulled gid for a list")
+        assertEquals(
+            gids.next().value(),
+            baseGid.value() + 2,
+            "Destruction of entity with list has pulled gid for a list"
+        )
     }
 
     // todo: entity tree
