@@ -414,6 +414,7 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
     }
 
     @Ignore // enable when eav's deduplication will be moved into factorization
+    @JsName("Test_factorization_of_objects_with_identical_states")
     @Test
     fun `Test factorization of objects with identical states`() {
         // Given two different states for the same entity and refs to them
@@ -449,9 +450,24 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         )
     }
 
-    // todo: entity tree
+    @JsName("Test_parent_to_children_tree_factorization")
+    @Test
+    fun `Test parent to children tree factorization`() {
+        // Given parent to children tree
+        val leaf11 = ParentToChildrenTreeEntity(null, "leaf11", emptyList())
+        val leaf12 = ParentToChildrenTreeEntity(null, "leaf12", emptyList())
+        val node1 = ParentToChildrenTreeEntity(null, "node1", listOf(leaf11, leaf12))
+        val leaf21 = ParentToChildrenTreeEntity(null, "leaf21", emptyList())
+        val leaf22 = ParentToChildrenTreeEntity(null, "leaf22", emptyList())
+        val node2 = ParentToChildrenTreeEntity(null, "node2", listOf(leaf21, leaf22))
+        val root = ParentToChildrenTreeEntity(null, "root", listOf(node1, node2))
 
-    // todo: lists does not pulls values from gids
+        // When it factorized
+        val factorization = destruct(root, testSchema, gids)
+
+        // Then factorization contains eavs for all entities
+        assertEquals(13, factorization.size)
+    }
 
 }
 

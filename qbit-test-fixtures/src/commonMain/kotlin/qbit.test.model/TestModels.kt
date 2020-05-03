@@ -46,6 +46,9 @@ data class NullableList(val id: Long?, val lst: List<Byte>?, val placeholder: Lo
 data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Long)
 
 @Serializable
+data class ParentToChildrenTreeEntity(val id: Long?, val name: String, val children: List<ParentToChildrenTreeEntity>)
+
+@Serializable
 data class MUser(
     val id: Long? = null,
     val login: String,
@@ -265,4 +268,5 @@ val testsSerialModule = SerializersModule {
     contextual(ListOfByteArraysEntity::class, ListOfByteArraysEntity.serializer())
     contextual(IntEntity::class, IntEntity.serializer())
     contextual(Region::class, Region.serializer())
+    contextual(ParentToChildrenTreeEntity::class, ParentToChildrenTreeEntity.serializer())
 }
