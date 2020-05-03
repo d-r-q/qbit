@@ -413,6 +413,20 @@ abstract class CommonFactorizationTest(val destruct: Destruct, val attrsMap: Map
         assertTrue(ex.message?.contains("Entity ${Gid(2, 0)} has several different states to store") == true)
     }
 
+    @JsName("Test_that_persisting_of_new_entity_with_list_attr_pulls_only_one_new_gid")
+    @Test
+    fun `Test that persisting of new entity with list attr pulls only one new gid`() {
+        // Given an entity with list of primitives and gids source
+        val anEntity = EntityWithScalarList(null, listOf(1, 2, 3))
+        val baseGid = gids.next()
+
+        // When it factorized
+        destruct(anEntity, testSchema, gids)
+
+        // Then only one gid is pulled from source
+        assertEquals(gids.next().value(), baseGid.value() + 2, "Destruction of entity with list has pulled gid for a list")
+    }
+
     // todo: entity tree
 
     // todo: lists does not pulls values from gids
