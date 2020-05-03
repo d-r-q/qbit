@@ -324,6 +324,6 @@ class EntityEncoder(
 
 }
 
-internal fun attrName(desc: SerialDescriptor, index: Int) =
+fun attrName(desc: SerialDescriptor, index: Int) =
     ".${desc.serialName}/${desc.getElementName(index)}"
 
