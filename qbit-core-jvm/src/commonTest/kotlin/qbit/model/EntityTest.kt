@@ -79,7 +79,7 @@ class EntityTest {
     }
 
     @Test
-    fun `Factorization of reference attribute returns Fact(_, _, value = gid)`() {
+    fun `Factoring of reference attribute returns Fact(_, _, value = gid)`() {
         val e1 = Entity(Gid(0, 0))
         val e2 = Entity(Gid(0, 1), Attr<Any>("ref") eq e1)
         val value = e2.toFacts().first().value

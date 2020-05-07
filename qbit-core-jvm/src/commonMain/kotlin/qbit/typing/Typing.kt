@@ -8,7 +8,7 @@ import qbit.api.model.DataType
 import qbit.api.model.Entity
 import qbit.api.model.QList
 import qbit.api.model.StoredEntity
-import qbit.factorization.valueTypes
+import qbit.factoring.valueTypes
 import qbit.reflection.findPrimaryConstructor
 import qbit.reflection.getListElementClass
 import qbit.reflection.isId

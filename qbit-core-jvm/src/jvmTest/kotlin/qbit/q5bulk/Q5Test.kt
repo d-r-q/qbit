@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.db.*
 import qbit.api.model.impl.gid
-import qbit.factorization.attrName
+import qbit.factoring.attrName
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema

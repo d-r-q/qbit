@@ -7,14 +7,14 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
 import qbit.api.system.Instance
-import qbit.factorization.Destruct
+import qbit.factoring.Factor
 import qbit.index.InternalDb
 import qbit.api.model.impl.gid
 import qbit.platform.collections.EmptyIterator
 
 
 internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
-                    private val commitHandler: CommitHandler, private val destruct: Destruct) : Trx() {
+                    private val commitHandler: CommitHandler, private val factor: Factor) : Trx() {
 
     private var curDb: InternalDb? = null
 
@@ -32,7 +32,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?> {
         ensureReady()
-        val facts = destruct(entityGraphRoot, db::attr, gids)
+        val facts = factor(entityGraphRoot, db::attr, gids)
         val entities = facts.map { it.gid }
                 .distinct()
                 .mapNotNull { db.pullEntity(it)?.toFacts()?.toList() }
@@ -65,7 +65,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
             return
         }
 
-        val instance = destruct(inst.copy(nextEid = gids.next().eid), curDb!!::attr, EmptyIterator)
+        val instance = factor(inst.copy(nextEid = gids.next().eid), curDb!!::attr, EmptyIterator)
         val newLog = trxLog.append(factsBuffer + instance)
         try {
             base = curDb!!.with(instance)

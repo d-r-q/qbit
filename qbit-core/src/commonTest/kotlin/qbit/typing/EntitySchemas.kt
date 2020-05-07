@@ -4,13 +4,13 @@ import kotlinx.serialization.*
 import qbit.api.QBitException
 import qbit.api.gid.NullGid
 import qbit.api.model.*
-import qbit.factorization.attrName
+import qbit.factoring.serializatoin.AttrName
 
 
 fun readSchema(rootDesc: SerialDescriptor): List<Attr<Any>> {
     return rootDesc.elementDescriptors().withIndex().map { (idx, desc) ->
         val dataType = DataType.of(desc)
-        Attr<Any>(NullGid, attrName(rootDesc, idx), dataType.code, false, dataType.isList())
+        Attr<Any>(NullGid, AttrName(rootDesc, idx).asString(), dataType.code, false, dataType.isList())
     }
 }
 

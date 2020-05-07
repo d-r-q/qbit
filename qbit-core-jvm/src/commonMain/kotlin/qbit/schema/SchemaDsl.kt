@@ -2,10 +2,10 @@ package qbit.schema
 
 import qbit.api.model.Attr
 import qbit.api.model.QRef
-import qbit.factorization.attrName
-import qbit.factorization.collectionTypes
-import qbit.factorization.types
-import qbit.factorization.valueTypes
+import qbit.factoring.attrName
+import qbit.factoring.collectionTypes
+import qbit.factoring.types
+import qbit.factoring.valueTypes
 import qbit.reflection.default
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0

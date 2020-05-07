@@ -29,7 +29,7 @@ class ConnTest {
         val storedLeaf = nodesStorage.store(leaf)
         storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
-        val conn = QConn(dbUuid, storage, storedRoot, testSchemaFactorization::ksDestruct)
+        val conn = QConn(dbUuid, storage, storedRoot, testSchemaFactorizer::factor)
 
         val newLog = FakeTrxLog(storedLeaf.hash)
         conn.update(conn.trxLog, newLog, EmptyDb)

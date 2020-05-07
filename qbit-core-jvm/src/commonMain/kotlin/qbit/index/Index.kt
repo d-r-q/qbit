@@ -77,6 +77,7 @@ internal class Index(
             }
             toAdd.addAll(e.second.filter { it.value is Comparable<*> })
         }
+        toRemove.sortWith(aveCmp)
         toAdd.sortWith(aveCmp)
 
         val filteredIndex = ArrayList<Eav>(toAdd.size)

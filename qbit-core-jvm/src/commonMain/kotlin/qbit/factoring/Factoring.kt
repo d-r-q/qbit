@@ -1,4 +1,4 @@
-package qbit.factorization
+package qbit.factoring
 
 import qbit.api.gid.Gid
 import qbit.api.model.*

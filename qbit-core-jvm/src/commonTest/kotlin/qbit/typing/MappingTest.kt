@@ -5,9 +5,9 @@ import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
-import qbit.factorization.Destruct
-import qbit.factorization.findGidProp
-import qbit.factorization.types
+import qbit.factoring.Factor
+import qbit.factoring.findGidProp
+import qbit.factoring.types
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.query.EagerQuery
@@ -17,7 +17,7 @@ import qbit.test.model.*
 import kotlin.test.*
 
 
-abstract class MappingTest(val destruct: Destruct) {
+abstract class MappingTest(val factor: Factor) {
 
     @Test
     fun `Test simple entity mapping`() {
@@ -30,7 +30,7 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(TheSimplestEntity::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }))
 
         val user = MUser(
                 login = "login",
@@ -40,7 +40,7 @@ abstract class MappingTest(val destruct: Destruct) {
                 theSimplestEntities = listOf(TheSimplestEntity(null, "lstAddr"))
         )
 
-        val facts = destruct(user, db::attr, gids)
+        val facts = factor(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)
         val lazyTyping = Typing(se!!, GraphQuery(MUser::class, emptyMap()), MUser::class)
@@ -68,7 +68,7 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(TheSimplestEntity::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }))
 
         val entity = TheSimplestEntity(null, "addr")
         val user = MUser(
@@ -78,7 +78,7 @@ abstract class MappingTest(val destruct: Destruct) {
                 optTheSimplestEntity = entity,
                 theSimplestEntities = listOf(entity)
         )
-        val facts = destruct(user, db::attr, gids)
+        val facts = factor(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
 
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
@@ -99,7 +99,7 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(TheSimplestEntity::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }))
 
         val addr = TheSimplestEntity(1, "addr")
         val user = MUser(
@@ -112,7 +112,7 @@ abstract class MappingTest(val destruct: Destruct) {
         val userWithAddr = user.copy(theSimplestEntity = user.theSimplestEntity.copy(scalar = "newAddr"))
 
         assertThrows<QBitException> {
-            destruct(userWithAddr, db::attr, gids)
+            factor(userWithAddr, db::attr, gids)
         }
     }
 
@@ -136,7 +136,7 @@ abstract class MappingTest(val destruct: Destruct) {
     // Support of self-refefencing entitys is under question now
     @Ignore
     @Test
-    fun `Test destruction of self-referencing entity`() {
+    fun `Test factoring of self-referencing entity`() {
         val gids = Gid(0, 0).nextGids()
 
         val testSchema = schema {
@@ -144,11 +144,11 @@ abstract class MappingTest(val destruct: Destruct) {
             entity(Country::class)
         }
 
-        val db = IndexDb(Index().addFacts(testSchema.flatMap { destruct(it, EmptyDb::attr, gids) }))
+        val db = IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }))
         val s = Scientist(null, 1, "s", emptyList(), Country(null, "c", 0), null)
         s.reviewer = s
 
-        val facts = destruct(s, db::attr, gids)
+        val facts = factor(s, db::attr, gids)
         assertEquals(6, facts.size)
         assertEquals(Gid(0, 7), facts.first { it.attr == Scientists.reviewer.name }.value)
     }

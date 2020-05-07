@@ -109,7 +109,7 @@ class TrxTest {
     private fun createTrx(conn: FakeConn, trxLog: FakeTrxLog, vararg entities: Any) =
             QTrx(
                 Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(Gid(0, 0).nextGids(),
-                    *entities), conn, testSchemaFactorization::ksDestruct)
+                    *entities), conn, testSchemaFactorizer::factor)
 
     @Ignore
     @Test

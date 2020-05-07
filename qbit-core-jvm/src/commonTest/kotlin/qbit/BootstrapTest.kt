@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorization::ksDestruct)
+    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor)
 
     @Test
     fun testInit() {

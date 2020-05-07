@@ -14,10 +14,7 @@ import qbit.index.*
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.trx.toFacts
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
+import kotlin.test.*
 import qbit.Scientists.name as userName
 import qbit.api.tombstone as tsAttr
 
@@ -170,12 +167,39 @@ class IndexTest {
     }
 
     @Test
-    fun `Test putting tombstone into index should filter all facts of correspondingEntity`() {
-        val idx = Index(listOf(Gid(0, 0) to listOf(Eav(Gid(0, 0), "any", "any")),
+    fun `Test putting tombstone into index should filter all facts of corresponding entity`() {
+        val deletedEntityGid = Gid(0, 0)
+        val idx = Index(listOf(
+            deletedEntityGid to listOf(Eav(deletedEntityGid, "any", "any")),
                 Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))))
-        val filtered = idx.addFacts(listOf(Eav(Gid(0, 0), qbit.api.tombstone.name, true)))
+        val filtered = idx.addFacts(listOf(Eav(deletedEntityGid, qbit.api.tombstone.name, true)))
         assertEquals(1, filtered.entities.size)
         assertEquals(2, filtered.indices.size)
+    }
+
+    @Test
+    fun `Test putting tombstone into index should remove all facts of corresponding entity even if facts of origin entity are unsorted`() {
+        // Given an index with two entities with interleaving eavs
+        val deletedGid = Gid(0, 0)
+        val anotherGid = Gid(0, 1)
+        val deletedEavs = listOf(
+            Eav(deletedGid, "attr3", "c"),
+            Eav(deletedGid, "attr2", "b"),
+            Eav(deletedGid, "attr1", "a")
+        )
+        val anotherEavs = listOf(
+            Eav(anotherGid, "attr1", "b"),
+            Eav(anotherGid, "attr2", "a")
+        )
+        val index = Index(listOf(deletedGid to deletedEavs, anotherGid to anotherEavs))
+
+        // When to the index add tombstone for deleted entity
+        val filtered = index.addFacts((listOf(Eav(deletedGid, qbit.api.tombstone.name, true))))
+
+        // Then should contain only another entity and it's eavs
+        assertEquals(1, filtered.entities.size)
+        assertEquals(2, filtered.indices.size)
+        assertNotNull(filtered.entityById(anotherGid))
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {

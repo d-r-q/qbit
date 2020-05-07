@@ -5,18 +5,19 @@ import qbit.api.db.Conn
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
-import qbit.factorization.KSFactorization
-import qbit.factorization.attrName
+import qbit.factoring.serializatoin.KSFactorizer
+import qbit.factoring.attrName
 import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
 import qbit.spi.Storage
 import qbit.storage.MemStorage
 import qbit.test.model.*
 
-val testSchemaFactorization = KSFactorization(qbitSerialModule + testsSerialModule)
+val testSchemaFactorizer =
+    KSFactorizer(qbitSerialModule + testsSerialModule)
 
 fun Scientist.toFacts() =
-    testSchemaFactorization.ksDestruct(this, schemaMap::get, EmptyIterator)
+    testSchemaFactorizer.factor(this, schemaMap::get, EmptyIterator)
 
 
 data class City(val id: Long?, val name: String, val region: Region)

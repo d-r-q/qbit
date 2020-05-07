@@ -49,6 +49,9 @@ data class NullableScalar(val id: Long?, var scalar: Byte?, val placeholder: Lon
 data class ParentToChildrenTreeEntity(val id: Long?, val name: String, val children: List<ParentToChildrenTreeEntity>)
 
 @Serializable
+data class EntityWithRefsToSameType(val id: Long?, val ref1: TheSimplestEntity, val ref2: TheSimplestEntity)
+
+@Serializable
 data class MUser(
     val id: Long? = null,
     val login: String,
@@ -254,7 +257,6 @@ val testsSerialModule = SerializersModule {
     contextual(EntityWithScalarList::class, EntityWithScalarList.serializer())
     contextual(EntityWithRefList::class, EntityWithRefList.serializer())
     contextual(ListOfNullablesHolder::class, ListOfNullablesHolder.serializer())
-    contextual(ListOfNullables::class, ListOfNullables.serializer())
     contextual(NullableList::class, NullableList.serializer())
     contextual(MUser::class, MUser.serializer())
     contextual(ResearchGroup::class, ResearchGroup.serializer())
@@ -269,4 +271,5 @@ val testsSerialModule = SerializersModule {
     contextual(IntEntity::class, IntEntity.serializer())
     contextual(Region::class, Region.serializer())
     contextual(ParentToChildrenTreeEntity::class, ParentToChildrenTreeEntity.serializer())
+    contextual(EntityWithRefsToSameType::class, EntityWithRefsToSameType.serializer())
 }

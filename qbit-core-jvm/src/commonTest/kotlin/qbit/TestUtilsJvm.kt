@@ -9,7 +9,7 @@ import qbit.api.model.Attr
 import qbit.api.model.AttrValue
 import qbit.api.model.Eav
 import qbit.api.model.Hash
-import qbit.factorization.types
+import qbit.factoring.types
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.index.InternalDb
@@ -29,7 +29,7 @@ internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: A
             .filterIsInstance<Attr<*>>()
             .map { it.name to it }
             .toMap()
-    val facts = entities.flatMap { testSchemaFactorization.ksDestruct(it, (bootstrapSchema + addedAttrs)::get, eids) }
+    val facts = entities.flatMap { testSchemaFactorizer.factor(it, (bootstrapSchema + addedAttrs)::get, eids) }
     return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
 }
 

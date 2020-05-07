@@ -5,12 +5,12 @@ import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.tombstone
-import qbit.factorization.KSFactorization
+import qbit.factoring.serializatoin.KSFactorizer
 import qbit.qbitSerialModule
 import qbit.test.model.testsSerialModule
 import kotlin.reflect.KClass
 
-private val qbitCoreTestsSerialModule = SerializersModule {
+val qbitCoreTestsSerialModule = SerializersModule {
     include(qbitSerialModule)
     include(testsSerialModule)
     contextual(GidEntity::class, GidEntity.serializer())
@@ -25,8 +25,8 @@ val schemaAttrs = (qbitCoreTestsSerialModule).serializers()
 private val attrsMap = schemaAttrs + (tombstone.name to tombstone)
 
 
-class SerializationFactorizationTest :
-    CommonFactorizationTest(KSFactorization(qbitCoreTestsSerialModule)::ksDestruct, attrsMap)
+class SerializationFactoringTest :
+    CommonFactoringTest(KSFactorizer(qbitCoreTestsSerialModule)::factor, attrsMap)
 
 fun SerialModule.serializers() =
     HashMap<KClass<*>, KSerializer<*>>().apply {
