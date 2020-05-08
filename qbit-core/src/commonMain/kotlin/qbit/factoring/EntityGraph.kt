@@ -9,7 +9,7 @@ import qbit.api.model.impl.DetachedEntity
 import qbit.collections.IdentityMap
 
 @Suppress("UNCHECKED_CAST")
-internal data class EntityField(
+internal data class EntityBuilder(
     internal var gid: Gid? = null,
     private val values: HashMap<AttrName, Any> = HashMap()
 ) {
@@ -25,6 +25,7 @@ internal data class EntityField(
     }
 
     fun toEntity(schema: (String) -> Attr<*>?, resolve: (Any) -> Gid): DetachedEntity {
+        check(gid != null) { "Entity $values has no gid"}
         val attrValues: Map<Attr<*>, Any> = values
             .mapKeys { schema(it.key.asString()) ?: throw QBitException("Attr for ${it.key.asString()} not found") }
             .mapValues { resolveRefs(it.value, resolve) }
@@ -55,7 +56,7 @@ internal data class Pointer(val obj: Any, val attr: AttrName)
 
 internal class EntityGraph {
 
-    val builders = IdentityMap<Any, EntityField>()
+    val builders = IdentityMap<Any, EntityBuilder>()
 
     private val tombstones = HashSet<Tombstone>()
 
@@ -65,9 +66,9 @@ internal class EntityGraph {
 
     fun resolveRefs(schema: (String) -> Attr<*>?, gids: Iterator<Gid>): IdentityMap<Any, Entity> {
         assignGids(gids)
-        val gid2builder = deduplicate()
+        val gid2builder = deduplicateEntityStates()
         val entries: List<Pair<Any, Entity>> = builders
-            .map { (ref, builder) -> ref to gid2builder[builder.gid]!! }
+            .map { (ref, builder) -> ref to (gid2builder[builder.gid] ?: throw QBitException("Could not find builder for ref $ref via ${builder.gid}")) }
             .map { (ref, builder) ->
                 ref to builder.toEntity(schema) { r ->
                     val refereeBuilder = builders[r] ?: throw AssertionError("Unexpected ref: $r")
@@ -83,14 +84,15 @@ internal class EntityGraph {
             .forEach { it.gid = gids.next() }
     }
 
-    private fun deduplicate(): Map<Gid, EntityField> {
+    private fun deduplicateEntityStates(): Map<Gid, EntityBuilder> {
         val uniqueBuilders = builders.values.groupBy { it.gid }
         return uniqueBuilders.map { (gid, builders) ->
+            check(gid != null) { "Gid for builders ${builders} is null" }
             val states = builders.toSet()
             if (states.size > 1) {
-                throw QBitException("Entity ${gid} has several different states to store: ${states}")
+                throw QBitException("Entity $gid has several different states to store: $states")
             }
-            gid!! to builders.first()
+            gid to builders.first()
         }.toMap()
     }
 
@@ -100,7 +102,7 @@ internal class EntityGraph {
 
     fun addIfMissing(obj: Any) {
         if (obj !in builders) {
-            builders[obj] = EntityField()
+            builders[obj] = EntityBuilder()
         }
     }
 
