@@ -1,5 +1,8 @@
 package qbit.api.gid
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
 
     constructor(eid: Long) : this(eid.shr(32).and(0xFFFFFFFF).toInt(), eid.and(0xFFFFFFFF).toInt())
@@ -20,6 +23,8 @@ data class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
 
 }
 
-internal fun Gid.nextGids(): Iterator<Gid> =
-        generateSequence(this) { eid -> Gid(eid.iid, eid.eid + 1) }
-                .iterator()
+val NullGid = Gid(0)
+
+fun Gid.nextGids(): Iterator<Gid> =
+    generateSequence(this) { eid -> Gid(eid.iid, eid.eid + 1) }
+        .iterator()

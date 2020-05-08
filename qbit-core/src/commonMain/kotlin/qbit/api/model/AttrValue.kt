@@ -1,5 +1,7 @@
 package qbit.api.model
 
+import qbit.api.model.impl.QbitAttrValue
+
 interface AttrValue<A : Attr<T>, T : Any> {
 
     val attr: A
@@ -12,3 +14,6 @@ interface AttrValue<A : Attr<T>, T : Any> {
     operator fun component2(): T = value
 
 }
+
+infix fun <T : Any> Attr<T>.eq(v: T): AttrValue<Attr<T>, T> =
+    QbitAttrValue(this, v)

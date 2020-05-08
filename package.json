@@ -1,0 +1,11 @@
+{
+  "name": "qbit",
+  "private": true,
+  "version": "0.0.3",
+  "description": "Kotlin multi-platform distributed database",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "mocha": "6.0.0"
+  }
+}

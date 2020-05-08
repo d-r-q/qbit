@@ -2,7 +2,7 @@ package qbit.api.model
 
 import qbit.api.gid.Gid
 
-internal fun entity2gid(e: Any): Any {
+fun entity2gid(e: Any): Any {
     @Suppress("UNCHECKED_CAST")
     return when {
         e is Entity -> e.gid

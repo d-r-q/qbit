@@ -1,0 +1,136 @@
+package qbit
+
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialDescriptor
+import kotlinx.serialization.StructureKind
+import kotlinx.serialization.elementDescriptors
+import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerialModuleCollector
+import kotlinx.serialization.modules.plus
+import qbit.api.QBitException
+import qbit.api.db.Conn
+import qbit.api.db.Db
+import qbit.api.db.Trx
+import qbit.api.db.WriteResult
+import qbit.api.db.pull
+import qbit.api.gid.Gid
+import qbit.api.gid.Iid
+import qbit.api.model.Hash
+import qbit.api.system.DbUuid
+import qbit.api.theInstanceEid
+import qbit.factoring.Factor
+import qbit.factoring.serializatoin.KSFactorizer
+import qbit.index.Indexer
+import qbit.index.InternalDb
+import qbit.ns.Namespace
+import qbit.serialization.Node
+import qbit.serialization.NodeRef
+import qbit.serialization.NodeVal
+import qbit.serialization.NodesStorage
+import qbit.spi.Storage
+import qbit.trx.CommitHandler
+import qbit.trx.QTrx
+import qbit.trx.QTrxLog
+import qbit.trx.TrxLog
+import qbit.trx.Writer
+import kotlin.reflect.KClass
+
+class SchemaValidator : SerialModuleCollector {
+
+    override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
+        validateDescriptor(serializer.descriptor)
+    }
+
+    private fun validateDescriptor(desc: SerialDescriptor) {
+        val nullableListProps =
+            desc.elementDescriptors()
+                .withIndex()
+                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                .map { it.second }
+        if (nullableListProps.isNotEmpty()) {
+            throw QBitException(
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.map { it }.joinToString(
+                    ",",
+                    "(",
+                    ")"
+                )}"
+            )
+        }
+    }
+
+
+    override fun <Base : Any, Sub : Base> polymorphic(
+        baseClass: KClass<Base>,
+        actualClass: KClass<Sub>,
+        actualSerializer: KSerializer<Sub>
+    ) {
+        TODO("Not yet implemented")
+    }
+
+}
+fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
+    val iid = Iid(1, 4)
+    val dbUuid = DbUuid(iid)
+    val headHash = storage.load(Namespace("refs")["head"])
+    val systemSerialModule = qbitSerialModule + appSerialModule
+    systemSerialModule.dumpTo(SchemaValidator())
+    return if (headHash != null) {
+        val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
+                ?: throw QBitException("Corrupted head: no such node")
+        // TODO: fix dbUuid retrieving
+        QConn(dbUuid, storage, head, KSFactorizer(systemSerialModule)::factor)
+    } else {
+        bootstrap(storage, dbUuid, KSFactorizer(systemSerialModule)::factor)
+    }
+}
+
+internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+
+    private val nodesStorage = NodesStorage(storage)
+
+    var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
+
+    private val resolveNode = nodesResolver(nodesStorage)
+
+    private var db: InternalDb = Indexer(null, null, resolveNode).index(head)
+
+    override val head
+        get() = trxLog.hash
+
+    override fun db() = db
+
+    override fun db(body: (Db) -> Unit) {
+        body(db)
+    }
+
+    override fun trx(): Trx {
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor)
+    }
+
+    override fun <R : Any> persist(e: R): WriteResult<R?> {
+        return with(trx()) {
+            val wr = persist(e)
+            commit()
+            wr
+        }
+    }
+
+    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
+        if (this.trxLog != trxLog) {
+            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
+        }
+        this.trxLog = newLog
+        db = newDb
+        storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
+    }
+
+}
+
+private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Hash> = { n ->
+    when (n) {
+        is NodeVal<Hash> -> n
+        is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
+    }
+}
+

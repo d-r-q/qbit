@@ -18,13 +18,14 @@ kotlin {
         }
         commonMain {
             dependencies {
-                api project(':qbit-core')
+                api project(':qbit-core-jvm')
             }
         }
         commonTest {
             dependencies {
                 implementation 'org.jetbrains.kotlin:kotlin-test-common'
                 implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+                implementation project(':qbit-test-fixtures')
             }
         }
         jvmTest {

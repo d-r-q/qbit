@@ -1,7 +1,6 @@
 package qbit.model
 
 import qbit.api.gid.Iid
-import qbit.api.QBitException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

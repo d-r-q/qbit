@@ -1,9 +1,6 @@
 package qbit.api.model
 
 import qbit.api.gid.Gid
-import qbit.platform.BigDecimal
-import qbit.platform.Instant
-import qbit.platform.ZonedDateTime
 import kotlin.reflect.KClass
 
 /**
@@ -32,7 +29,7 @@ sealed class DataType<out T : Any> {
     companion object {
 
         private val values: Array<DataType<*>>
-            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QInstant, QZonedDateTime, QDecimal, QRef)
+            get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QRef)
 
         fun ofCode(code: Byte): DataType<*>? =
                 if (code <= 19) {
@@ -49,9 +46,6 @@ sealed class DataType<out T : Any> {
             is String -> QString as DataType<T>
             is ByteArray -> QBytes as DataType<T>
             is Gid -> QGid as DataType<T>
-            is Instant -> QInstant as DataType<T>
-            is ZonedDateTime -> QZonedDateTime as DataType<T>
-            is BigDecimal -> QDecimal as DataType<T>
             is List<*> -> value.firstOrNull()?.let { ofValue(it)?.list() } as DataType<T>
             else -> QRef as DataType<T>
         }
@@ -78,9 +72,6 @@ sealed class DataType<out T : Any> {
             is QString -> String::class
             is QBytes -> ByteArray::class
             is QGid -> Gid::class
-            is QInstant -> Instant::class
-            is QZonedDateTime -> ZonedDateTime::class
-            is QDecimal -> BigDecimal::class
             is QList<*> -> this.itemsType.typeClass()
             QRef -> Any::class
         }
@@ -118,24 +109,6 @@ object QLong : DataType<Long>() {
 
 }
 
-object QInstant : DataType<Instant>() {
-
-    override val code = 4.toByte()
-
-}
-
-object QDecimal : DataType<BigDecimal>() {
-
-    override val code = 5.toByte()
-}
-
-
-object QZonedDateTime : DataType<ZonedDateTime>() {
-
-    override val code = 8.toByte()
-
-}
-
 object QString : DataType<String>() {
 
     override val code = 16.toByte()
@@ -160,5 +133,5 @@ object QGid : DataType<Gid>() {
 
 }
 
-internal fun isListOfVals(list: List<Any>?) =
+fun isListOfVals(list: List<Any>?) =
         list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value()  }?: true
