@@ -179,6 +179,19 @@ class FunTest {
         assertTrue(ex.message?.contains("Entity ${pChen.gid} has several different states to store") == true)
     }
 
+    @Ignore
+    @Test
+    fun `Storage of the same state of same entity should store single entity`() {
+        val conn = setupTestData()
+        val pChen2 = pChen.copy()
+        val rg = ResearchGroup(null, listOf(pChen, pChen2))
+        val (persitstedRg) = conn.persist(rg)
+        val repulledRg = conn.db().pull<ResearchGroup>(persitstedRg!!.gid!!)
+        assertNotNull(repulledRg)
+        assertEquals(2, repulledRg.members.size)
+        assertEquals(repulledRg.members[0], repulledRg.members[1])
+    }
+
     @Test
     fun `Storage of two entities with same value of unique attribute should fail with uniqueness violation exception`() {
         val conn = setupTestData()
