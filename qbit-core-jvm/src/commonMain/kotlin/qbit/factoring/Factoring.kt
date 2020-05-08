@@ -25,12 +25,7 @@ val valueTypes = types.values
         .filter { it.value() }
         .map { it.typeClass() }
 
-internal fun findGidProp(root: Any): KCallable<*> =
-        root::class.members
-                .firstOrNull {
-                    it is KProperty1<*, *> && it.name == "id" && (it.returnType.classifier == Long::class || it.returnType.classifier == Gid::class)
-                }
-                ?: throw IllegalArgumentException("Entity $root does not contains `id: (Long|Gid)` property")
+expect internal fun findGidProp(root: Any): KCallable<*>
 
 fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
         "." + this.qualifiedName!! + "/" + prop.name

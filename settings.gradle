@@ -7,6 +7,11 @@ pluginManagement {
             }
         }
     }
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+    }
 }
 rootProject.name = 'qbit'
 include ':qbit-test-fixtures', ':qbit-core', ':qbit-core-jvm', ':qbit-fss', ':qbit-http-storages'

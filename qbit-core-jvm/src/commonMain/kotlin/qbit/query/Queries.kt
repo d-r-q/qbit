@@ -13,12 +13,7 @@ class EagerQuery : Query() {
 
 }
 
-data class GraphQuery(val type: KClass<*>, val links: Map<String, GraphQuery?>) : Query() {
-
-    override fun shouldFetch(attr: Attr<*>): Boolean {
-        return attr.name in links || type.propertyFor(attr)?.returnType?.isMarkedNullable == false
-    }
-
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query = GraphQuery(subType, links)
-
+expect class GraphQuery(type: KClass<*>, links: Map<String, GraphQuery?>) : Query {
+    val type: KClass<*>
+    val links: Map<String, GraphQuery?>
 }

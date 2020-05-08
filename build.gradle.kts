@@ -25,6 +25,7 @@ subprojects {
 
     repositories {
         mavenCentral()
+        maven ("https://dl.bintray.com/kotlin/kotlin-eap")
         jcenter()
         maven { url = URI("https://kotlin.bintray.com/kotlinx") }
     }
