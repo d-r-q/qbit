@@ -103,6 +103,22 @@ data class Scientist(val id: Long?, val externalId: Int, val name: String, val n
 data class ResearchGroup(val id: Long?, val members: List<Scientist>)
 
 @Serializable
+data class Paper(val id: Long?, val name: String, val editor: Scientist?)
+
+@Serializable
+data class City(val id: Long?, val name: String, val region: Region)
+
+@Serializable
+data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
+
+@Serializable
+data class NullableRef(val id: Long?, val ref: IntEntity?, val placeholder: Long)
+
+@Serializable
+data class EntityWithoutAttrs(val id: Long?)
+
+
+@Serializable
 data class Bomb(val id: Long?,
 
                 val bool: Boolean,
@@ -272,4 +288,9 @@ val testsSerialModule = SerializersModule {
     contextual(Region::class, Region.serializer())
     contextual(ParentToChildrenTreeEntity::class, ParentToChildrenTreeEntity.serializer())
     contextual(EntityWithRefsToSameType::class, EntityWithRefsToSameType.serializer())
+    contextual(Paper::class, Paper.serializer())
+    contextual(City::class, City.serializer())
+    contextual(NullableScalarWithoutPlaceholder::class, NullableScalarWithoutPlaceholder.serializer())
+    contextual(NullableRef::class, NullableRef.serializer())
+    contextual(EntityWithoutAttrs::class, EntityWithoutAttrs.serializer())
 }

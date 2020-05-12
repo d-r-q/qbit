@@ -33,15 +33,6 @@ data class Category(val id: Long?, val name: String)
 @Serializable
 data class Trx(val id: Long?, val sum: Long, val dateTime: Long, val category: Category, val comment: String, val source: String, val device: String)
 
-val q5Schema = schema {
-    entity(Category::class) {
-        uniqueString(it::name)
-    }
-    entity(Trx::class)
-}
-
-val schemaMap = q5Schema.map { it.name to it}.toMap()
-
 object Trxes {
 
     val dateTime = schemaMap.getValue(Trx::class.attrName(Trx::dateTime))
@@ -59,6 +50,15 @@ val q5SerialModule = SerializersModule {
     contextual(Trx::class, Trx.serializer())
     contextual(Category::class, Category.serializer())
 }
+
+val q5Schema = schema(q5SerialModule) {
+    entity(Category::class) {
+        uniqueString(Category::name)
+    }
+    entity(Trx::class)
+}
+
+val schemaMap = q5Schema.map { it.name to it}.toMap()
 
 class Q5Test {
 

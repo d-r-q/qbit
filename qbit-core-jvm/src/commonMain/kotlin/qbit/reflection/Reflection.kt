@@ -7,11 +7,6 @@ expect fun findProperties(type: KClass<*>): List<KCallable<*>>
 
 expect fun <T : Any> findPrimaryConstructor(type: KClass<T>): KFunction<T>
 
-val defaults = hashMapOf<KClass<*>, Any>()
-
-@Suppress("UNCHECKED_CAST")
-expect fun <T : Any> default(type: KClass<T>): T
-
 fun setableProps(type: KClass<*>): List<KMutableProperty1<Any, Any>> {
     return findProperties(type).filterIsInstance<KMutableProperty1<Any, Any>>()
 }

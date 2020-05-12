@@ -223,7 +223,6 @@ enum class ValueKind {
 internal fun AttrName(descriptor: SerialDescriptor, index: Int) =
     AttrName(descriptor.serialName, descriptor.getElementName(index))
 
-
 private fun SerialModule.dump(): String {
     val collector = ToStringSerialModuleCollector()
     this.dumpTo(collector)

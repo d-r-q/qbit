@@ -329,7 +329,7 @@ class FunTest {
 
         assertEquals(bomb.country, storedBomb.country)
         assertEquals(bomb.optCountry, storedBomb.optCountry)
-        assertEquals(listOf(Country(12884901889, "Country1", 0), Country(4294967367, "Country3", 2)), storedBomb.countiesList)
+        assertEquals(listOf(Country(12884901889, "Country1", 0), Country(4294967365, "Country3", 2)), storedBomb.countiesList)
         // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
 
         assertEquals(bomb.mutCountry, storedBomb.mutCountry)

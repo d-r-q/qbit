@@ -23,9 +23,9 @@ abstract class MappingTest(val factor: Factor) {
     fun `Test simple entity mapping`() {
         val gids = Gid(0, 0).nextGids()
 
-        val testSchema = schema {
+        val testSchema = schema(testsSerialModule) {
             entity(MUser::class) {
-                uniqueString(it::login)
+                uniqueString(MUser::login)
             }
             entity(TheSimplestEntity::class)
         }
@@ -61,9 +61,9 @@ abstract class MappingTest(val factor: Factor) {
 
         val gids = Gid(0, 0).nextGids()
 
-        val testSchema = schema {
+        val testSchema = schema(testsSerialModule) {
             entity(MUser::class) {
-                uniqueString(it::login)
+                uniqueString(MUser::login)
             }
             entity(TheSimplestEntity::class)
         }
@@ -94,7 +94,7 @@ abstract class MappingTest(val factor: Factor) {
     fun `test multiple states of entity in entity graph is prohibited`() {
         val gids = Gid(0, 0).nextGids()
 
-        val testSchema = schema {
+        val testSchema = schema(testsSerialModule) {
             entity(MUser::class)
             entity(TheSimplestEntity::class)
         }
@@ -139,7 +139,7 @@ abstract class MappingTest(val factor: Factor) {
     fun `Test factoring of self-referencing entity`() {
         val gids = Gid(0, 0).nextGids()
 
-        val testSchema = schema {
+        val testSchema = schema(testsSerialModule) {
             entity(Scientist::class)
             entity(Country::class)
         }
@@ -155,46 +155,50 @@ abstract class MappingTest(val factor: Factor) {
 
     @Test
     fun `Test bomb schema generation`() {
-        val attrs = schema {
+        val attrs = schema(testsSerialModule) {
             entity(Bomb::class)
         }
-        assertEquals(QBoolean.code, attrs[0].type)
-        assertEquals(QBoolean.list().code, attrs[1].type)
-        assertEquals(QBoolean.list().code, attrs[2].type)
-        assertEquals(QByte.code, attrs[3].type)
-        assertEquals(QByte.list().code, attrs[4].type)
-        assertEquals(QByte.list().code, attrs[5].type)
-        assertEquals(QBytes.code, attrs[6].type)
-        assertEquals(QBytes.list().code, attrs[7].type)
-        assertEquals(QBytes.list().code, attrs[8].type)
-        assertEquals(QRef.list().code, attrs[9].type)
-        assertEquals(QRef.list().code, attrs[10].type)
-        assertEquals(QRef.code, attrs[11].type)
-        assertEquals(QInt.code, attrs[12].type)
-        assertEquals(QInt.list().code, attrs[13].type)
-        assertEquals(QInt.list().code, attrs[14].type)
-        assertEquals(QLong.code, attrs[15].type)
-        assertEquals(QLong.list().code, attrs[16].type)
-        assertEquals(QLong.list().code, attrs[17].type)
-        assertEquals(QBoolean.code, attrs[18].type)
-        assertEquals(QBoolean.list().code, attrs[19].type)
-        assertEquals(QBoolean.list().code, attrs[20].type)
-        assertEquals(QRef.list().code, attrs[21].type)
-        assertEquals(QRef.list().code, attrs[22].type)
-        assertEquals(QRef.code, attrs[23].type)
-        assertEquals(QBoolean.code, attrs[24].type)
-        assertEquals(QRef.code, attrs[25].type)
-        assertEquals(QRef.code, attrs[26].type)
-        assertEquals(QBoolean.code, attrs[27].type)
-        assertEquals(QByte.code, attrs[28].type)
-        assertEquals(QBytes.code, attrs[29].type)
-        assertEquals(QRef.code, attrs[30].type)
-        assertEquals(QInt.code, attrs[31].type)
-        assertEquals(QLong.code, attrs[32].type)
-        assertEquals(QString.code, attrs[33].type)
-        assertEquals(QString.code, attrs[34].type)
-        assertEquals(QString.list().code, attrs[35].type)
-        assertEquals(QString.list().code, attrs[36].type)
+            .associateBy { it.name }
+        assertEquals(QBoolean.code, attrs.getValue(".qbit.test.model.Bomb/bool").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/bool").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/boolList").type, "Expected ${QBoolean.list()}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/boolList").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/boolListOpt").type, "Expected ${QBoolean.list()}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/boolListOpt").type)}")
+        assertEquals(QBoolean.code, attrs.getValue(".qbit.test.model.Bomb/bool").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/bool").type)}")
+        assertEquals(QBoolean.code, attrs.getValue(".qbit.test.model.Bomb/mutBool").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutBool").type)}")
+        assertEquals(QBoolean.code, attrs.getValue(".qbit.test.model.Bomb/mutOptBool").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutOptBool").type)}")
+        assertEquals(QBoolean.code, attrs.getValue(".qbit.test.model.Bomb/optBool").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optBool").type)}")
+        assertEquals(QByte.code, attrs.getValue(".qbit.test.model.Bomb/byte").type, "Expected ${QByte}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/byte").type)}")
+        assertEquals(QByte.code, attrs.getValue(".qbit.test.model.Bomb/optByte").type, "Expected ${QByte}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optByte").type)}")
+        assertEquals(QByte.list().code, attrs.getValue(".qbit.test.model.Bomb/byteList").type, "Expected ${QByte.list()}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/byteList").type)}")
+        assertEquals(QByte.list().code, attrs.getValue(".qbit.test.model.Bomb/byteListOpt").type, "Expected ${QBytes.list()}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/byteListOpt").type)}")
+        assertEquals(QBytes.code, attrs.getValue(".qbit.test.model.Bomb/bytes").type, "Expected ${QBytes}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/bytes").type)}")
+        assertEquals(QBytes.code, attrs.getValue(".qbit.test.model.Bomb/optBytes").type, "Expected ${QBytes}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optBytes").type)}")
+        assertEquals(QInt.code, attrs.getValue(".qbit.test.model.Bomb/int").type, "Expected ${QInt}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/int").type)}")
+        assertEquals(QInt.code, attrs.getValue(".qbit.test.model.Bomb/optInt").type, "Expected ${QInt}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optInt").type)}")
+        assertEquals(QLong.code, attrs.getValue(".qbit.test.model.Bomb/long").type, "Expected ${QLong}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/long").type)}")
+        assertEquals(QLong.code, attrs.getValue(".qbit.test.model.Bomb/optLong").type, "Expected ${QLong}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optLong").type)}")
+        assertEquals(QRef.code, attrs.getValue(".qbit.test.model.Bomb/country").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/country").type)}")
+        assertEquals(QRef.code, attrs.getValue(".qbit.test.model.Bomb/mutCountry").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutCountry").type)}")
+        assertEquals(QRef.code, attrs.getValue(".qbit.test.model.Bomb/mutOptCountry").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutOptCountry").type)}")
+        assertEquals(QRef.code, attrs.getValue(".qbit.test.model.Bomb/optBomb").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optBomb").type)}")
+        assertEquals(QRef.code, attrs.getValue(".qbit.test.model.Bomb/optCountry").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optCountry").type)}")
+        assertEquals(QString.code, attrs.getValue(".qbit.test.model.Bomb/optStr").type, "Expected ${QString}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/optStr").type)}")
+        assertEquals(QString.code, attrs.getValue(".qbit.test.model.Bomb/str").type, "Expected ${QString}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/str").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/boolList").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/boolList").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/boolListOpt").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/boolListOpt").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/mutBoolList").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutBoolList").type)}")
+        assertEquals(QBoolean.list().code, attrs.getValue(".qbit.test.model.Bomb/mutBoolListOpt").type, "Expected ${QBoolean}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutBoolListOpt").type)}")
+        assertEquals(QBytes.list().code, attrs.getValue(".qbit.test.model.Bomb/bytesList").type, "Expected ${QBytes}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/bytesList").type)}")
+        assertEquals(QBytes.list().code, attrs.getValue(".qbit.test.model.Bomb/bytesListOpt").type, "Expected ${QBytes}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/bytesListOpt").type)}")
+        assertEquals(QInt.list().code, attrs.getValue(".qbit.test.model.Bomb/intList").type, "Expected ${QInt}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/intList").type)}")
+        assertEquals(QInt.list().code, attrs.getValue(".qbit.test.model.Bomb/intListOpt").type, "Expected ${QInt}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/intListOpt").type)}")
+        assertEquals(QLong.list().code, attrs.getValue(".qbit.test.model.Bomb/longList").type, "Expected ${QLong}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/longList").type)}")
+        assertEquals(QLong.list().code, attrs.getValue(".qbit.test.model.Bomb/longListOpt").type, "Expected ${QLong}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/longListOpt").type)}")
+        assertEquals(QRef.list().code, attrs.getValue(".qbit.test.model.Bomb/countiesList").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/countiesList").type)}")
+        assertEquals(QRef.list().code, attrs.getValue(".qbit.test.model.Bomb/countriesListOpt").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/countriesListOpt").type)}")
+        assertEquals(QRef.list().code, attrs.getValue(".qbit.test.model.Bomb/mutCountriesList").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutCountriesList").type)}")
+        assertEquals(QRef.list().code, attrs.getValue(".qbit.test.model.Bomb/mutCountriesListOpt").type, "Expected ${QRef}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/mutCountriesListOpt").type)}")
+        assertEquals(QString.list().code, attrs.getValue(".qbit.test.model.Bomb/strList").type, "Expected ${QString}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/strList").type)}")
+        assertEquals(QString.list().code, attrs.getValue(".qbit.test.model.Bomb/strListOpt").type, "Expected ${QString}, but got ${DataType.ofCode(attrs.getValue(".qbit.test.model.Bomb/strListOpt").type)}")
     }
 }
 

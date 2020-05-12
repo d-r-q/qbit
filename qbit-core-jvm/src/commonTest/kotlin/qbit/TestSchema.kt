@@ -20,29 +20,18 @@ fun Scientist.toFacts() =
     testSchemaFactorizer.factor(this, schemaMap::get, EmptyIterator)
 
 
-data class City(val id: Long?, val name: String, val region: Region)
-
-data class Paper(val id: Long?, val name: String, val editor: Scientist?)
-
-data class NullableScalarWithoutPlaceholder(val id: Long?, val scalar: Int?)
-
-data class NullableRef(val id: Long?, val ref: IntEntity?, val placeholder: Long)
-
-data class EntityWithoutAttrs(val id: Long?)
-
-val testSchema = schema {
+val testSchema = schema(testsSerialModule) {
     entity(Scientist::class) {
-        uniqueInt(it::externalId)
+        uniqueInt(Scientist::externalId)
     }
     entity(Country::class) {
-        uniqueString(it::name)
+        uniqueString(Country::name)
     }
     entity(Region::class)
     entity(Paper::class)
     entity(ResearchGroup::class)
     entity(City::class)
     entity(Bomb::class)
-    entity(ListOfNullables::class)
     entity(NullableScalar::class)
     entity(NullableList::class)
     entity(NullableRef::class)

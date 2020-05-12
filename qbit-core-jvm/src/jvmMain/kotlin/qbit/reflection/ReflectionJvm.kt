@@ -48,33 +48,4 @@ actual fun <T : Any> findPrimaryConstructor(type: KClass<T>): KFunction<T> {
         ?: throw QBitException("There is no primary constructor for type $type")
 }
 
-@Suppress("UNCHECKED_CAST")
-actual fun <T : Any> default(type: KClass<T>): T =
-    defaults.getOrPut(type) {
-        when (type) {
-            Boolean::class -> false
-            String::class -> ""
-            Byte::class -> 0.toByte()
-            Int::class -> 0
-            Long::class -> 0L
-            List::class -> listOf<Any>()
-            ByteArray::class -> ByteArray(0)
-            else -> {
-                val constr = type.constructors
-                    // a temporary workaround to make reflection factoring work with serializable entities
-                    .filter { it.parameters.none { it.name == "serializationConstructorMarker" } }
-                    .first()
-                val args = constr.parameters.map {
-                        if (it.type.isMarkedNullable) {
-                            it to null
-                        } else {
-                            it to default(it.type.classifier as KClass<*>)
-                        }
-                    }
-                    .toMap()
-                constr.callBy(args)
-            }
-        }
-    } as T
-
 
