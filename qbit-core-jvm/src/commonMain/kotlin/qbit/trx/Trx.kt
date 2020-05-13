@@ -9,7 +9,6 @@ import qbit.api.model.*
 import qbit.api.system.Instance
 import qbit.factoring.Factor
 import qbit.index.InternalDb
-import qbit.api.model.impl.gid
 import qbit.platform.collections.EmptyIterator
 
 
@@ -51,7 +50,7 @@ internal class QTrx(private val inst: Instance, private val trxLog: TrxLog, priv
         factsBuffer.addAll(updatedFacts)
         curDb = db.with(updatedFacts)
 
-        val res = if (entityGraphRoot.gid != null) {
+        val res = if (facts.entityFacts[entityGraphRoot]!!.firstOrNull()?.gid in entities) {
             entityGraphRoot
         } else {
             facts.entityFacts[entityGraphRoot]?.get(0)?.gid?.let { db.pull(it, entityGraphRoot::class) }

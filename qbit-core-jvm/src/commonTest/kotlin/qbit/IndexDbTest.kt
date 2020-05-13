@@ -10,11 +10,10 @@ import qbit.api.db.attrIn
 import qbit.api.db.attrIs
 import qbit.api.db.pull
 import qbit.api.gid.Gid
-import qbit.api.model.Hash
-import qbit.api.model.impl.gid
-import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
 import qbit.api.gid.nextGids
+import qbit.api.model.Hash
+import qbit.api.system.DbUuid
 import qbit.index.Indexer
 import qbit.platform.currentTimeMillis
 import qbit.serialization.Leaf
@@ -45,14 +44,14 @@ class DbTest {
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
                 schemaMap.values.flatMap { it.toFacts() } + eCodd.toFacts()).toTypedArray()))
         val db = Indexer(null, null, identityNodeResolver).index(root)
-        assertArrayEquals(arrayOf(eCodd.gid), db.query(attrIn(nicks, "n", "u")).map { it.gid }.toList().toTypedArray())
+        assertArrayEquals(arrayOf(Gid(eCodd.id!!)), db.query(attrIn(nicks, "n", "u")).map { it.gid }.toList().toTypedArray())
     }
 
     @Test
     fun `Indexer can index multiple transactions`() {
         val dbUuid = DbUuid(Iid(0, 1))
 
-        val gids = eBrewer.gid!!.nextGids()
+        val gids = Gid(eBrewer.id!!).nextGids()
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
                 testSchema.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
                 extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
@@ -68,9 +67,9 @@ class DbTest {
         nodes[n2.hash] = n2
 
         db = Indexer(db, root.hash, nodeResolver).index(n2)
-        assertNotNull(db.pull<Scientist>(eCodd.gid!!))
-        assertNotNull(db.pull<Scientist>(pChen.gid!!))
-        assertNotNull(db.pull<Scientist>(mStonebreaker.gid!!))
+        assertNotNull(db.pull<Scientist>(eCodd.id!!))
+        assertNotNull(db.pull<Scientist>(pChen.id!!))
+        assertNotNull(db.pull<Scientist>(mStonebreaker.id!!))
     }
 
     @Test
@@ -102,7 +101,7 @@ class DbTest {
         val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
         val db = Indexer(null, null, nodeResolver).index(root)
-        val pc = db.pull(eCodd.gid!!, Scientist::class, Eager)!!
+        val pc = db.pull(Gid(eCodd.id!!), Scientist::class, Eager)!!
         assertNotNull(pc.reviewer)
     }
 

@@ -2,7 +2,9 @@ package qbit
 
 import qbit.Scientists.extId
 import qbit.Scientists.name
-import qbit.api.*
+import qbit.api.Attrs
+import qbit.api.Instances
+import qbit.api.QBitException
 import qbit.api.db.Conn
 import qbit.api.db.attrIs
 import qbit.api.db.pull
@@ -10,7 +12,6 @@ import qbit.api.db.query
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
-import qbit.api.model.impl.gid
 import qbit.api.system.Instance
 import qbit.ns.Key
 import qbit.ns.ns
@@ -31,7 +32,7 @@ class TrxTest {
         val trx = conn.trx()
         trx.persist(eCodd.copy(name = "Not A Codd"))
         trx.commit()
-        assertEquals("Not A Codd", conn.db().pull<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Not A Codd", conn.db().pull<Scientist>(eCodd.id!!)!!.name)
     }
 
     @Test
@@ -133,9 +134,9 @@ class TrxTest {
         val conn = setupTestData()
         val trx = conn.trx()
         trx.persist(eCodd.copy(name = "Not A Codd"))
-        assertEquals("Not A Codd", trx.db().pull<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Not A Codd", trx.db().pull<Scientist>(eCodd.id!!)!!.name)
         trx.rollback()
-        assertEquals("Edgar Codd", trx.db().pull<Scientist>(eCodd.gid!!)!!.name)
+        assertEquals("Edgar Codd", trx.db().pull<Scientist>(eCodd.id!!)!!.name)
     }
 
     @Test

@@ -7,7 +7,6 @@ import qbit.api.db.hasAttr
 import qbit.api.db.pull
 import qbit.api.db.query
 import qbit.api.gid.Gid
-import qbit.api.model.impl.gid
 import qbit.api.system.Instance
 import qbit.index.InternalDb
 import qbit.serialization.NodeRef
@@ -42,19 +41,19 @@ class FunTest {
     @Test
     fun testDelete() {
         val conn = setupTestData()
-        var eCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
+        var eCodd = conn.db().pull<Scientist>(eCodd.id!!)!!
         val newExtId = eCodd.externalId shl 10
         eCodd = eCodd.copy(externalId = newExtId)
         conn.persist(eCodd)
 
-        val pulledECodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
+        val pulledECodd = conn.db().pull<Scientist>(eCodd.id!!)!!
         assertEquals(newExtId, pulledECodd.externalId)
 
-        val ts = pulledECodd.tombstone
+        val ts = Tombstone(pulledECodd.id!!)
         val (stored) = conn.persist(ts)
         assertSame(ts, stored)
 
-        val deletedPulledE2 = conn.db().pull<Scientist>(eCodd.gid!!)
+        val deletedPulledE2 = conn.db().pull<Scientist>(eCodd.id!!)
         assertNull(deletedPulledE2)
         assertEquals(0, conn.db().query<Scientist>(attrIs(Scientists.extId, eCodd.externalId)).count())
         assertEquals(0, conn.db().query<Scientist>(attrIs(Scientists.extId, newExtId)).count())
@@ -77,7 +76,7 @@ class FunTest {
     @Test
     fun `Test pulling of referenced entity()`() {
         val conn = setupTestData()
-        assertEquals("Russia", conn.db().pull<Region>(nsk.gid!!)!!.country.name)
+        assertEquals("Russia", conn.db().pull<Region>(nsk.id!!)!!.country.name)
     }
 
     @Ignore
@@ -120,7 +119,7 @@ class FunTest {
     fun `Test updating entity with unique attribute (it shouldn't treated as unique constraint violation)`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(name = "Not A Codd"))
-        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.id!!)!!
         assertEquals(1, updatedCodd.externalId)
         assertEquals("Not A Codd", updatedCodd.name)
     }
@@ -145,7 +144,7 @@ class FunTest {
     fun `Test deletion of scalar list element`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = eCodd.nicks.drop(1)))
-        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.id!!)!!
         assertEquals(listOf("tabulator"), updatedCodd.nicks)
     }
 
@@ -164,7 +163,7 @@ class FunTest {
     fun `Test scalar list clearing`() {
         val conn = setupTestData()
         conn.persist(eCodd.copy(nicks = emptyList()))
-        val updatedCodd = conn.db().pull<Scientist>(eCodd.gid!!)!!
+        val updatedCodd = conn.db().pull<Scientist>(eCodd.id!!)!!
         assertEquals(emptyList(), updatedCodd.nicks)
     }
 
@@ -176,7 +175,7 @@ class FunTest {
         val ex = assertFailsWith<QBitException> {
             conn.persist(rg)
         }
-        assertTrue(ex.message?.contains("Entity ${pChen.gid} has several different states to store") == true)
+        assertTrue(ex.message?.contains("Entity ${Gid(pChen.id!!)} has several different states to store") == true)
     }
 
     @Ignore
@@ -186,7 +185,7 @@ class FunTest {
         val pChen2 = pChen.copy()
         val rg = ResearchGroup(null, listOf(pChen, pChen2))
         val (persitstedRg) = conn.persist(rg)
-        val repulledRg = conn.db().pull<ResearchGroup>(persitstedRg!!.gid!!)
+        val repulledRg = conn.db().pull<ResearchGroup>(persitstedRg!!.id!!)
         assertNotNull(repulledRg)
         assertEquals(2, repulledRg.members.size)
         assertEquals(repulledRg.members[0], repulledRg.members[1])
@@ -229,8 +228,8 @@ class FunTest {
         val conn = setupTestSchema()
         val (stored) = conn.persist(NullableScalarWithoutPlaceholder(null, null))
         assertNotNull(stored)
-        assertNotNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.gid!!))
-        assertNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.gid!!)!!.scalar)
+        assertNotNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.id!!))
+        assertNull(conn.db().pull<NullableScalarWithoutPlaceholder>(stored.id!!)!!.scalar)
     }
 
     @Ignore
@@ -240,7 +239,7 @@ class FunTest {
         val conn = setupTestSchema()
         val (stored) = conn.persist(EntityWithoutAttrs(null))
         assertNotNull(stored)
-        assertNotNull(conn.db().pull<EntityWithoutAttrs>(stored.gid!!))
+        assertNotNull(conn.db().pull<EntityWithoutAttrs>(stored.id!!))
     }
 
     @Test

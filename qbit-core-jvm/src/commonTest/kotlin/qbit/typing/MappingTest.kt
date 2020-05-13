@@ -6,7 +6,6 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
 import qbit.factoring.Factor
-import qbit.factoring.findGidProp
 import qbit.factoring.types
 import qbit.index.Index
 import qbit.index.IndexDb
@@ -119,18 +118,6 @@ abstract class MappingTest(val factor: Factor) {
     @Test
     fun `Type of Any(class) is QRef`() {
         assertEquals(QRef, types[Any::class])
-    }
-
-    @Test
-    fun `findGidProp should return only properties with name 'id'`() {
-
-        @Suppress("unused")
-        val objWithouId = object {
-            val eid = Gid(0)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            findGidProp(objWithouId)
-        }
     }
 
     // Support of self-refefencing entitys is under question now

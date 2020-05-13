@@ -3,7 +3,6 @@ package qbit.q5bulk
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.db.*
-import qbit.api.model.impl.gid
 import qbit.factoring.attrName
 import qbit.q5bulk.Trxes.dateTime
 import qbit.qbit
@@ -147,7 +146,7 @@ class Q5Test {
         categories.values.forEach {
             val (cat) = trx.persist(it)
             categories[cat!!.name] = cat
-            assertNotNull(trx.db().pull<Category>(cat.gid!!))
+            assertNotNull(trx.db().pull<Category>(cat.id!!))
         }
         trxes1 = trxes1.map {
             it.copy(category = categories[it.category.name]!!)
@@ -159,7 +158,7 @@ class Q5Test {
         trxes2.forEach { trx.persist(it) }
         trx.commit()
         categories.values.forEach {
-            assertNotNull(conn.db().pull<Category>(it.gid!!))
+            assertNotNull(conn.db().pull<Category>(it.id!!))
         }
     }
 
