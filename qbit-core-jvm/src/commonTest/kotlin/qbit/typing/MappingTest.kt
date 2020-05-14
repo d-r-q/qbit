@@ -41,18 +41,15 @@ abstract class MappingTest(val factor: Factor) {
 
         val facts = factor(user, db::attr, gids)
         val db2 = IndexDb(db.index.addFacts(facts))
-        val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)
-        val lazyTyping = Typing(se!!, GraphQuery(MUser::class, emptyMap()), MUser::class)
-        val u = lazyTyping.instantiate(se, MUser::class)
-        assertEquals("login", u.login)
-        assertEquals(listOf("str1", "str2"), u.strs)
-        assertEquals("addr", u.theSimplestEntity.scalar)
-        assertNull(u.optTheSimplestEntity)
-        assertEquals("lstAddr", u.theSimplestEntities[0].scalar)
+        val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
 
         val eagerTyping = Typing(se, EagerQuery(), MUser::class)
         val fullUser = eagerTyping.instantiate(se, MUser::class)
         assertEquals("optAddr", fullUser.optTheSimplestEntity!!.scalar)
+        assertEquals("login", fullUser.login)
+        assertEquals(listOf("str1", "str2"), fullUser.strs)
+        assertEquals("addr", fullUser.theSimplestEntity.scalar)
+        assertEquals("lstAddr", fullUser.theSimplestEntities[0].scalar)
     }
 
     @Test
