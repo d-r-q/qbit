@@ -2,18 +2,14 @@ package qbit.query
 
 import qbit.api.db.Query
 import qbit.api.model.Attr
-import qbit.reflection.propertyFor
 import kotlin.reflect.KClass
 
-class EagerQuery : Query() {
+data class GraphQuery constructor(val type: KClass<*>, val links: Map<String, GraphQuery?>) : Query() {
 
-    override fun shouldFetch(attr: Attr<*>): Boolean = true
+    override fun shouldFetch(attr: Attr<*>): Boolean {
+        return true
+    }
 
-    override fun <ST : Any> subquery(subType: KClass<ST>): Query = this
+    override fun <ST : Any> subquery(subType: KClass<ST>): Query = GraphQuery(subType, links)
 
-}
-
-expect class GraphQuery(type: KClass<*>, links: Map<String, GraphQuery?>) : Query {
-    val type: KClass<*>
-    val links: Map<String, GraphQuery?>
 }

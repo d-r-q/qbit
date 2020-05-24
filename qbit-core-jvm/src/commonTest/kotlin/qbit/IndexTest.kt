@@ -107,7 +107,7 @@ class IndexTest {
                         Eav(eid, _attr2, 1),
                         Eav(eid, _attr3, 0))))
 
-        val index = Indexer(null, null, identityNodeResolver).index(n3).index
+        val index = TestIndexer().index(n3).index
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
@@ -133,7 +133,7 @@ class IndexTest {
         val e3 = Entity(eid2, _date eq 3L)
         val e4 = Entity(eid3, _date eq 4L)
         val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray()))
-        val index = Indexer(null, null, identityNodeResolver).index(root).index
+        val index = TestIndexer().index(root).index
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
         assertEquals(1, vRes.count())
@@ -162,7 +162,7 @@ class IndexTest {
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
                 Eav(eid, tsAttr, true)
         )))
-        val index = Indexer(null, null, identityNodeResolver).index(n2).index
+        val index = TestIndexer().index(n2).index
         assertNull(index.entityById(eid))
     }
 

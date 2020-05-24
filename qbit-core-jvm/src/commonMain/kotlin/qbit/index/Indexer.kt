@@ -1,5 +1,6 @@
 package qbit.index
 
+import kotlinx.serialization.modules.SerialModule
 import qbit.api.QBitException
 import qbit.api.model.Hash
 import qbit.serialization.Leaf
@@ -8,7 +9,7 @@ import qbit.serialization.Node
 import qbit.serialization.NodeVal
 import qbit.serialization.Root
 
-internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
+internal class Indexer(private val serialModule: SerialModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
 
     internal fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {
@@ -30,11 +31,11 @@ internal class Indexer(private val base: IndexDb?, private val baseHash: Hash?, 
         val fromVal = resolveNode(from)
                 ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
         val nodes = nodesBetween(fromVal, baseHash)
-        return nodes.fold(base ?: IndexDb(Index())) { db, n ->
+        return nodes.fold(base ?: IndexDb(Index(), serialModule)) { db, n ->
             val entities = n.data.trxes.toList()
                     .groupBy { it.gid }
                     .map { it.key to it.value }
-            IndexDb(db.index.add(entities))
+            IndexDb(db.index.add(entities), serialModule)
         }
     }
 

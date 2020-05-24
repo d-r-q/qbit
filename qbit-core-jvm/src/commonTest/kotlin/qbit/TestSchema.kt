@@ -6,12 +6,13 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.factoring.serializatoin.KSFactorizer
-import qbit.factoring.attrName
 import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
 import qbit.spi.Storage
 import qbit.storage.MemStorage
 import qbit.test.model.*
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 val testSchemaFactorizer =
     KSFactorizer(qbitSerialModule + testsSerialModule)
@@ -38,6 +39,8 @@ val testSchema = schema(testsSerialModule) {
     entity(IntEntity::class)
     entity(EntityWithoutAttrs::class)
     entity(NullableScalarWithoutPlaceholder::class)
+    entity(MUser::class)
+    entity(TheSimplestEntity::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
@@ -147,3 +150,6 @@ fun setupTestData(storage: Storage = MemStorage()): Conn {
         this
     }
 }
+
+fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
+   this.simpleName!! + "/" + prop.name

@@ -12,6 +12,7 @@ import qbit.serialization.NodesStorage
 import qbit.serialization.Root
 import qbit.storage.MemStorage
 import qbit.test.model.IntEntity
+import qbit.test.model.testsSerialModule
 import kotlin.test.Test
 
 
@@ -29,7 +30,7 @@ class ConnTest {
         val storedLeaf = nodesStorage.store(leaf)
         storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
-        val conn = QConn(dbUuid, storage, storedRoot, testSchemaFactorizer::factor)
+        val conn = QConn(testsSerialModule, dbUuid, storage, storedRoot, testSchemaFactorizer::factor)
 
         val newLog = FakeTrxLog(storedLeaf.hash)
         conn.update(conn.trxLog, newLog, EmptyDb)

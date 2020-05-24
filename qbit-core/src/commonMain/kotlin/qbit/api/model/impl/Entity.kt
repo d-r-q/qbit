@@ -89,7 +89,7 @@ class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolve
         get() = delegate.keys
 
     override fun <T : Any> tryGet(key: Attr<T>): T? {
-        return delegate[key]
+        return delegate.tryGet(key)
     }
 
     override fun pull(gid: Gid): StoredEntity? {

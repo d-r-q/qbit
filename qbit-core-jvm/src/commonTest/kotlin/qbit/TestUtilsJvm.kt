@@ -1,25 +1,21 @@
 package qbit
 
+import kotlinx.serialization.modules.SerialModule
 import qbit.api.QBitException
 import qbit.api.db.Fetch
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.Attr
-import qbit.api.model.AttrValue
-import qbit.api.model.Eav
-import qbit.api.model.Hash
-import qbit.factoring.types
+import qbit.api.model.*
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.index.InternalDb
-import qbit.api.model.Entity
-import qbit.api.model.StoredEntity
-import qbit.api.model.entity2gid
 import qbit.api.model.impl.DetachedEntity
 import qbit.api.model.impl.QStoredEntity
+import qbit.index.Indexer
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
+import qbit.test.model.testsSerialModule
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.fail
@@ -30,7 +26,7 @@ internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: A
             .map { it.name to it }
             .toMap()
     val facts = entities.flatMap { testSchemaFactorizer.factor(it, (bootstrapSchema + addedAttrs)::get, eids) }
-    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }))
+    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }), testsSerialModule)
 }
 
 internal object EmptyDb : InternalDb() {
@@ -46,7 +42,7 @@ internal object EmptyDb : InternalDb() {
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
     override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(Index().addFacts(facts))
+        return IndexDb(Index().addFacts(facts), testsSerialModule)
     }
 
 }
@@ -79,11 +75,7 @@ internal class EntityMapDb(private val map: Map<Gid, StoredEntity>) : InternalDb
 
 }
 
-val nullNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { null }
-
 val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
-
-val nullGidResolver: (Gid) -> StoredEntity? = { null }
 
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
 
@@ -109,6 +101,18 @@ inline fun <reified T : Any> Attr(id: Gid?, name: String, unique: Boolean = true
         false
     )
 }
+
+val types: Map<KClass<*>, DataType<*>> = mapOf(
+    Boolean::class to QBoolean,
+    Byte::class to QByte,
+    Int::class to QInt,
+    Long::class to QLong,
+    String::class to QString,
+    ByteArray::class to QBytes,
+    Gid::class to QGid,
+    Any::class to QRef
+)
+
 
 fun Entity(gid: Gid, vararg entries: Any): Entity {
     return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
@@ -141,4 +145,9 @@ inline fun <reified E : Throwable> assertThrows(body: () -> Unit) {
     }
 }
 
-
+internal fun TestIndexer(
+    serialModule: SerialModule = testsSerialModule,
+    baseDb: IndexDb? = null,
+    baseHash: Hash? = null,
+    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver) =
+    Indexer(serialModule, baseDb, baseHash, nodeResolver)

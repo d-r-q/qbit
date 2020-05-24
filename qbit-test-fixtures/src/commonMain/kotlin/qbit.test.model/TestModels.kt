@@ -117,6 +117,17 @@ data class NullableRef(val id: Long?, val ref: IntEntity?, val placeholder: Long
 @Serializable
 data class EntityWithoutAttrs(val id: Long?)
 
+@Serializable
+data class EntityWithByteArray(val id: Long?, val byteArray: ByteArray?)
+
+@Serializable
+data class EntityWithListOfByteArray(val id: Long?, val byteArrays: List<ByteArray>)
+
+@Serializable
+data class EntityWithListOfString(val id: Long?, val strings: List<String>?)
+
+@Serializable
+data class EntityWithListOfBytes(val id: Long?, val bytes: List<Byte>)
 
 @Serializable
 data class Bomb(val id: Long?,
@@ -293,4 +304,9 @@ val testsSerialModule = SerializersModule {
     contextual(NullableScalarWithoutPlaceholder::class, NullableScalarWithoutPlaceholder.serializer())
     contextual(NullableRef::class, NullableRef.serializer())
     contextual(EntityWithoutAttrs::class, EntityWithoutAttrs.serializer())
+    contextual(EntityWithByteArray::class, EntityWithByteArray.serializer())
+    contextual(EntityWithListOfBytes::class, EntityWithListOfBytes.serializer())
+    contextual(EntityWithListOfByteArray::class, EntityWithListOfByteArray.serializer())
+    contextual(EntityWithListOfString::class, EntityWithListOfString.serializer())
+    contextual(MUser::class, MUser.serializer())
 }
