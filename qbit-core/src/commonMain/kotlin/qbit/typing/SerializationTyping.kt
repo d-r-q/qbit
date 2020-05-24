@@ -20,6 +20,7 @@ fun <T : Any> typify(
     return contextual.deserialize(EntityDecoder(schema, entity, serialModule))
 }
 
+@Suppress("UNCHECKED_CAST")
 class EntityDecoder(
     val schema: (String) -> Attr<*>?,
     val entity: StoredEntity,
@@ -210,8 +211,7 @@ class EntityDecoder(
         deserializer: DeserializationStrategy<T>
     ): T? {
         val nullableDeserializer: DeserializationStrategy<T?> = deserializer as DeserializationStrategy<T?>
-        val nonNullResult = decodeNullableSerializableElement(descriptor, index, nullableDeserializer)
-        return nonNullResult
+        return decodeNullableSerializableElement(descriptor, index, nullableDeserializer)
     }
 
     override fun decodeShortElement(descriptor: SerialDescriptor, index: Int): Short {

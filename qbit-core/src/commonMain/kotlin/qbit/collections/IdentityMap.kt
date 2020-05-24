@@ -47,7 +47,7 @@ class IdentityMap<K : Any, V> : Map<K, V> {
     }
     
     operator fun set(key: K, value: V) {
-        impl.set(Key(key), value)
+        impl[Key(key)] = value
     }
 
     private class Key<K>(val key: K) {

@@ -7,7 +7,6 @@ kotlin {
         compilations.all {
             kotlinOptions {
                 jvmTarget = "1.6"
-                freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
             }
         }
     }

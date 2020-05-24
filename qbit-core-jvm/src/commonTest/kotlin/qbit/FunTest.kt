@@ -286,7 +286,6 @@ class FunTest {
     @Test
     fun `Test bomb without nulls handling`() {
         val conn = setupTestData()
-        val inst = conn.db().pull<Instance>(theInstanceGid)!!
         val bomb = createBombWithoutNulls(Gid(2, 102).value())
         conn.persist(bomb)
         val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()

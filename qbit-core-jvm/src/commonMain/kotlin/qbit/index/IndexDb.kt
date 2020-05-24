@@ -21,7 +21,7 @@ import kotlin.reflect.KClass
 
 internal class IndexDb(
     internal val index: Index,
-    internal val serialModule: SerialModule
+    private val serialModule: SerialModule
 ) : InternalDb() {
 
     private val schema = loadAttrs(index)

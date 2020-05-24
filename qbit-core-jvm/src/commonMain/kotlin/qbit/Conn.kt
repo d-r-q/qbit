@@ -50,11 +50,11 @@ class SchemaValidator : SerialModuleCollector {
                 .map { it.second }
         if (nullableListProps.isNotEmpty()) {
             throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.map { it }.joinToString(
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.joinToString(
                     ",",
                     "(",
                     ")"
-                )}"
+                ) { it }}"
             )
         }
     }

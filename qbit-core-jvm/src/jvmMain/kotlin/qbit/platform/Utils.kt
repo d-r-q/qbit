@@ -2,8 +2,6 @@ package qbit.platform
 
 actual fun currentTimeMillis() = System.currentTimeMillis()
 
-actual fun Int.toHexString(): String = Integer.toHexString(this)
-
 actual typealias MessageDigest = java.security.MessageDigest
 
 actual object MessageDigests {

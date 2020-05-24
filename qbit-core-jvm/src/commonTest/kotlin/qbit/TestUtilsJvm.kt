@@ -47,34 +47,6 @@ internal object EmptyDb : InternalDb() {
 
 }
 
-internal class EntityMapDb(private val map: Map<Gid, StoredEntity>) : InternalDb() {
-
-    override fun pullEntity(gid: Gid): StoredEntity? {
-        return map[gid]
-    }
-
-    override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
-        TODO("not implemented")
-    }
-
-    override fun query(vararg preds: QueryPred): Sequence<Entity> {
-        TODO("not implemented")
-    }
-
-    override fun attr(attr: String): Attr<Any>? {
-        TODO("not implemented")
-    }
-
-    override fun with(facts: Iterable<Eav>): InternalDb {
-        TODO("not implemented")
-    }
-
-    override fun queryGids(vararg preds: QueryPred): Sequence<Gid> {
-        TODO("not implemented")
-    }
-
-}
-
 val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
 
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }

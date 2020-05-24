@@ -1,7 +1,6 @@
 package qbit.api.model
 
 import qbit.platform.MessageDigests
-import qbit.platform.toHexString
 
 const val HASH_LEN = 20
 
@@ -27,7 +26,7 @@ data class Hash(val bytes: ByteArray) {
     }
 
     fun toHexString(): String {
-        return bytes.joinToString("") { (it.toInt() and 0xFF).toHexString() }
+        return bytes.joinToString("") { (it.toInt() and 0xFF).toString(16) }
     }
 
     override fun toString(): String {
