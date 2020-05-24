@@ -14,7 +14,7 @@ fun <T : Any> typify(
     schema: (String) -> Attr<*>?,
     entity: StoredEntity,
     type: KClass<T>,
-    serialModule: SerialModule
+    serialModule: SerialModule,
 ): T {
     val contextual = serialModule.getContextual(type) ?: throw QBitException("Cannot find serializer for $type")
     return contextual.deserialize(EntityDecoder(schema, entity, serialModule))
@@ -25,8 +25,8 @@ class EntityDecoder(
     val schema: (String) -> Attr<*>?,
     val entity: StoredEntity,
     override val context: SerialModule,
-    override val updateMode: UpdateMode = UpdateMode.BANNED
-) : Decoder, CompositeDecoder {
+    override val updateMode: UpdateMode = UpdateMode.BANNED,
+) : StubDecoder() {
 
     private var fields = 0
 
@@ -39,56 +39,97 @@ class EntityDecoder(
         return this
     }
 
-    override fun decodeBoolean(): Boolean {
-        TODO("Not yet implemented")
+    override fun <T : Any> decodeNullableSerializableElement(
+        descriptor: SerialDescriptor,
+        index: Int,
+        deserializer: DeserializationStrategy<T?>
+    ): T? {
+        val elementDescriptor = descriptor.getElementDescriptor(index)
+        val elementKind = elementDescriptor.kind
+
+        if (descriptor.getElementName(index) == "id") {
+            return when (elementKind) {
+                PrimitiveKind.LONG -> entity.gid.value() as T?
+                StructureKind.CLASS -> entity.gid as T?
+                else -> throw QBitException("Corrupted entity, id field has kind $elementKind")
+            }
+        }
+
+        if (descriptor.kind == StructureKind.LIST && elementKind == StructureKind.CLASS) {
+            val decoder = EntityDecoder(schema, entity, context)
+            return deserializer.deserialize(decoder)
+        }
+
+        val attrName = AttrName(descriptor, index).asString()
+        val attr: Attr<T> = schema(attrName) as Attr<T>?
+            ?: throw QBitException("Corrupted entity $entity, there is no attr $attrName in schema")
+
+        return when {
+            isValueAttr(elementDescriptor) -> entity.tryGet(attr)
+            isRefAttr(elementDescriptor) -> decodeReferred(elementDescriptor, attrName, entity.tryGet(attr as Attr<Gid>), deserializer) as T?
+            else -> throw QBitException("$elementKind not yet supported")
+        }
     }
 
-    override fun decodeByte(): Byte {
-        TODO("Not yet implemented")
+    private fun <T : Any> decodeReferred(
+        elementDescriptor: SerialDescriptor,
+        attrName: String,
+        gids: Any?,
+        deserializer: DeserializationStrategy<T?>,
+    ): Any? {
+        when {
+            gids == null && elementDescriptor.isNullable -> return null
+            gids == null && !elementDescriptor.isNullable -> throw QBitException("Corrupted entity: $entity, no value for $attrName")
+        }
+        check(gids != null)
+
+        val sureGids = when (gids) {
+            is Gid -> listOf(gids)
+            is List<*> -> gids as List<Gid>
+            else -> throw AssertionError("Unexpected gids: $gids")
+        }
+
+        val referreds = sureGids.map {
+            val referee = entity.pull(it) ?: throw QBitException("Dangling ref: $it")
+            val decoder = EntityDecoder(schema, referee, context)
+            val res = cache.getOrPut(it, { deserializer.deserialize(decoder) })
+            if (res is List<*>) {
+                res[0] as T
+            } else {
+                res as T
+            }
+        }
+
+        return when (elementDescriptor.kind) {
+            is StructureKind.CLASS -> referreds[0]
+            is StructureKind.LIST -> referreds
+            else -> throw AssertionError("Unexpected kind: ${elementDescriptor.kind}")
+        }
     }
 
-    override fun decodeChar(): Char {
-        TODO("Not yet implemented")
+    private fun isValueAttr(elementDescriptor: SerialDescriptor): Boolean {
+        val elementKind = elementDescriptor.kind
+        val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
+        return elementKind is PrimitiveKind || listElementsKind is PrimitiveKind ||
+                listElementsKind is StructureKind.LIST // List of ByteArrays
     }
 
-    override fun decodeDouble(): Double {
-        TODO("Not yet implemented")
+    private fun isRefAttr(elementDescriptor: SerialDescriptor): Boolean {
+        val elementKind = elementDescriptor.kind
+        val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
+        return elementKind is StructureKind.CLASS || listElementsKind is StructureKind.CLASS
     }
 
-    override fun decodeEnum(enumDescriptor: SerialDescriptor): Int {
-        TODO("Not yet implemented")
+    override fun <T> decodeSerializableElement(
+        descriptor: SerialDescriptor,
+        index: Int,
+        deserializer: DeserializationStrategy<T>,
+    ): T {
+        return decodeNullableSerializableElement(descriptor, index, deserializer as DeserializationStrategy<Any?>) as T
     }
 
-    override fun decodeFloat(): Float {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeInt(): Int {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeLong(): Long {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeNotNullMark(): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeNull(): Nothing? {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeShort(): Short {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeString(): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeUnit() {
-        TODO("Not yet implemented")
+    override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
+        return if (idx < fields) idx++ else READ_DONE
     }
 
     override fun decodeBooleanElement(descriptor: SerialDescriptor, index: Int): Boolean {
@@ -100,20 +141,15 @@ class EntityDecoder(
     }
 
     override fun decodeCharElement(descriptor: SerialDescriptor, index: Int): Char {
-        TODO("Not yet implemented")
+        return decodeElement(descriptor, index)
     }
 
     override fun decodeDoubleElement(descriptor: SerialDescriptor, index: Int): Double {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
-        println(descriptor.serialName)
-        return if (idx < fields) idx++ else READ_DONE
+        return decodeElement(descriptor, index)
     }
 
     override fun decodeFloatElement(descriptor: SerialDescriptor, index: Int): Float {
-        TODO("Not yet implemented")
+        return decodeElement(descriptor, index)
     }
 
     override fun decodeIntElement(descriptor: SerialDescriptor, index: Int): Int {
@@ -124,135 +160,13 @@ class EntityDecoder(
         return decodeElement(descriptor, index)
     }
 
-
-    override fun <T : Any> decodeNullableSerializableElement(
-        descriptor: SerialDescriptor,
-        index: Int,
-        deserializer: DeserializationStrategy<T?>
-    ): T? {
-        println(descriptor.serialName)
-        println(descriptor.getElementName(index))
-        if (descriptor.getElementName(index) == "id") {
-            return when (val kind = descriptor.getElementDescriptor(index).kind) {
-                PrimitiveKind.LONG -> entity.gid.value() as T?
-                StructureKind.CLASS -> entity.gid as T?
-                else -> throw QBitException("Corrupted entity, id field has kind $kind")
-            }
-        }
-        if (descriptor.kind == StructureKind.LIST && descriptor.getElementDescriptor(index).kind == StructureKind.CLASS) {
-            val decoder = EntityDecoder(schema, entity, context)
-            return deserializer.deserialize(decoder)
-        }
-        val attrName = AttrName(descriptor, index).asString()
-        val attr: Attr<T> = schema(attrName) as Attr<T>?
-            ?: throw QBitException("Corrupted entity $entity, there is no attr $attrName in schema")
-        return when (val kind = descriptor.getElementDescriptor(index).kind) {
-            is PrimitiveKind -> entity.tryGet(attr)
-            is StructureKind.CLASS -> {
-                val gid = entity.tryGet(attr as Attr<Gid>)
-                val referree = gid?.let { entity.pull(it) }
-                if (referree != null) {
-                    val decoder = EntityDecoder(schema, referree, context)
-                    cache.getOrPut(gid, { deserializer.deserialize(decoder) }) as T?
-                } else {
-                    if (descriptor.getElementDescriptor(index).isNullable) {
-                        return null
-                    } else {
-                        throw QBitException("Corrupted entity: $entity, no value for $attrName")
-                    }
-                }
-            }
-            is StructureKind.LIST -> {
-                when (val elementsKind = descriptor.getElementDescriptor(index).getElementDescriptor(0).kind) {
-                    is PrimitiveKind.BYTE -> entity.tryGet(attr) ?: null as T?
-                    is PrimitiveKind -> entity.tryGet(attr) ?: null as T?
-                    is StructureKind.CLASS -> {
-                        val gids = entity.tryGet(attr) as List<Gid>?
-                        if (gids == null) {
-                            null
-                        } else {
-                            gids.map {
-                                val decoder = EntityDecoder(
-                                    schema,
-                                    entity.pull(it) ?: throw QBitException("Dangling ref: $it"),
-                                    context
-                                )
-                                val res = cache.getOrPut(it, { deserializer.deserialize(decoder) })
-                                if (res is List<*>) {
-                                    res[0]
-                                } else {
-                                    res
-                                }
-                            } as T?
-                        }
-                    }
-                    is StructureKind.LIST -> {
-                        entity.tryGet(attr) ?: null as T?
-                    }
-                    else -> throw TODO("$elementsKind not yet supported")
-                }
-            }
-            else -> throw TODO("$kind not yet supported")
-        }
-    }
-
-    override fun <T> decodeSerializableElement(
-        descriptor: SerialDescriptor,
-        index: Int,
-        deserializer: DeserializationStrategy<T>
-    ): T {
-        deserializer as DeserializationStrategy<Any>
-        return tmp(descriptor, index, deserializer) as T
-    }
-
-    private fun <T : Any> tmp(
-        descriptor: SerialDescriptor,
-        index: Int,
-        deserializer: DeserializationStrategy<T>
-    ): T? {
-        val nullableDeserializer: DeserializationStrategy<T?> = deserializer as DeserializationStrategy<T?>
-        return decodeNullableSerializableElement(descriptor, index, nullableDeserializer)
-    }
-
-    override fun decodeShortElement(descriptor: SerialDescriptor, index: Int): Short {
-        TODO("Not yet implemented")
-    }
-
     override fun decodeStringElement(descriptor: SerialDescriptor, index: Int): String {
-        println(descriptor.getElementName(index))
         return decodeElement(descriptor, index)
     }
 
     private fun <T : Any> decodeElement(descriptor: SerialDescriptor, index: Int): T {
         val attrName = AttrName(descriptor, index).asString()
         return entity[schema(attrName) as Attr<T>]
-    }
-
-
-    override fun decodeUnitElement(descriptor: SerialDescriptor, index: Int) {
-        TODO("Not yet implemented")
-    }
-
-    override fun endStructure(descriptor: SerialDescriptor) {
-    }
-
-    override fun <T : Any> updateNullableSerializableElement(
-        descriptor: SerialDescriptor,
-        index: Int,
-        deserializer: DeserializationStrategy<T?>,
-        old: T?
-    ): T? {
-        println("updateNullableSerializableElement: $old")
-        return old
-    }
-
-    override fun <T> updateSerializableElement(
-        descriptor: SerialDescriptor,
-        index: Int,
-        deserializer: DeserializationStrategy<T>,
-        old: T
-    ): T {
-        TODO("Not yet implemented")
     }
 
 }
