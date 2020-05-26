@@ -18,24 +18,24 @@ abstract class QueryPred internal constructor() {
 }
 
 fun hasAttr(attr: Attr<*>): QueryPred =
-        AttrPred(attr.name)
+    AttrPred(attr.name)
 
 fun <T : Any> attrIs(attr: Attr<T>, value: T): QueryPred =
-        AttrValuePred(attr.name, value)
+    AttrValuePred(attr.name, value)
 
 fun <T : Any> attrIn(attr: Attr<T>, from: T, to: T): QueryPred =
-        AttrRangePred(attr.name, from, to)
+    AttrRangePred(attr.name, from, to)
 
-internal data class AttrPred(override val attrName: String) : QueryPred() {
+data class AttrPred(override val attrName: String) : QueryPred() {
 
     override fun compareTo(another: Any): Int = 0
 
 }
 
-internal data class AttrValuePred(override val attrName: String, val value: Any) : QueryPred() {
+data class AttrValuePred(override val attrName: String, val value: Any) : QueryPred() {
 
     override fun compareTo(another: Any): Int =
-            qbit.index.compareValues(another, value)
+        qbit.index.compareValues(another, value)
 
 }
 
@@ -55,7 +55,7 @@ internal data class AttrRangePred(override val attrName: String, val from: Any, 
 
 }
 
-abstract class Query internal constructor() {
+abstract class Query {
 
     abstract fun shouldFetch(attr: Attr<*>): Boolean
 

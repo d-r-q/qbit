@@ -50,7 +50,7 @@ class UtilsTest {
     @Test
     fun splitSmokeTest() {
         val rnd = Random(1)
-        for (i in 0..10000) {
+        for (i in 0..5000) {
             val size = rnd.nextInt(10000)
             val minChunk = 1 + rnd.nextInt(1 + size / 2)
             val maxChunk = minChunk * 2
@@ -77,8 +77,8 @@ class UtilsTest {
     @Test
     fun insertTest() {
         val list = arrayListOf(1, 2, 3, 4)
-        val expected = arrayListOf(1, 2, 5, 6, 3, 4)
-        val newList = insert(list, arrayListOf(5, 6), 2)
+        val expected: ArrayList<Int> = arrayListOf(1, 2, 5, 6, 3, 4)
+        val newList: ArrayList<Int> = insert(list, arrayListOf(5, 6), 2)
         assertArrayEquals(expected.toTypedArray(), newList.toTypedArray())
     }
 }

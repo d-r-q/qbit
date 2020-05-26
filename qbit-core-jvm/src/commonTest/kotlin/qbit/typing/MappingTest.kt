@@ -1,25 +1,25 @@
 package qbit.typing
 
-import qbit.EmptyDb
-import qbit.Scientists
+import kotlinx.serialization.modules.plus
+import qbit.*
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
-import qbit.assertThrows
-import qbit.factoring.Factor
+import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.schema.schema
 import qbit.test.model.*
-import qbit.testSchema
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 
-abstract class MappingTest(val factor: Factor) {
+class MappingTest {
+
+    private val factor = KSFactorizer(qbitSerialModule + testsSerialModule)::factor
 
     @Test
     fun `Test simple entity mapping`() {

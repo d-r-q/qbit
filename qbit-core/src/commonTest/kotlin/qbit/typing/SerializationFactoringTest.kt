@@ -4,6 +4,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.SerializersModule
+import qbit.GidEntity
 import qbit.api.tombstone
 import qbit.factoring.serializatoin.KSFactorizer
 import qbit.qbitSerialModule

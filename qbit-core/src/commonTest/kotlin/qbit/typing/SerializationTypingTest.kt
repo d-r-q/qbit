@@ -315,5 +315,60 @@ class SerializationTypingTest {
         assertNull(typed.strings)
     }
 
+    @JsName("Test_entity_with_id_Gid_typing")
+    @Test
+    fun `Test entity with id Gid typing`() {
+        // Given an entity with id: Gid
+        val gid = gids.next()
+        val entity = AttachedEntity(gid, listOf(GidEntities.bool to true), nullGidResolver)
+
+        // When it typed
+        val typed = typify(schemaMap::get, entity, GidEntity::class, internalTestsSerialModule)
+
+        // Then it has correct gid
+        assertEquals(gid, typed.id)
+    }
+
+    @JsName("Test_parent_to_children_tree_typing")
+    @Test
+    fun `Test parent to children tree typing`() {
+        // Given three-level tree of entities
+        val entities: MutableMap<Gid, StoredEntity> = HashMap()
+        val leaf11 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf11", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf12 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf12", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf13 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf13", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val node1 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "node1", ParentToChildrenTreeEntities.children to listOf(leaf11, leaf12, leaf13)), entities::get)
+        entities.putAll(listOf(leaf11, leaf12, leaf13, node1).associateBy { it.gid })
+
+        val leaf21 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf21", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf22 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf22", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf23 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf23", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val node2 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "node2", ParentToChildrenTreeEntities.children to listOf(leaf21, leaf22, leaf23)), entities::get)
+        entities.putAll(listOf(leaf21, leaf22, leaf23, node2).associateBy { it.gid })
+
+        val leaf31 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf31", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf32 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf32", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val leaf33 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "leaf33", ParentToChildrenTreeEntities.children to emptyList<StoredEntity>()), entities::get)
+        val node3 = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "node3", ParentToChildrenTreeEntities.children to listOf(leaf31, leaf32, leaf33)), entities::get)
+        entities.putAll(listOf(leaf31, leaf32, leaf33, node3).associateBy { it.gid })
+
+        val root = AttachedEntity(gids.next(), listOf(ParentToChildrenTreeEntities.name to "root", ParentToChildrenTreeEntities.children to listOf(node1, node2, node3)), entities::get)
+
+        // When it typed
+        val typed = typify(schemaMap::get, root, ParentToChildrenTreeEntity::class, internalTestsSerialModule)
+
+        // Then root has correct name and children count
+        assertEquals("root", typed.name)
+        assertEquals(3, typed.children.size)
+
+        // And second node has correct name and children count
+        assertEquals("node2", typed.children[1].name)
+        assertEquals(3, typed.children[1].children.size)
+
+        // And leaf33 has correct name and children count
+        assertEquals("leaf33", typed.children[2].children[2].name)
+        assertEquals(0, typed.children[2].children[2].children.size)
+    }
+
 }
 

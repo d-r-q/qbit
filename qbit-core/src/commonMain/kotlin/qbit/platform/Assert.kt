@@ -2,6 +2,8 @@ package qbit.platform
 
 import qbit.platform.assert as assertImpl
 
+expect fun assert(condition: Boolean)
+
 var enabled = try {
     assertImpl(false)
     false

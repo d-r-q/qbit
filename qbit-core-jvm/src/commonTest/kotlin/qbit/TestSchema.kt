@@ -71,19 +71,6 @@ object Regions {
 
 }
 
-object Cities {
-
-    val name = schemaMap.getValue(City::class.attrName(City::name))
-    val region = schemaMap.getValue(City::class.attrName(City::region))
-
-}
-
-object Papers {
-
-    val name = schemaMap.getValue(Paper::class.attrName(Paper::name))
-
-}
-
 object ResearchGroups {
 
     val members = schemaMap.getValue(ResearchGroup::class.attrName(ResearchGroup::members))
@@ -96,24 +83,9 @@ object Bombs {
 
 }
 
-object NullableScalars {
-
-    val scalar = schemaMap.getValue(NullableScalar::class.attrName(NullableScalar::scalar))
-    val placeholder = schemaMap.getValue(NullableScalar::class.attrName(NullableScalar::placeholder))
-
-}
-
 object NullableLists {
 
-    val lst = schemaMap.getValue(NullableList::class.attrName(NullableList::lst))
     val placeholder = schemaMap.getValue(NullableList::class.attrName(NullableList::placeholder))
-
-}
-
-object NullableRefs {
-
-    val ref = schemaMap.getValue(NullableRef::class.attrName(NullableRef::ref))
-    val placeholder = schemaMap.getValue(NullableRef::class.attrName(NullableRef::placeholder))
 
 }
 

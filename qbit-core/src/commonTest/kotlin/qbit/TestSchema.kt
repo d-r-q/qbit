@@ -1,5 +1,8 @@
 package qbit
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.plus
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
@@ -12,7 +15,14 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 
 
-val testSchema = schema(testsSerialModule) {
+@Serializable
+data class GidEntity(val id: Gid?, val bool: Boolean)
+
+val internalTestsSerialModule = testsSerialModule + SerializersModule {
+    contextual(GidEntity::class, GidEntity.serializer())
+}
+
+val testSchema = schema(internalTestsSerialModule) {
     entity(TheSimplestEntity::class)
     entity(Country::class)
     entity(Region::class)
@@ -29,6 +39,8 @@ val testSchema = schema(testsSerialModule) {
     entity(EntityWithListOfByteArray::class)
     entity(EntityWithListOfString::class)
     entity(MUser::class)
+    entity(GidEntity::class)
+    entity(ParentToChildrenTreeEntity::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
@@ -149,6 +161,19 @@ object NullableRefs : EntitySchema(NullableRef::class) {
 object IntEntities : EntitySchema(IntEntity::class) {
 
     val int by attr(IntEntity::int)
+
+}
+
+object GidEntities : EntitySchema(GidEntity::class) {
+
+    val bool by attr(GidEntity::bool)
+
+}
+
+object ParentToChildrenTreeEntities : EntitySchema(ParentToChildrenTreeEntity::class) {
+
+    val name by attr(ParentToChildrenTreeEntity::name)
+    val children by attr(ParentToChildrenTreeEntity::children)
 
 }
 

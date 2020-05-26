@@ -1,6 +1,7 @@
 package qbit.typing
 
 import kotlinx.serialization.Serializable
+import qbit.GidEntity
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
@@ -487,9 +488,6 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     }
 
 }
-
-@Serializable
-data class GidEntity(val id: Gid?, val bool: Boolean)
 
 @Serializable
 data class NotNullableGidEntity(val id: Gid, val bool: Boolean)
