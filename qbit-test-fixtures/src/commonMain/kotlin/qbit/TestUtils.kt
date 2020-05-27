@@ -8,10 +8,17 @@ import kotlin.test.assertEquals
 fun Gid(iid: Int, eid: Int) =
     (iid.toLong() shl 32) or eid.toLong()
 
-fun createBombWithoutNulls(gid: Long): Bomb {
-    val country = Country(Gid(3, 1), "Country1", 0)
+fun createBombWithoutNulls(
+    referredBombGid: Long,
+    countries: List<Country> = listOf(
+        Country(Gid(3, 2), "Country", 0),
+        Country(null, "Country2", 2),
+        Country(null, "Country3", 2)
+    ),
+    gid: Long? = null
+): Bomb {
     val bomb = Bomb(
-        null,
+        gid,
 
         bool = true,
         optBool = false,
@@ -40,7 +47,8 @@ fun createBombWithoutNulls(gid: Long): Bomb {
         str = "",
         optStr = randomString(10240, random),
         strList = listOf("String", "Строка", "ライン", "线", "שורה"),
-        strListOpt = listOf("", " ",
+        strListOpt = listOf(
+            "", " ",
             randomString(1, random),
             randomString(128, random)
         ),
@@ -48,29 +56,32 @@ fun createBombWithoutNulls(gid: Long): Bomb {
         bytes = ByteArray(0),
         optBytes = randomBytes(10240, random),
         bytesList = listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE)),
-        bytesListOpt = listOf(byteArrayOf(),
+        bytesListOpt = listOf(
+            byteArrayOf(),
             randomBytes(1, random),
             randomBytes(128, random)
         ),
 
-        country = country,
-        optCountry = country,
-        countiesList = listOf(country, Country(null, "Country3", 2)),
+        country = countries[0],
+        optCountry = countries[0],
+        countiesList = listOf(Country(Gid(3, 1), "Country1", 0),countries[2]),
         countriesListOpt = emptyList(),
 
-        mutCountry = country,
-        mutOptCountry = country,
-        mutCountriesList = listOf(country),
-        mutCountriesListOpt = listOf(country),
+        mutCountry = countries[0],
+        mutOptCountry = countries[0],
+        mutCountriesList = countries.take(1),
+        mutCountriesListOpt = countries.take(1),
 
         optBomb = null
     )
-    bomb.optBomb = createBombWithNulls(gid)
+    bomb.optBomb = createBombWithNulls(referredBombGid, countries)
     return bomb
 }
 
-fun createBombWithNulls(gid: Long): Bomb {
-    val country = Country(Gid(3, 2), "Country", 0)
+fun createBombWithNulls(
+    gid: Long,
+    countries: List<Country> = listOf(Country(Gid(3, 2), "Country", 0), Country(null, "Country2", 2))
+): Bomb {
     return Bomb(
         gid,
 
@@ -108,14 +119,14 @@ fun createBombWithNulls(gid: Long): Bomb {
         listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE)),
         null,
 
-        country,
+        countries[0],
         null,
-        listOf(country, Country(null, "Country2", 2)),
+        countries,
         null,
 
-        country,
+        countries[0],
         null,
-        listOf(country),
+        countries.take(1),
         null,
 
         null

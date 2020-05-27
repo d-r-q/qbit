@@ -287,7 +287,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     @JsName("Test_bomb_with_nulls_deconstruction")
     @Test
     fun `Test bomb with nulls deconstruction`() {
-        val facts = factor(createBombWithNulls(Gid(2, 102).value()), testSchema, gids)
+        val facts = factor(createBombWithNulls(Gid(2, 97).value()), testSchema, gids)
         assertEquals(40, facts.size)
     }
 
@@ -295,8 +295,8 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     @JsName("Test_bomb_without_nulls_deconstruction")
     @Test
     fun `Test bomb without nulls deconstruction`() {
-        val facts = factor(createBombWithoutNulls(Gid(2, 102).value()), testSchema, gids)
-        assertEquals(101, facts.size)
+        val facts = factor(createBombWithoutNulls(Gid(2, 97).value()), testSchema, gids)
+        assertEquals(102, facts.size)
     }
 
     @JsName("Test_serialization_of_list_of_primitives")
