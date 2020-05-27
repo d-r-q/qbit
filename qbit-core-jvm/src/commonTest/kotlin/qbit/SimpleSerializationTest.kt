@@ -1,8 +1,8 @@
 package qbit
 
-import kotlinx.io.core.EOFException
-import kotlinx.io.core.ExperimentalIoApi
-import kotlinx.io.core.Input
+import io.ktor.utils.io.core.EOFException
+import io.ktor.utils.io.core.ExperimentalIoApi
+import io.ktor.utils.io.core.Input
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.*

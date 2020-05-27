@@ -1,5 +1,5 @@
 val kotlin_serialization_version: String by rootProject.extra
-val kotlin_io_version: String by rootProject.extra
+val ktor_version: String by rootProject.extra
 
 kotlin {
 
@@ -18,6 +18,7 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib-common"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$kotlin_serialization_version")
+                api("io.ktor:ktor-io:$ktor_version")
             }
         }
         val commonTest by getting {
@@ -30,8 +31,8 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 api(kotlin("stdlib-jdk8"))
-                api("org.jetbrains.kotlinx:kotlinx-io-jvm:$kotlin_io_version")
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version")
+                api("io.ktor:ktor-io-jvm:$ktor_version")
             }
         }
         val jvmTest by getting {
@@ -43,6 +44,7 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$kotlin_serialization_version")
+                api("io.ktor:ktor-io-native:$ktor_version")
             }
         }
         val linuxTest by getting {
@@ -53,6 +55,7 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib-js"))
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$kotlin_serialization_version")
+                api("io.ktor:ktor-io-js:$ktor_version")
             }
         }
         val nodeJsTest by getting {

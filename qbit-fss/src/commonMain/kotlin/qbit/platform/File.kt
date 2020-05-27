@@ -1,6 +1,6 @@
 package qbit.platform
 
-import kotlinx.io.core.Output
+import io.ktor.utils.io.core.Output
 
 expect class File {
     constructor(parent: File, child: String)
@@ -29,11 +29,13 @@ expect class FileDescriptor {
     fun sync()
 }
 
-expect fun fileOutput(file: File): FileOutput
+expect fun fileOutput(file: File): QOutput
 
-interface FileOutput : Output {
+interface QOutput : Output {
 
     val fd: FileDescriptor
+
+    fun writeFully(data: ByteArray)
 
 }
 

@@ -1,7 +1,7 @@
 package qbit.platform
 
-import kotlinx.io.core.Output
-import kotlinx.io.streams.asOutput
+import io.ktor.utils.io.core.Output
+import io.ktor.utils.io.streams.asOutput
 import java.io.FileOutputStream
 import java.nio.file.Files
 import kotlin.io.readBytes as readBytesImpl
@@ -33,9 +33,15 @@ actual object Files {
     actual fun createTempDirectory(prefix: String): Path = Files.createTempDirectory(prefix)
 }
 
-actual fun fileOutput(file: File): FileOutput {
+actual fun fileOutput(file: File): QOutput {
     val fos = FileOutputStream(file)
-    return FileOutputImpl(fos.asOutput(), fos.fd)
+    return FileOutputImpl(fos, fos.asOutput(), fos.fd)
 }
 
-class FileOutputImpl(out: Output, override val fd: FileDescriptor) : FileOutput, Output by out
+class FileOutputImpl(val fos: FileOutputStream, out: Output, override val fd: FileDescriptor) : QOutput, Output by out {
+
+    override fun writeFully(data: ByteArray) {
+        fos.write(data)
+    }
+
+}
