@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 
-@UseExperimental(ExperimentalIoApi::class)
+@OptIn(ExperimentalIoApi::class)
 class SimpleSerializationTest {
 
     private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())

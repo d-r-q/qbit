@@ -3,16 +3,8 @@
 package qbit.api.model.impl
 
 import kotlinx.serialization.Serializable
-import qbit.api.QBitException
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.AttrValue
-import qbit.api.model.eq
-import qbit.api.model.Entity
-import qbit.api.model.StoredEntity
-import qbit.api.model.Tombstone
-import qbit.api.model.entity2gid
-import kotlin.reflect.KProperty1
+import qbit.api.model.*
 
 fun AttachedEntity(gid: Gid, entries: List<Pair<Attr<Any>, Any>>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
     return QStoredEntity(gid, entries.map { (a, v) -> a to entity2gid(v) }.toMap(), resolveGid)
@@ -89,7 +81,7 @@ class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolve
         get() = delegate.keys
 
     override fun <T : Any> tryGet(key: Attr<T>): T? {
-        return delegate[key]
+        return delegate.tryGet(key)
     }
 
     override fun pull(gid: Gid): StoredEntity? {

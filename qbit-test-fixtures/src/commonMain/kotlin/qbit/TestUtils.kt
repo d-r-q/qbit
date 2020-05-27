@@ -8,70 +8,81 @@ import kotlin.test.assertEquals
 fun Gid(iid: Int, eid: Int) =
     (iid.toLong() shl 32) or eid.toLong()
 
-fun createBombWithoutNulls(gid: Long): Bomb {
-    val country = Country(Gid(3, 1), "Country1", 0)
+fun createBombWithoutNulls(
+    referredBombGid: Long,
+    countries: List<Country> = listOf(
+        Country(Gid(3, 2), "Country", 0),
+        Country(null, "Country2", 2),
+        Country(null, "Country3", 2)
+    ),
+    gid: Long? = null
+): Bomb {
     val bomb = Bomb(
-        null,
+        gid,
 
-        true,
-        false,
-        listOf(true, false, true),
-        emptyList(),
-        false,
-        false,
-        listOf(false, true, false),
-        listOf(true),
+        bool = true,
+        optBool = false,
+        boolList = listOf(true, false, true),
+        boolListOpt = emptyList(),
+        mutBool = false,
+        mutOptBool = false,
+        mutBoolList = listOf(false, true, false),
+        mutBoolListOpt = listOf(true),
 
-        0,
-        1,
-        listOf(-128, -1, 0, 1, 127),
-        emptyList(),
+        byte = 0,
+        optByte = 1,
+        byteList = listOf(-128, -1, 0, 1, 127),
+        byteListOpt = emptyList(),
 
-        0,
-        1,
-        listOf(Int.MIN_VALUE, 0, Int.MAX_VALUE),
-        listOf(2),
+        int = 0,
+        optInt = 1,
+        intList = listOf(Int.MIN_VALUE, 0, Int.MAX_VALUE),
+        intListOpt = listOf(2),
 
-        0,
-        -1024,
-        listOf(Long.MIN_VALUE, 0, Long.MAX_VALUE),
-        listOf(1024),
+        long = 0,
+        optLong = -1024,
+        longList = listOf(Long.MIN_VALUE, 0, Long.MAX_VALUE),
+        longListOpt = listOf(1024),
 
-        "",
-        randomString(10240, random),
-        listOf("String", "Строка", "ライン", "线", "שורה"),
-        listOf("", " ",
+        str = "",
+        optStr = randomString(10240, random),
+        strList = listOf("String", "Строка", "ライン", "线", "שורה"),
+        strListOpt = listOf(
+            "", " ",
             randomString(1, random),
             randomString(128, random)
         ),
 
-        ByteArray(0),
-        randomBytes(10240, random),
-        listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE)),
-        listOf(byteArrayOf(),
+        bytes = ByteArray(0),
+        optBytes = randomBytes(10240, random),
+        bytesList = listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE)),
+        bytesListOpt = listOf(
+            byteArrayOf(),
             randomBytes(1, random),
             randomBytes(128, random)
         ),
 
-        country,
-        country,
-        listOf(country, Country(null, "Country3", 2)),
-        emptyList(),
+        country = countries[0],
+        optCountry = countries[0],
+        countiesList = listOf(Country(Gid(3, 1), "Country1", 0),countries[2]),
+        countriesListOpt = emptyList(),
 
-        country,
-        country,
-        listOf(country),
-        listOf(country),
+        mutCountry = countries[0],
+        mutOptCountry = countries[0],
+        mutCountriesList = countries.take(1),
+        mutCountriesListOpt = countries.take(1),
 
-        null
+        optBomb = null
     )
-    bomb.optBomb = createBombWithNulls(gid)
+    bomb.optBomb = createBombWithNulls(referredBombGid, countries)
     return bomb
 }
 
-fun createBombWithNulls(gid: Long): Bomb {
-    val country = Country(Gid(3, 2), "Country", 0)
-    val bomb = Bomb(
+fun createBombWithNulls(
+    gid: Long,
+    countries: List<Country> = listOf(Country(Gid(3, 2), "Country", 0), Country(null, "Country2", 2))
+): Bomb {
+    return Bomb(
         gid,
 
         true,
@@ -108,19 +119,18 @@ fun createBombWithNulls(gid: Long): Bomb {
         listOf(byteArrayOf(1), byteArrayOf(Byte.MIN_VALUE, -1, 0, 1, Byte.MAX_VALUE)),
         null,
 
-        country,
+        countries[0],
         null,
-        listOf(country, Country(null, "Country2", 2)),
+        countries,
         null,
 
-        country,
+        countries[0],
         null,
-        listOf(country),
+        countries.take(1),
         null,
 
         null
     )
-    return bomb
 }
 
 val random = Random(1)

@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.serialization.modules.SerialModule
 import qbit.api.Attrs
 import qbit.api.Instances
 import qbit.api.db.Conn
@@ -17,7 +18,7 @@ import qbit.serialization.NodesStorage
 import qbit.serialization.Root
 import qbit.spi.Storage
 
-internal fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor): Conn {
+internal fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialModule: SerialModule): Conn {
     val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
             .flatMap { it.toFacts() }
             .plus(factor(protoInstance, bootstrapSchema::get, EmptyIterator))
@@ -25,7 +26,7 @@ internal fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor): Conn {
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = NodesStorage(storage).store(root)
     storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
-    return QConn(dbUuid, storage, storedRoot, factor)
+    return QConn(serialModule, dbUuid, storage, storedRoot, factor)
 }
 
 internal fun Attr<*>.toFacts(): List<Eav> = listOf(Eav(this.id!!, Attrs.name.name, this.name),

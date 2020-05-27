@@ -40,7 +40,7 @@ object SimpleSerialization : Serialization {
 
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
 
-    @UseExperimental(ExperimentalIoApi::class)
+    @OptIn(ExperimentalIoApi::class)
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
@@ -66,7 +66,7 @@ object SimpleSerialization : Serialization {
 
 // Serialization
 
-@UseExperimental(ExperimentalIoApi::class)
+@OptIn(ExperimentalIoApi::class)
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         when (a) {
@@ -91,7 +91,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
 private fun byteArray(str: String): ByteArray =
         byteArray(serializeInt(str.encodeToUtf8().size), str.encodeToUtf8())
 
-@UseExperimental(ExperimentalIoApi::class)
+@OptIn(ExperimentalIoApi::class)
 private fun encodeToUtf8(c: Char): ByteArray =
         String(charArrayOf(c)).encodeToUtf8()
 
@@ -119,7 +119,7 @@ internal fun byteArray(vararg parts: Any): ByteArray {
     return res
 }
 
-@UseExperimental(ExperimentalIoApi::class)
+@OptIn(ExperimentalIoApi::class)
 internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1

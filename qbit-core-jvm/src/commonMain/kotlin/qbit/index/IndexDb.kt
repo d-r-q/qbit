@@ -1,12 +1,11 @@
 package qbit.index
 
+import kotlinx.serialization.modules.SerialModule
 import qbit.api.Attrs.list
 import qbit.api.Attrs.name
 import qbit.api.Attrs.type
 import qbit.api.Attrs.unique
-import qbit.api.db.Eager
 import qbit.api.db.Fetch
-import qbit.api.db.Lazy
 import qbit.api.db.QueryPred
 import qbit.api.db.hasAttr
 import qbit.api.gid.Gid
@@ -17,12 +16,13 @@ import qbit.api.model.StoredEntity
 import qbit.api.model.impl.AttachedEntity
 import qbit.platform.WeakHashMap
 import qbit.platform.set
-import qbit.query.EagerQuery
-import qbit.query.GraphQuery
-import qbit.typing.Typing
+import qbit.typing.typify
 import kotlin.reflect.KClass
 
-internal class IndexDb(internal val index: Index) : InternalDb() {
+internal class IndexDb(
+    internal val index: Index,
+    private val serialModule: SerialModule
+) : InternalDb() {
 
     private val schema = loadAttrs(index)
 
@@ -33,7 +33,7 @@ internal class IndexDb(internal val index: Index) : InternalDb() {
     private val dcCache = WeakHashMap<Entity, Any>()
 
     override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(index.addFacts(facts))
+        return IndexDb(index.addFacts(facts), serialModule)
     }
 
     override fun pullEntity(gid: Gid): StoredEntity? {
@@ -70,13 +70,7 @@ internal class IndexDb(internal val index: Index) : InternalDb() {
             return cached as R
         }
 
-        val query = when (fetch) {
-            Lazy -> GraphQuery(type, emptyMap())
-            Eager -> EagerQuery()
-        }
-
-        val typing = Typing(entity, query, type)
-        val dc = typing.instantiate(entity, type)
+        val dc = typify(schema::get, entity, type, serialModule)
         dcCache[entity] = dc
         return dc
     }

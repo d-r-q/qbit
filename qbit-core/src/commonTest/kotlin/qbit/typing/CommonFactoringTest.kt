@@ -1,6 +1,7 @@
 package qbit.typing
 
 import kotlinx.serialization.Serializable
+import qbit.GidEntity
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
@@ -41,7 +42,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         assertEquals(1, factoring.size, "Factoring of single entity should produce facts for one entity")
         val facts = factoring.entityFacts.values.first()
         assertEquals(1, facts.size, "Factoring of single entity with single attr should produce single fact")
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", facts[0].attr)
+        assertEquals("TheSimplestEntity/scalar", facts[0].attr)
         assertEquals("addrValue", facts[0].value)
     }
 
@@ -59,7 +60,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         val facts = factoring.entityFacts.values.first()
         assertEquals(1, facts.size, "Factoring of single entity with single attr should produce single fact")
         assertEquals(Gid(1), facts[0].gid)
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", facts[0].attr)
+        assertEquals("TheSimplestEntity/scalar", facts[0].attr)
         assertEquals("addrValue", facts[0].value)
     }
 
@@ -102,11 +103,11 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         assertEquals(2, factoring.size, "Factoring of two entities with single attr should produce two facts")
 
-        assertEquals(".qbit.test.model.EntityWithRef/ref", root[0].attr)
+        assertEquals("EntityWithRef/ref", root[0].attr)
 
         assertEquals(root[0].value, referredEntity[0].gid)
 
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", referredEntity[0].attr)
+        assertEquals("TheSimplestEntity/scalar", referredEntity[0].attr)
         assertEquals("addrValue", referredEntity[0].value)
     }
 
@@ -145,7 +146,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         assertEquals(2, entityEavs[2].value)
 
         // And eavs has correct attr
-        assertEquals(".qbit.test.model.EntityWithScalarList/scalars", entityEavs[0].attr)
+        assertEquals("EntityWithScalarList/scalars", entityEavs[0].attr)
     }
 
     @JsName("Test_entity_with_refs_list_factoring")
@@ -172,8 +173,8 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         assertEquals("1", secondReferredEavs[0].value)
 
         // And eavs has correct attr
-        assertEquals(".qbit.test.model.EntityWithRefList/refs", rootEavs[0].attr)
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", firstReferredEavs[0].attr)
+        assertEquals("EntityWithRefList/refs", rootEavs[0].attr)
+        assertEquals("TheSimplestEntity/scalar", firstReferredEavs[0].attr)
     }
 
 
@@ -187,7 +188,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
             )
         }
         assertEquals(
-            "List of nullable elements is not supported. Properties: qbit.test.model.ListOfNullables.(lst,refLst)",
+            "List of nullable elements is not supported. Properties: ListOfNullables.(lst,refLst)",
             ex.message
         )
     }
@@ -217,7 +218,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         // And the entity has single eav
         val theEntityFacts = factoring.entityFacts[theEntity]!!
         assertTrue(theEntityFacts.size == 1, "Expected single fact but got $theEntityFacts")
-        assertEquals(".qbit.test.model.TheSimplestEntity/scalar", theEntityFacts[0].attr)
+        assertEquals("TheSimplestEntity/scalar", theEntityFacts[0].attr)
         assertEquals("theEntity", theEntityFacts[0].value)
     }
 
@@ -259,7 +260,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         )
 
         val theScientistNameEavs = factoring.distinct()
-            .filter { it.gid == theScientistGid && it.attr == ".qbit.test.model.Scientist/name" }
+            .filter { it.gid == theScientistGid && it.attr == "Scientist/name" }
 
         assertEquals(
             1,
@@ -279,14 +280,14 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         // Than its factorzation contains single eav for placeholder
         assertEquals(1, facts.size, "Only fact for placeholder should be generated")
-        assertEquals(".qbit.test.model.NullableScalar/placeholder", facts.first().attr)
+        assertEquals("NullableScalar/placeholder", facts.first().attr)
         assertEquals(0L, facts.first().value)
     }
 
     @JsName("Test_bomb_with_nulls_deconstruction")
     @Test
     fun `Test bomb with nulls deconstruction`() {
-        val facts = factor(createBombWithNulls(Gid(2, 102).value()), testSchema, gids)
+        val facts = factor(createBombWithNulls(Gid(2, 97).value()), testSchema, gids)
         assertEquals(40, facts.size)
     }
 
@@ -294,8 +295,8 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     @JsName("Test_bomb_without_nulls_deconstruction")
     @Test
     fun `Test bomb without nulls deconstruction`() {
-        val facts = factor(createBombWithoutNulls(Gid(2, 102).value()), testSchema, gids)
-        assertEquals(101, facts.size)
+        val facts = factor(createBombWithoutNulls(Gid(2, 97).value()), testSchema, gids)
+        assertEquals(102, facts.size)
     }
 
     @JsName("Test_serialization_of_list_of_primitives")
@@ -309,7 +310,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         // Then it contains eav for primitive value with correct attribute
         assertTrue(
-            factoring.any { it.attr == ".qbit.test.model.NullableIntEntity/int" && it.value == 2 },
+            factoring.any { it.attr == "NullableIntEntity/int" && it.value == 2 },
             "Cannot find expected eav for NullableIntEntity.int in ${factoring.toList()}"
         )
     }
@@ -325,7 +326,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         // Then it's factoring contains eav with byte array
         val eav = factoring.toList()[0]
-        assertEquals(".qbit.test.model.ByteArrayEntity/byteArray", eav.attr)
+        assertEquals("ByteArrayEntity/byteArray", eav.attr)
         assertArrayEquals(byteArrayOf(1, 2, 3), eav.value as ByteArray)
     }
 
@@ -343,7 +344,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         // Then it's factoring contains eav with byte array
         val eav = factoring.toList()[0]
-        assertEquals(".qbit.test.model.ListOfByteArraysEntity/byteArrays", eav.attr)
+        assertEquals("ListOfByteArraysEntity/byteArrays", eav.attr)
         assertArrayEquals(firstByteArray, eav.value as ByteArray)
         assertArrayEquals(secondByteArray, factoring.toList()[1].value as ByteArray)
         assertArrayEquals(thirdByteArray, factoring.toList()[2].value as ByteArray)
@@ -381,7 +382,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     @Test
     fun `Test SerialDescriptor to attr name conversion`() {
         assertEquals(
-            ".qbit.test.model.TheSimplestEntity/scalar",
+            "TheSimplestEntity/scalar",
             AttrName(TheSimplestEntity.serializer().descriptor, 1).asString()
         )
     }
@@ -397,7 +398,7 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
 
         // Then it's factoring contains single placeholder eav
         assertEquals(1, factoring.size)
-        assertEquals(Eav(Gid(0, 1), ".qbit.api/tombstone", true), factoring.first())
+        assertEquals(Eav(Gid(0, 1), "qbit.api/tombstone", true), factoring.first())
     }
 
     @JsName("Test_check_for_factoring_of_different_states_for_the_same_entity")
@@ -487,9 +488,6 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
     }
 
 }
-
-@Serializable
-data class GidEntity(val id: Gid?, val bool: Boolean)
 
 @Serializable
 data class NotNullableGidEntity(val id: Gid, val bool: Boolean)

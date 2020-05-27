@@ -47,7 +47,7 @@ internal data class Ref(val obj: Any)
 internal data class AttrName(val className: String, val name: String) {
 
     fun asString(): String {
-        return ".$className/$name"
+        return "${className.substringAfterLast(".")}/$name"
     }
 
 }
@@ -87,7 +87,7 @@ internal class EntityGraph {
     private fun deduplicateEntityStates(): Map<Gid, EntityBuilder> {
         val uniqueBuilders = builders.values.groupBy { it.gid }
         return uniqueBuilders.map { (gid, builders) ->
-            check(gid != null) { "Gid for builders ${builders} is null" }
+            check(gid != null) { "Gid for builders $builders is null" }
             val states = builders.toSet()
             if (states.size > 1) {
                 throw QBitException("Entity $gid has several different states to store: $states")

@@ -10,16 +10,16 @@ import qbit.platform.collections.subList
 
 typealias RawEntity = Pair<Gid, List<Eav>>
 
-internal fun Index(entities: List<RawEntity>): Index =
+fun Index(entities: List<RawEntity>): Index =
         Index().add(entities)
 
-internal fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
+fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
 
-internal fun attrPattern(attr: String) = { fact: Eav -> fact.attr.compareTo(attr) }
+fun attrPattern(attr: String) = { fact: Eav -> fact.attr.compareTo(attr) }
 
-internal fun valuePattern(value: Any) = { fact: Eav -> compareValues(fact.value, value) }
+fun valuePattern(value: Any) = { fact: Eav -> compareValues(fact.value, value) }
 
-internal fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
+fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(attr), valuePattern(value))
 
 internal fun composeComparable(vararg cmps: (Eav) -> Int) = { fact: Eav ->
     cmps.asSequence()
@@ -45,9 +45,9 @@ internal fun compareValues(v1: Any, v2: Any): Int {
     return (v1 as Comparable<Any>).compareTo(v2)
 }
 
-internal class Index(
-        val entities: Map<Gid, RawEntity> = HashMap(),
-        val indices: List<Eav> = ArrayList()
+class Index(
+    val entities: Map<Gid, RawEntity> = HashMap(),
+    val indices: List<Eav> = ArrayList()
 ) {
 
     fun addFacts(facts: List<Eav>): Index =
@@ -105,7 +105,10 @@ internal class Index(
                 }
             }
         }
-        return Index(newEntities, merge(filteredIndex, toAdd, aveCmp))
+        return Index(
+            newEntities,
+            merge(filteredIndex, toAdd, aveCmp)
+        )
     }
 
     fun add(e: RawEntity): Index {

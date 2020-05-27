@@ -14,28 +14,28 @@ object Attrs {
 
     val name = Attr<String>(
         Gid(1, 0),
-        ".qbit.api.model.Attr/name",
+        "Attr/name",
         QString.code,
         unique = true,
         list = false
     )
     val type = Attr<Byte>(
         Gid(1, 1),
-        ".qbit.api.model.Attr/type",
+        "Attr/type",
         QByte.code,
         unique = false,
         list = false
     )
     val unique = Attr<Boolean>(
         Gid(1, 2),
-        ".qbit.api.model.Attr/unique",
+        "Attr/unique",
         QBoolean.code,
         unique = false,
         list = false
     )
     val list = Attr<Boolean>(
         Gid(1, 3),
-        ".qbit.api.model.Attr/list",
+        "Attr/list",
         QBoolean.code,
         unique = false,
         list = false
@@ -47,21 +47,21 @@ object Instances {
 
     val forks = Attr<Int>(
         Gid(1, 4),
-        ".qbit.api.system.Instance/forks",
+        "Instance/forks",
         QInt.code,
         unique = false,
         list = false
     )
     val nextEid = Attr<Int>(
         Gid(1, 5),
-        ".qbit.api.system.Instance/nextEid",
+        "Instance/nextEid",
         QInt.code,
         unique = false,
         list = false
     )
     val iid = Attr<Int>(
         Gid(1, 6),
-        ".qbit.api.system.Instance/iid",
+        "Instance/iid",
         QInt.code,
         unique = true,
         list = false
@@ -79,7 +79,7 @@ val protoInstance = Instance(Gid(Iid(1, 4), theInstanceEid), 1, 0, firstInstance
 
 val tombstone = Attr<Boolean>(
     Gid(Iid(1, 4), 7),
-    ".qbit.api/tombstone",
+    "qbit.api/tombstone",
     QBoolean.code,
     unique = false,
     list = false

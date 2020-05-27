@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.serialization.modules.plus
 import qbit.api.Attrs
 import qbit.api.Instances
 import qbit.api.db.attrIs
@@ -20,7 +21,7 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor)
+    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor, qbitSerialModule + testsSerialModule)
 
     @Test
     fun testInit() {

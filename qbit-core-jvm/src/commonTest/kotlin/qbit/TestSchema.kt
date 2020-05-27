@@ -6,12 +6,13 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.factoring.serializatoin.KSFactorizer
-import qbit.factoring.attrName
 import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
 import qbit.spi.Storage
 import qbit.storage.MemStorage
 import qbit.test.model.*
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 val testSchemaFactorizer =
     KSFactorizer(qbitSerialModule + testsSerialModule)
@@ -38,6 +39,8 @@ val testSchema = schema(testsSerialModule) {
     entity(IntEntity::class)
     entity(EntityWithoutAttrs::class)
     entity(NullableScalarWithoutPlaceholder::class)
+    entity(MUser::class)
+    entity(TheSimplestEntity::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
@@ -68,19 +71,6 @@ object Regions {
 
 }
 
-object Cities {
-
-    val name = schemaMap.getValue(City::class.attrName(City::name))
-    val region = schemaMap.getValue(City::class.attrName(City::region))
-
-}
-
-object Papers {
-
-    val name = schemaMap.getValue(Paper::class.attrName(Paper::name))
-
-}
-
 object ResearchGroups {
 
     val members = schemaMap.getValue(ResearchGroup::class.attrName(ResearchGroup::members))
@@ -93,24 +83,9 @@ object Bombs {
 
 }
 
-object NullableScalars {
-
-    val scalar = schemaMap.getValue(NullableScalar::class.attrName(NullableScalar::scalar))
-    val placeholder = schemaMap.getValue(NullableScalar::class.attrName(NullableScalar::placeholder))
-
-}
-
 object NullableLists {
 
-    val lst = schemaMap.getValue(NullableList::class.attrName(NullableList::lst))
     val placeholder = schemaMap.getValue(NullableList::class.attrName(NullableList::placeholder))
-
-}
-
-object NullableRefs {
-
-    val ref = schemaMap.getValue(NullableRef::class.attrName(NullableRef::ref))
-    val placeholder = schemaMap.getValue(NullableRef::class.attrName(NullableRef::placeholder))
 
 }
 
@@ -147,3 +122,6 @@ fun setupTestData(storage: Storage = MemStorage()): Conn {
         this
     }
 }
+
+fun KClass<*>.attrName(prop: KProperty1<*, *>): String =
+   this.simpleName!! + "/" + prop.name

@@ -200,7 +200,7 @@ class FunTest {
         val ex = assertFailsWith<QBitException> {
             conn.persist(rg)
         }
-        assertTrue(ex.message!!.contains("Uniqueness violation for attr (.qbit.test.model.Scientist/externalId, 100), entities"), "Message ${ex.message} doesn't contains expected explanation")
+        assertTrue(ex.message!!.contains("Uniqueness violation for attr (Scientist/externalId, 100), entities"), "Message ${ex.message} doesn't contains expected explanation")
     }
 
     @Ignore
@@ -286,7 +286,6 @@ class FunTest {
     @Test
     fun `Test bomb without nulls handling`() {
         val conn = setupTestData()
-        val inst = conn.db().pull<Instance>(theInstanceGid)!!
         val bomb = createBombWithoutNulls(Gid(2, 102).value())
         conn.persist(bomb)
         val storedBomb = conn.db().query<Bomb>(hasAttr(Bombs.bool), fetch = Eager).first()
@@ -328,7 +327,7 @@ class FunTest {
 
         assertEquals(bomb.country, storedBomb.country)
         assertEquals(bomb.optCountry, storedBomb.optCountry)
-        assertEquals(listOf(Country(12884901889, "Country1", 0), Country(4294967365, "Country3", 2)), storedBomb.countiesList)
+        assertEquals(listOf(Country(12884901889, "Country1", 0), Country(4294967371, "Country3", 2)), storedBomb.countiesList)
         // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
 
         assertEquals(bomb.mutCountry, storedBomb.mutCountry)

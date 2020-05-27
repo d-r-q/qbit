@@ -1,10 +1,13 @@
 package qbit.schema
 
-import kotlinx.serialization.Serializable
 import qbit.api.model.DataType
 import qbit.api.model.QByte
 import qbit.api.model.QBytes
 import qbit.api.model.QString
+import qbit.test.model.EntityWithByteArray
+import qbit.test.model.EntityWithListOfByteArray
+import qbit.test.model.EntityWithListOfBytes
+import qbit.test.model.EntityWithListOfString
 import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -88,14 +91,3 @@ class SchemaDslTest {
 
 }
 
-@Serializable
-data class EntityWithByteArray(val id: Long?, val byteArray: ByteArray)
-
-@Serializable
-data class EntityWithListOfByteArray(val id: Long?, val byteArrays: List<ByteArray>)
-
-@Serializable
-data class EntityWithListOfString(val id: Long?, val strings: List<String>)
-
-@Serializable
-data class EntityWithListOfBytes(val id: Long?, val bytes: List<Byte>)

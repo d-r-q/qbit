@@ -50,11 +50,11 @@ class SchemaValidator : SerialModuleCollector {
                 .map { it.second }
         if (nullableListProps.isNotEmpty()) {
             throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.map { it }.joinToString(
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.joinToString(
                     ",",
                     "(",
                     ")"
-                )}"
+                ) { it }}"
             )
         }
     }
@@ -79,13 +79,13 @@ fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
         val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        QConn(dbUuid, storage, head, KSFactorizer(systemSerialModule)::factor)
+        QConn(systemSerialModule, dbUuid, storage, head, KSFactorizer(systemSerialModule)::factor)
     } else {
-        bootstrap(storage, dbUuid, KSFactorizer(systemSerialModule)::factor)
+        bootstrap(storage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
     }
 }
 
-internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
 
     private val nodesStorage = NodesStorage(storage)
 
@@ -93,7 +93,7 @@ internal class QConn(override val dbUuid: DbUuid, val storage: Storage, head: No
 
     private val resolveNode = nodesResolver(nodesStorage)
 
-    private var db: InternalDb = Indexer(null, null, resolveNode).index(head)
+    private var db: InternalDb = Indexer(serialModule, null, null, resolveNode).index(head)
 
     override val head
         get() = trxLog.hash
