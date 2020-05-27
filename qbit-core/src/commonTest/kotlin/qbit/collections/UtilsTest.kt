@@ -49,8 +49,14 @@ class UtilsTest {
 
     @Test
     fun splitSmokeTest() {
+        // Currently on JS and Linux platforms and the test is fails on ci due to timeout
+        // So keep quick version of test for JS an Linux, and add slow jvm-only version
+        splitSmokeTest(500)
+    }
+
+    fun splitSmokeTest(iterations: Int) {
         val rnd = Random(1)
-        for (i in 0..5000) {
+        for (i in 0..iterations) {
             val size = rnd.nextInt(10000)
             val minChunk = 1 + rnd.nextInt(1 + size / 2)
             val maxChunk = minChunk * 2
