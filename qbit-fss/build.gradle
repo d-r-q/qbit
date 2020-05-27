@@ -19,6 +19,7 @@ kotlin {
         commonMain {
             dependencies {
                 api project(':qbit-core-jvm')
+                api 'io.ktor:ktor-io:$ktor_version'
             }
         }
         commonTest {

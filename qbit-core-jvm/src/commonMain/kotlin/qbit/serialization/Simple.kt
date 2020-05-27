@@ -1,13 +1,9 @@
 package qbit.serialization
 
-import kotlinx.io.charsets.Charset
-import kotlinx.io.charsets.decode
-import kotlinx.io.charsets.encode
-import kotlinx.io.core.ByteReadPacket
-import kotlinx.io.core.EOFException
-import kotlinx.io.core.ExperimentalIoApi
-import kotlinx.io.core.Input
-import kotlinx.io.core.readAvailable
+import io.ktor.utils.io.charsets.Charset
+import io.ktor.utils.io.charsets.decode
+import io.ktor.utils.io.charsets.encode
+import io.ktor.utils.io.core.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.DataType

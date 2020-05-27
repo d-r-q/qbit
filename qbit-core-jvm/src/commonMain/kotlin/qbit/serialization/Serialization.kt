@@ -1,6 +1,6 @@
 package qbit.serialization
 
-import kotlinx.io.core.Input
+import io.ktor.utils.io.core.Input
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 
