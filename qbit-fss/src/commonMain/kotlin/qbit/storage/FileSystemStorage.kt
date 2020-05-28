@@ -10,7 +10,7 @@ import qbit.spi.Storage
 
 class FileSystemStorage(private val root: File) : Storage {
 
-    override fun add(key: Key, value: ByteArray) {
+    override suspend fun add(key: Key, value: ByteArray) {
         val dir = root.resolve(key.ns.toFile())
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
@@ -25,7 +25,7 @@ class FileSystemStorage(private val root: File) : Storage {
         writeAndSync(file, value)
     }
 
-    override fun overwrite(key: Key, value: ByteArray) {
+    override suspend fun overwrite(key: Key, value: ByteArray) {
         val file = File(root.resolve(key.ns.toFile()), key.name)
         if (!file.exists()) {
             throw QBitException("Value with key $key does not exists")

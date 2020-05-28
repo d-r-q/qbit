@@ -13,7 +13,7 @@ import qbit.serialization.NodesStorage
 
 class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
 
-    fun store(head: Node<Hash>, e: Collection<Eav>): NodeVal<Hash> {
+    suspend fun store(head: Node<Hash>, e: Collection<Eav>): NodeVal<Hash> {
         try {
             if (!storage.hasNode(head)) {
                 throw QBitException("Could not store child for node with hash=${head.hash}, because it's not exists in the storage")

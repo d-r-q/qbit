@@ -12,14 +12,14 @@ class MemStorage : Storage {
 
     private val data = ConcurrentHashMap<Namespace, ConcurrentHashMap<Key, ByteArray>>()
 
-    override fun add(key: Key, value: ByteArray) {
+    override suspend fun add(key: Key, value: ByteArray) {
         val prev = nsMap(key).putIfAbsent(key, value)
         if (prev != null) {
             throw QBitException("Value with key $key already exists")
         }
     }
 
-    override fun overwrite(key: Key, value: ByteArray) {
+    override suspend fun overwrite(key: Key, value: ByteArray) {
         nsMap(key).replace(key, value)
                 ?: throw QBitException("Value with key $key does not exists")
     }

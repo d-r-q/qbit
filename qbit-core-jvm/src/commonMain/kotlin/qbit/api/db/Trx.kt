@@ -6,7 +6,7 @@ abstract class Trx internal constructor() {
 
     abstract fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?>
 
-    abstract fun commit()
+    abstract suspend fun commit()
 
     abstract fun rollback()
 

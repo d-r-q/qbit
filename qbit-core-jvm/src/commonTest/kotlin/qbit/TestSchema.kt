@@ -106,7 +106,7 @@ val pChen = Scientist(gids.next().value(), 2, "Peter Chen", listOf("unificator")
 val mStonebreaker = Scientist(gids.next().value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"), us)
 val eBrewer = Scientist(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
 
-fun setupTestSchema(storage: Storage = MemStorage()): Conn {
+suspend fun setupTestSchema(storage: Storage = MemStorage()): Conn {
     val conn = qbit(storage, testsSerialModule)
     testSchema.forEach {
         conn.persist(it)
@@ -114,7 +114,7 @@ fun setupTestSchema(storage: Storage = MemStorage()): Conn {
     return conn
 }
 
-fun setupTestData(storage: Storage = MemStorage()): Conn {
+suspend fun setupTestData(storage: Storage = MemStorage()): Conn {
     return with(setupTestSchema(storage)) {
         listOf(eCodd, pChen, mStonebreaker, eBrewer, uk, tw, us, ru, nsk).forEach {
             persist(it)

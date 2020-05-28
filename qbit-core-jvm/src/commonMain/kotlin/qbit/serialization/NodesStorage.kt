@@ -1,26 +1,33 @@
 package qbit.serialization
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.withContext
 import qbit.api.QBitException
 import qbit.api.model.Hash
 import qbit.api.model.hash
 import qbit.ns.Namespace
 import qbit.platform.asInput
+import qbit.platform.createSingleThreadCoroutineDispatcher
 import qbit.spi.Storage
 
 private val nodes = Namespace("nodes")
 
-class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal<Hash>? {
+class NodesStorage(private val storage: Storage) :
+        (NodeRef) -> NodeVal<Hash>?,
+    CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher("Nodes writer")) {
 
-    fun store(n: NodeVal<Hash?>): NodeVal<Hash> {
-        val data = SimpleSerialization.serializeNode(n)
-        val hash = hash(data)
-        if (n.hash != null && n.hash != hash) {
-            throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+    suspend fun store(n: NodeVal<Hash?>): NodeVal<Hash> {
+        return withContext(this.coroutineContext) {
+            val data = SimpleSerialization.serializeNode(n)
+            val hash = hash(data)
+            if (n.hash != null && n.hash != hash) {
+                throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+            }
+            if (!storage.hasKey(hash.key())) {
+                storage.add(hash.key(), data)
+            }
+            toHashedNode(n, hash)
         }
-        if (!storage.hasKey(hash.key())) {
-            storage.add(hash.key(), data)
-        }
-        return toHashedNode(n, hash)
     }
 
     override fun invoke(ref: NodeRef): NodeVal<Hash>? {
@@ -30,7 +37,7 @@ class NodesStorage(private val storage: Storage) : (NodeRef) -> NodeVal<Hash>? {
             if (hash != ref.hash) {
                 throw QBitException("Corrupted node. Node hash is ${ref.hash}, but data hash is $hash")
             }
-            return toHashedNode(SimpleSerialization.deserializeNode(value.asInput()) , hash)
+            return toHashedNode(SimpleSerialization.deserializeNode(value.asInput()), hash)
         } catch (e: Exception) {
             throw QBitException(cause = e)
         }

@@ -5,8 +5,14 @@ import qbit.ns.root
 import qbit.spi.Storage
 
 
-internal fun cloneStorage(from: Storage, to: Storage) {
-    fun copyNs(ns: Namespace) {
+// Workaround for: https://github.com/Kotlin/kotlinx.coroutines/issues/2067
+class CloneStorage(private val from: Storage, private val to: Storage ) {
+
+    suspend operator fun invoke() {
+        copyNs(root)
+    }
+
+    private suspend fun copyNs(ns: Namespace) {
         from.keys(ns).forEach {
             to.add(it, from.load(it)!!)
         }
@@ -14,5 +20,5 @@ internal fun cloneStorage(from: Storage, to: Storage) {
             copyNs(it)
         }
     }
-    copyNs(root)
+
 }
