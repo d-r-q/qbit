@@ -13,7 +13,7 @@ class MemStorage : Storage {
         if (key in nsMap(key)) {
             throw QBitException("Value with key $key already exists")
         }
-        val prev = nsMap(key).put(key, value)
+        nsMap(key).put(key, value)
     }
 
     override suspend fun overwrite(key: Key, value: ByteArray) {

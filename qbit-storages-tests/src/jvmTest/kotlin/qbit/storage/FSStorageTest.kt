@@ -4,7 +4,7 @@ import qbit.platform.Files
 import qbit.spi.Storage
 
 
-class FileStorageTest : StorageTest() {
+class FSStorageTest : StorageTest() {
 
     override fun storage(): Storage {
         // Actually it compiles

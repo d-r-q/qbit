@@ -21,12 +21,13 @@ kotlin {
                 implementation(kotlin("test-annotations-common"))
             }
         }
-        val jvmMain by getting {
+        val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
+                implementation(project(":qbit-fss"))
             }
         }
-        val linuxMain by getting {
+        val linuxTest by getting {
             dependencies {
                 api(kotlin("stdlib"))
             }
