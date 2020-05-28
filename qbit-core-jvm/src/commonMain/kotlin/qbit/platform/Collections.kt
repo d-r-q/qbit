@@ -1,19 +1,5 @@
 package qbit.platform
 
-expect class ConcurrentHashMap<K, V>() {
-    fun putIfAbsent(key: K, value: V): V?
-    fun replace(key: K, value: V): V?
-    operator fun get(key: K): V?
-    val keys: KeySetView<K, V>
-    fun containsKey(key: K): Boolean
-}
-
-expect class KeySetView<K, V>
-
-expect fun <K, V> KeySetView<K, V>.asSequence(): Sequence<K>
-
-expect inline fun <K, V> ConcurrentHashMap<K, V>.getOrPut(key: K, defaultValue: () -> V): V
-
 expect class WeakHashMap<K, V>() {
     operator fun get(key: K): V?
 }

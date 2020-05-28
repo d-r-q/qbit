@@ -3,28 +3,24 @@ package qbit.storage
 import qbit.api.QBitException
 import qbit.ns.Key
 import qbit.ns.Namespace
-import qbit.platform.ConcurrentHashMap
-import qbit.platform.asSequence
-import qbit.platform.getOrPut
 import qbit.spi.Storage
 
 class MemStorage : Storage {
 
-    private val data = ConcurrentHashMap<Namespace, ConcurrentHashMap<Key, ByteArray>>()
+    private val data = HashMap<Namespace, HashMap<Key, ByteArray>>()
 
     override suspend fun add(key: Key, value: ByteArray) {
-        val prev = nsMap(key).putIfAbsent(key, value)
-        if (prev != null) {
+        if (key in nsMap(key)) {
             throw QBitException("Value with key $key already exists")
         }
+        val prev = nsMap(key).put(key, value)
     }
 
     override suspend fun overwrite(key: Key, value: ByteArray) {
-        nsMap(key).replace(key, value)
-                ?: throw QBitException("Value with key $key does not exists")
+        nsMap(key).put(key, value)
     }
 
-    private fun nsMap(key: Key) = data.getOrPut(key.ns) { ConcurrentHashMap() }
+    private fun nsMap(key: Key) = data.getOrPut(key.ns) { HashMap() }
 
     override fun load(key: Key): ByteArray? = data[key.ns]?.get(key)
 
