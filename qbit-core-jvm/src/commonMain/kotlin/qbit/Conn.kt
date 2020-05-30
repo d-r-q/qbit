@@ -8,11 +8,7 @@ import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
-import qbit.api.db.Conn
-import qbit.api.db.Db
-import qbit.api.db.Trx
-import qbit.api.db.WriteResult
-import qbit.api.db.pull
+import qbit.api.db.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Hash
@@ -23,10 +19,7 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
-import qbit.serialization.Node
-import qbit.serialization.NodeRef
-import qbit.serialization.NodeVal
-import qbit.serialization.NodesStorage
+import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.trx.CommitHandler
 import qbit.trx.QTrx
@@ -76,7 +69,7 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     val systemSerialModule = qbitSerialModule + appSerialModule
     systemSerialModule.dumpTo(SchemaValidator())
     return if (headHash != null) {
-        val head = NodesStorage(storage).load(NodeRef(Hash(headHash)))
+        val head = JvmNodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
         QConn(systemSerialModule, dbUuid, storage, head, KSFactorizer(systemSerialModule)::factor)
@@ -85,9 +78,9 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     }
 }
 
-internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
 
-    private val nodesStorage = NodesStorage(storage)
+    private val nodesStorage = JvmNodesStorage(storage)
 
     var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
 

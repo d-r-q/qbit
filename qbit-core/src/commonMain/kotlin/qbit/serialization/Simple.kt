@@ -34,7 +34,8 @@ object SimpleSerialization : Serialization {
         }
     }
 
-    override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) = serialize(parent1, parent2, source, timestamp, data)
+    override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) =
+        serialize(parent1, parent2, source, timestamp, data)
 
     @OptIn(ExperimentalIoApi::class)
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
@@ -140,7 +141,7 @@ internal fun <T : Any> deserialize(ins: Input, mark: DataType<T>): Any {
     val byte: Byte = ins.readByte()
     when {
         byte == (-1).toByte() -> throw EOFException("Unexpected end of input")
-        byte != mark.code -> throw DeserializationException("Code is $byte while $mark expected")
+        byte != mark.code -> throw DeserializationException("Code is $byte while ${mark.code} expected")
         DataType.ofCode(byte) == null -> throw DeserializationException("Unknown mark: ${byte.toChar()}")
     }
     return readMark(ins, mark)

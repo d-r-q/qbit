@@ -7,6 +7,7 @@ import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
 import qbit.factoring.AttrName
+import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
 import qbit.test.model.*
 import kotlin.properties.ReadOnlyProperty
@@ -41,6 +42,7 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(MUser::class)
     entity(GidEntity::class)
     entity(ParentToChildrenTreeEntity::class)
+    entity(Bomb::class)
 }
 
 private val gids = Gid(2, 0).nextGids()
@@ -88,6 +90,9 @@ object EntityWithListOfStringss : EntitySchema(EntityWithListOfString::class) {
 
     val strings by attr(EntityWithListOfString::strings)
 }
+
+fun Scientist.toFacts() =
+    testSchemaFactorizer.factor(this, schemaMap::get, EmptyIterator)
 
 object Scientists : EntitySchema(Scientist::class) {
 
@@ -182,3 +187,14 @@ fun KClass<*>.attrName(prop: KProperty1<*, *>): String {
         ?: throw IllegalArgumentException("qbit entities should be represented but usual classes with simpleName, got: $this")
     return AttrName(className, prop.name).asString()
 }
+val uk = Country(gids.next().value(), "United Kingdom", 63_000_000)
+val tw = Country(gids.next().value(), "Taiwan", 23_000_000)
+val us = Country(gids.next().value(), "USA", 328_000_000)
+val ru = Country(gids.next().value(), "Russia", 146_000_000)
+val nsk = Region(gids.next().value(), "Novosibirskaya obl.", ru)
+
+val eCodd = Scientist(gids.next().value(), 1, "Edgar Codd", listOf("mathematician", "tabulator"), uk)
+val pChen = Scientist(gids.next().value(), 2, "Peter Chen", listOf("unificator"), tw)
+val mStonebreaker = Scientist(gids.next().value(), 3, "Michael Stonebreaker", listOf("The DBMS researcher"), us)
+val eBrewer = Scientist(gids.next().value(), 4, "Eric Brewer", listOf("Big Data"), us)
+

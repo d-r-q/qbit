@@ -1,4 +1,4 @@
-package qbit
+package qbit.serialization
 
 import io.ktor.utils.io.core.EOFException
 import io.ktor.utils.io.core.ExperimentalIoApi
@@ -7,20 +7,38 @@ import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.*
 import qbit.api.system.DbUuid
+import qbit.assertArrayEquals
 import qbit.platform.asInput
 import qbit.platform.currentTimeMillis
-import qbit.serialization.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.fail
+import qbit.random
+import qbit.randomBytes
+import qbit.randomString
+import kotlin.js.JsName
+import kotlin.test.*
 
 
 @OptIn(ExperimentalIoApi::class)
+@Ignore
 class SimpleSerializationTest {
 
     private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())
     private val longValues: List<Long> = listOf(Long.MAX_VALUE, Long.MIN_VALUE, *(intValues.map { it.toLong() }.toTypedArray()))
+
+    @JsName("Test_byte_serializatoin")
+    @Test
+    fun `Test byte serializatoin`() {
+        // Given a byte
+        val byte: Byte = 1.toByte()
+        println("$byte: ${byte::class}")
+
+        // When it is serialized
+        val serial = serialize(byte)
+
+        // Then result is [<byte type code>, <value>]
+        assertEquals(QByte.code, serial[0])
+        assertEquals(2, serial.size)
+        assertEquals(byte, serial[1])
+    }
 
     @Test
     fun testReadLong() {
@@ -98,7 +116,7 @@ class SimpleSerializationTest {
         try {
             deserialize(twoBytes.asInput(), QBytes)
             fail("eof error expected")
-        } catch (e : DeserializationException) {
+        } catch (e: DeserializationException) {
             assertTrue(e.cause is EOFException)
         }
     }

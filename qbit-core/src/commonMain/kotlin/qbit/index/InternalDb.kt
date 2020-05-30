@@ -9,7 +9,7 @@ import qbit.api.model.Entity
 import qbit.api.model.StoredEntity
 
 
-internal abstract class InternalDb : Db() {
+abstract class InternalDb : Db() {
 
     abstract fun pullEntity(gid: Gid): StoredEntity?
 

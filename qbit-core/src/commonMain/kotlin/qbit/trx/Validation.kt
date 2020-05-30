@@ -6,7 +6,7 @@ import qbit.api.model.Attr
 import qbit.api.model.Eav
 import qbit.index.InternalDb
 
-internal fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
+fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyList()) {
     val newAttrsByName = newAttrs.associateBy { it.name }
     val factAttrs = facts.map { it.attr to (db.attr(it.attr) ?: newAttrsByName[it.attr]) }.toMap()
 

@@ -5,7 +5,7 @@ import qbit.api.model.Hash
 import qbit.serialization.NodeVal
 
 
-internal interface TrxLog {
+interface TrxLog {
 
     val hash: Hash
 
@@ -13,7 +13,7 @@ internal interface TrxLog {
 
 }
 
-internal class QTrxLog(private val head: NodeVal<Hash>, private val writer: Writer) : TrxLog {
+class QTrxLog(private val head: NodeVal<Hash>, private val writer: Writer) : TrxLog {
 
     override val hash = head.hash
 

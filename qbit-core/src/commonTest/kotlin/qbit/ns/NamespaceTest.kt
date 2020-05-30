@@ -1,7 +1,5 @@
-package qbit
+package qbit.ns
 
-import qbit.ns.Namespace
-import qbit.ns.root
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

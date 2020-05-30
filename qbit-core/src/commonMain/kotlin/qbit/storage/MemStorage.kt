@@ -1,30 +1,32 @@
 package qbit.storage
 
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
 import qbit.api.QBitException
-import qbit.collections.PersistentMap
+import qbit.collections.PersistentMapStub
 import qbit.ns.Key
 import qbit.ns.Namespace
 import qbit.spi.Storage
 
 class MemStorage : Storage {
 
-    private val data = kotlinx.atomicfu.atomic(PersistentMap<Namespace, PersistentMap<Key, ByteArray>>())
+    private val data = atomic(PersistentMapStub<Namespace, PersistentMapStub<Key, ByteArray>>())
 
     override suspend fun add(key: Key, value: ByteArray) {
         if (key in nsMap(key)) {
             throw QBitException("Value with key $key already exists")
         }
         val newNs = nsMap(key).put(key, value)
-        data.compareAndSet(data.value, data.value.put(key.ns, newNs))
+        data.update { it.put(key.ns, newNs) }
     }
 
     override suspend fun overwrite(key: Key, value: ByteArray) {
-        nsMap(key).put(key, value)
+        data.update { it.put(key.ns, nsMap(key).put(key, value)) }
     }
 
-    private fun nsMap(key: Key): PersistentMap<Key, ByteArray> {
-        val map: PersistentMap<Namespace, PersistentMap<Key, ByteArray>> = data.value
-        return map[key.ns] ?: PersistentMap()
+    private fun nsMap(key: Key): PersistentMapStub<Key, ByteArray> {
+        val map: PersistentMapStub<Namespace, PersistentMapStub<Key, ByteArray>> = data.value
+        return map[key.ns] ?: PersistentMapStub()
     }
 
     override fun load(key: Key): ByteArray? = data.value[key.ns]?.get(key)

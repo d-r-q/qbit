@@ -1,5 +1,7 @@
 package qbit.index
 
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
 import kotlinx.serialization.modules.SerialModule
 import qbit.api.Attrs.list
 import qbit.api.Attrs.name
@@ -14,12 +16,11 @@ import qbit.api.model.Eav
 import qbit.api.model.Entity
 import qbit.api.model.StoredEntity
 import qbit.api.model.impl.AttachedEntity
-import qbit.platform.WeakHashMap
-import qbit.platform.set
+import qbit.collections.LimitedPersistentMap
 import qbit.typing.typify
 import kotlin.reflect.KClass
 
-internal class IndexDb(
+class IndexDb(
     internal val index: Index,
     private val serialModule: SerialModule
 ) : InternalDb() {
@@ -28,16 +29,16 @@ internal class IndexDb(
 
     private val notFound = AttachedEntity(Gid(0, 0), emptyList(), this::pullEntity)
 
-    private val entityCache = WeakHashMap<Gid, StoredEntity>()
+    private val entityCache = atomic<LimitedPersistentMap<Gid, StoredEntity>>(LimitedPersistentMap(1024))
 
-    private val dcCache = WeakHashMap<Entity, Any>()
+    private val dcCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
 
     override fun with(facts: Iterable<Eav>): InternalDb {
         return IndexDb(index.addFacts(facts), serialModule)
     }
 
     override fun pullEntity(gid: Gid): StoredEntity? {
-        val cached = entityCache[gid]
+        val cached = entityCache.value[gid]
         if (cached === notFound) {
             return null
         } else if (cached != null) {
@@ -46,7 +47,7 @@ internal class IndexDb(
 
         val rawEntity = index.entityById(gid)
         if (rawEntity == null) {
-            entityCache[gid] = notFound
+            entityCache.update { it.put(gid, notFound) }
             return null
         }
         val attrValues = rawEntity.entries.map {
@@ -56,13 +57,13 @@ internal class IndexDb(
             attr to if (attr.list) it.value else it.value[0]
         }
         val entity = AttachedEntity(gid, attrValues, this::pullEntity)
-        entityCache[gid] = entity
+        entityCache.update { it.put(gid, entity) }
         return entity
     }
 
     override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
         val entity = pullEntity(gid) ?: return null
-        val cached = dcCache[entity]
+        val cached = dcCache.value[entity]
         if (cached === notFound) {
             return null
         } else if (cached != null) {
@@ -71,7 +72,7 @@ internal class IndexDb(
         }
 
         val dc = typify(schema::get, entity, type, serialModule)
-        dcCache[entity] = dc
+        dcCache.update { it.put(entity, dc) }
         return dc
     }
 

@@ -7,10 +7,7 @@ import qbit.api.system.DbUuid
 import qbit.ns.Namespace
 import qbit.platform.currentTimeMillis
 import qbit.platform.runBlocking
-import qbit.serialization.Leaf
-import qbit.serialization.NodeData
-import qbit.serialization.NodesStorage
-import qbit.serialization.Root
+import qbit.serialization.*
 import qbit.storage.MemStorage
 import qbit.test.model.IntEntity
 import qbit.test.model.testsSerialModule
@@ -24,7 +21,7 @@ class ConnTest {
         runBlocking {
             val storage = MemStorage()
             val dbUuid = DbUuid(Iid(0, 4))
-            val nodesStorage = NodesStorage(storage)
+            val nodesStorage = JvmNodesStorage(storage)
 
             val root = Root(null, dbUuid, currentTimeMillis(), NodeData(emptyArray()))
             val storedRoot = nodesStorage.store(root)

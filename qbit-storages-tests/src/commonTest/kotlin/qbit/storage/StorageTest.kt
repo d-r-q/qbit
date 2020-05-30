@@ -6,12 +6,32 @@ import qbit.ns.ns
 import qbit.ns.root
 import qbit.platform.runBlocking
 import qbit.spi.Storage
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 abstract class StorageTest {
 
     abstract fun storage(): Storage
+
+    @JsName("Test_overwrite")
+    @Test
+    fun `Test overwrite`() {
+        runBlocking {
+            // Given a storage with a value for a key
+            val storage = storage()
+            val key = root["key"]
+            val value1 = byteArrayOf(1)
+            val value2 = byteArrayOf(2)
+            storage.add(key, value1)
+
+            // When the key is overwritten
+            storage.overwrite(key, value2)
+
+            // Then consecuent load should return new value
+            assertArrayEquals(value2, storage.load(key))
+        }
+    }
 
     @Test
     fun testStorage() {

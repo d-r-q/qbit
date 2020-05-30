@@ -9,9 +9,9 @@ import qbit.serialization.Node
 import qbit.serialization.NodeVal
 import qbit.serialization.Root
 
-internal class Indexer(private val serialModule: SerialModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
+class Indexer(private val serialModule: SerialModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
 
-    internal fun index(from: Node<Hash>): IndexDb {
+    fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {
             return when {
                 from.hash == to -> emptyList()

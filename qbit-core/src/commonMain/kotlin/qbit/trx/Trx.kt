@@ -12,7 +12,7 @@ import qbit.index.InternalDb
 import qbit.platform.collections.EmptyIterator
 
 
-internal class QTrx(
+class QTrx(
     private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
     private val commitHandler: CommitHandler, private val factor: Factor,
 ) : Trx() {
@@ -92,7 +92,7 @@ internal class QTrx(
 
 }
 
-internal fun Entity.toFacts(): Collection<Eav> =
+fun Entity.toFacts(): Collection<Eav> =
         this.entries.flatMap { (attr: Attr<Any>, value) ->
             val type = DataType.ofCode(attr.type)!!
             @Suppress("UNCHECKED_CAST")
