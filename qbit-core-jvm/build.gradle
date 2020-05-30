@@ -18,6 +18,7 @@ kotlin {
                 api kotlin("reflect")
                 api project(":qbit-core")
                 api "org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$kotlin_serialization_version"
+                implementation "org.jetbrains.kotlinx:kotlinx-serialization-cbor-common:$kotlin_serialization_version"
             }
         }
         commonTest {
@@ -31,6 +32,7 @@ kotlin {
             dependencies {
                 api 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
                 api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+                implementation "org.jetbrains.kotlinx:kotlinx-serialization-cbor:$kotlin_serialization_version"
             }
         }
         jvmTest {

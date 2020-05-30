@@ -13,7 +13,7 @@ internal interface TrxLog {
 
 }
 
-internal class QTrxLog(private val head: NodeVal<Hash>, private val writer: Writer) : TrxLog {
+internal class QTrxLog(private val head: NodeVal, private val writer: Writer) : TrxLog {
 
     override val hash = head.hash
 

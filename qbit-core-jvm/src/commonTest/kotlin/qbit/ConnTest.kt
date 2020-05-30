@@ -3,6 +3,7 @@ package qbit
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Eav
+import qbit.api.model.nullHash
 import qbit.api.system.DbUuid
 import qbit.ns.Namespace
 import qbit.platform.currentTimeMillis
@@ -26,10 +27,10 @@ class ConnTest {
             val dbUuid = DbUuid(Iid(0, 4))
             val nodesStorage = NodesStorage(storage)
 
-            val root = Root(null, dbUuid, currentTimeMillis(), NodeData(emptyArray()))
+            val root = Root(nullHash, dbUuid, currentTimeMillis(), NodeData(emptyArray()))
             val storedRoot = nodesStorage.store(root)
             val leaf =
-                Leaf(null, storedRoot, dbUuid, currentTimeMillis(), NodeData(arrayOf(Eav(Gid(0, 0), "any", "any"))))
+                Leaf(nullHash, storedRoot, dbUuid, currentTimeMillis(), NodeData(arrayOf(Eav(Gid(0, 0), "any", "any"))))
             val storedLeaf = nodesStorage.store(leaf)
             storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 

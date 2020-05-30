@@ -1,21 +1,52 @@
 package qbit.serialization
 
+import kotlinx.serialization.Serializable
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 
+@Serializable
 class NodeData(val trxes: Array<out Eav>)
 
-sealed class Node<out H : Hash?>(val hash: H)
+@Serializable
+sealed class Node {
+        abstract val hash: Hash
+}
 
-class NodeRef(hash: Hash) : Node<Hash>(hash)
+class NodeRef(override val hash: Hash) : Node()
 
-sealed class NodeVal<out H : Hash?>(hash: H, val source: DbUuid, val timestamp: Long, val data: NodeData) : Node<H>(hash)
+@Serializable
+sealed class NodeVal : Node() {
+        abstract val source: DbUuid
+        abstract val timestamp: Long
+        abstract val data: NodeData
+}
 
-class Root<out H : Hash?>(hash: H, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal<H>(hash, source, timestamp, data)
+@Serializable
+class Root(
+        override val hash: Hash,
+        override val source: DbUuid,
+        override val timestamp: Long,
+        override val data: NodeData
+) : NodeVal()
 
-class Leaf<out H : Hash?>(hash: H, val parent: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) : NodeVal<H>(hash, source, timestamp, data)
+@Serializable
+class Leaf(
+        override val hash: Hash,
+        val parent: Node,
+        override val source: DbUuid,
+        override val timestamp: Long,
+        override val data: NodeData
+) : NodeVal()
 
-class Merge<out H : Hash?>(hash: H, val parent1: Node<Hash>, val parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) :
-        NodeVal<H>(hash, source, timestamp, data)
+@Serializable
+class Merge(
+        override val hash: Hash,
+        val parent1: Node,
+        val parent2: Node,
+        override val source: DbUuid,
+        override val timestamp: Long,
+        override val data: NodeData
+) :
+        NodeVal()
 

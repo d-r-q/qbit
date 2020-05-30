@@ -54,7 +54,7 @@ class DbTest {
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
                 testSchema.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
                 extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
+        val nodes = hashMapOf<Hash, NodeVal>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
 
         var db = TestIndexer(nodeResolver = nodeResolver).index(root)
@@ -76,7 +76,7 @@ class DbTest {
         val dbUuid = DbUuid(Iid(0, 1))
 
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
+        val nodes = hashMapOf<Hash, NodeVal>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
         var db = TestIndexer(nodeResolver = nodeResolver).index(root)
 
@@ -97,7 +97,7 @@ class DbTest {
         val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + reviewer.toFacts() + country.toFacts() +
                 Countries.name.toFacts() + Countries.population.toFacts() +
                 eCodd.copy(reviewer = pChen).toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
+        val nodes = hashMapOf<Hash, NodeVal>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
         val db = TestIndexer(nodeResolver = nodeResolver).index(root)
         val pc = db.pull(Gid(eCodd.id!!), Scientist::class, Eager)!!

@@ -1,5 +1,8 @@
 package qbit.api.gid
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Iid(val value: Int, val instanceBits: Byte) {
 
     fun fork(forkNum: Int): Iid {

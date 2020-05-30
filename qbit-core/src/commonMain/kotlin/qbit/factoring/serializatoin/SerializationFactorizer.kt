@@ -24,11 +24,7 @@ import kotlin.reflect.KClass
 class KSFactorizer(private val serialModule: SerialModule) {
 
     fun factor(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactoring {
-        val encoder = EntityEncoder(
-            serialModule,
-            EntityGraph(),
-            e
-        )
+        val encoder = EntityEncoder(serialModule, EntityGraph(), e)
         val serializer = serialModule.getContextual(e)
             ?: throw QBitException("Cannot find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
         serializer.serialize(encoder, e)
@@ -70,10 +66,7 @@ internal class EntityEncoder(
             return
         }
         if (value in entityGraph.builders) {
-            val fieldPointer = Pointer(
-                obj,
-                AttrName(descriptor, index)
-            )
+            val fieldPointer = Pointer(obj, AttrName(descriptor, index))
             entityGraph.setAttributeValue(fieldPointer, Ref(value))
             return
         }
@@ -83,11 +76,7 @@ internal class EntityEncoder(
         }
 
 
-        val values: Any = when (ValueKind.of(
-            descriptor,
-            index,
-            value
-        )) {
+        val values: Any = when (ValueKind.of(descriptor, index, value)) {
             ValueKind.SCALAR_VALUE, ValueKind.VALUE_LIST -> {
                 value
             }
@@ -99,10 +88,7 @@ internal class EntityEncoder(
             }
         }
 
-        val fieldPointer = Pointer(
-            obj,
-            AttrName(descriptor, index)
-        )
+        val fieldPointer = Pointer(obj, AttrName(descriptor, index))
         entityGraph.setAttributeValue(fieldPointer, values)
     }
 
@@ -113,12 +99,7 @@ internal class EntityEncoder(
         }
 
     private fun <T> serializeRef(value: T, serializer: SerializationStrategy<T>): Ref {
-        serializer.serialize(
-            EntityEncoder(
-                context,
-                entityGraph,
-                value as Any
-            ), value)
+        serializer.serialize(EntityEncoder(context, entityGraph, value as Any), value)
         return Ref(value)
     }
 
@@ -154,15 +135,8 @@ internal class EntityEncoder(
         encodePrimitive(descriptor, index, value)
     }
 
-    private fun encodePrimitive(
-        descriptor: SerialDescriptor,
-        index: Int,
-        value: Any
-    ) {
-        val pointer = Pointer(
-            obj,
-            AttrName(descriptor, index)
-        )
+    private fun encodePrimitive(descriptor: SerialDescriptor, index: Int, value: Any) {
+        val pointer = Pointer(obj, AttrName(descriptor, index))
         entityGraph.setAttributeValue(pointer, value)
     }
 
@@ -176,27 +150,11 @@ enum class ValueKind {
         fun of(descriptor: SerialDescriptor, index: Int, value: Any): ValueKind {
             val elementDescriptor = descriptor.getElementDescriptor(index)
             return when {
-                isScalarValue(value) -> {
-                    SCALAR_VALUE
-                }
-                isScalarRef(elementDescriptor) -> {
-                    SCALAR_REF
-                }
-                isValueList(
-                    elementDescriptor,
-                    value
-                ) -> {
-                    VALUE_LIST
-                }
-                isRefList(
-                    elementDescriptor,
-                    value
-                ) -> {
-                    REF_LIST
-                }
-                else -> {
-                    throw AssertionError("Writing primitive via encodeSerializableElement")
-                }
+                isScalarValue(value) -> SCALAR_VALUE
+                isScalarRef(elementDescriptor) -> SCALAR_REF
+                isValueList(elementDescriptor, value) -> VALUE_LIST
+                isRefList(elementDescriptor, value) -> REF_LIST
+                else -> throw AssertionError("Writing primitive via encodeSerializableElement")
             }
         }
 

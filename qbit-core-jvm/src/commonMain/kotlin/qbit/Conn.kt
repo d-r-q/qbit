@@ -85,7 +85,7 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     }
 }
 
-internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal, private val factor: Factor) : Conn(), CommitHandler {
 
     private val nodesStorage = NodesStorage(storage)
 
@@ -127,9 +127,9 @@ internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, va
 
 }
 
-private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Hash> = { n ->
+private fun nodesResolver(nodeStorage: NodesStorage): (Node) -> NodeVal = { n ->
     when (n) {
-        is NodeVal<Hash> -> n
+        is NodeVal -> n
         is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 }

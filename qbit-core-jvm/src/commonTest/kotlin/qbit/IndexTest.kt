@@ -96,7 +96,7 @@ class IndexTest {
         val _attr2 = "/attr2"
         val _attr3 = "/attr3"
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
+        val n1 = Root(nullHash, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1,
                 NodeData(arrayOf(
                         Eav(eid, _attr1, 1),
@@ -158,7 +158,7 @@ class IndexTest {
         val eid = Gid(0, 0)
         val _attr1 = Attr<Int>("attr1")
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
+        val n1 = Root(nullHash, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
         val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1, NodeData(arrayOf(
                 Eav(eid, tsAttr, true)
         )))
@@ -202,7 +202,7 @@ class IndexTest {
         assertNotNull(filtered.entityById(anotherGid))
     }
 
-    private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
+    private fun toHashed(n: NodeVal): Node {
         val data = SimpleSerialization.serializeNode(n)
         val hash = hash(data)
         return when (n) {

@@ -47,9 +47,9 @@ internal object EmptyDb : InternalDb() {
 
 }
 
-val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
+val identityNodeResolver: (Node) -> NodeVal? = { it as? NodeVal }
 
-fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
+fun mapNodeResolver(map: Map<Hash, NodeVal>): (Node) -> NodeVal? = { n -> map[n.hash] }
 
 inline fun <reified T : Any> Attr(name: String, unique: Boolean = true): Attr<T> =
         Attr(null, name, unique)
@@ -121,5 +121,5 @@ internal fun TestIndexer(
     serialModule: SerialModule = testsSerialModule,
     baseDb: IndexDb? = null,
     baseHash: Hash? = null,
-    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver) =
+    nodeResolver: (Node) -> NodeVal? = identityNodeResolver) =
     Indexer(serialModule, baseDb, baseHash, nodeResolver)
