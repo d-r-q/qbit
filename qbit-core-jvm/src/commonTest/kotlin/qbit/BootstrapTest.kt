@@ -3,6 +3,7 @@ package qbit
 import kotlinx.serialization.modules.plus
 import qbit.api.Attrs
 import qbit.api.Instances
+import qbit.api.db.Conn
 import qbit.api.db.attrIs
 import qbit.api.db.query
 import qbit.api.gid.Iid
@@ -10,6 +11,7 @@ import qbit.api.model.Attr
 import qbit.api.system.DbUuid
 import qbit.api.system.Instance
 import qbit.ns.Namespace
+import qbit.platform.runBlocking
 import qbit.storage.MemStorage
 import qbit.test.model.testsSerialModule
 import kotlin.test.Test
@@ -21,13 +23,20 @@ import kotlin.test.assertTrue
 class BootstrapTest {
 
     private val storage = MemStorage()
-    private val newDb = bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor, qbitSerialModule + testsSerialModule)
+
+    private val newDb: Conn
+
+    init {
+        newDb = runBlocking { bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor, qbitSerialModule + testsSerialModule) }
+    }
 
     @Test
     fun testInit() {
-        val db = qbit(storage, testsSerialModule)
-        assertNotNull(db)
-        assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
+        runBlocking {
+            val db = qbit(storage, testsSerialModule)
+            assertNotNull(db)
+            assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
+        }
     }
 
     @Test

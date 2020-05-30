@@ -30,7 +30,7 @@ subprojects {
         maven { url = URI("https://kotlin.bintray.com/kotlinx") }
     }
 
-    if (project.name in setOf("qbit-core")) {
+    if (project.name in setOf("qbit-core", "qbit-storages-tests")) {
         println("Enabling nodejs tests for ${project.name}")
 
         configure<NodeExtension> {

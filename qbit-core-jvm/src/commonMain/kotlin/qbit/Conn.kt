@@ -69,7 +69,7 @@ class SchemaValidator : SerialModuleCollector {
     }
 
 }
-fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
+suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
@@ -108,7 +108,7 @@ internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, va
         return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor)
     }
 
-    override fun <R : Any> persist(e: R): WriteResult<R?> {
+    override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
         return with(trx()) {
             val wr = persist(e)
             commit()
@@ -116,7 +116,7 @@ internal class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, va
         }
     }
 
-    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
+    override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
         if (this.trxLog != trxLog) {
             throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
         }

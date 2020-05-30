@@ -29,14 +29,14 @@ internal class FakeConn : Conn(), CommitHandler {
         TODO("not implemented")
     }
 
-    override fun <R : Any> persist(e: R): WriteResult<R?> {
+    override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
         TODO("not implemented")
     }
 
     override val head: Hash
         get() = TODO("not implemented")
 
-    override fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
+    override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
         updatesCalls++
     }
 

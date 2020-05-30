@@ -60,7 +60,7 @@ internal class QTrx(
         return QbitWriteResult(res, curDb!!)
     }
 
-    override fun commit() {
+    override suspend fun commit() {
         ensureReady()
         if (factsBuffer.isEmpty()) {
             return
