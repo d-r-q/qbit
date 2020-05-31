@@ -1,11 +1,11 @@
-package qbit.q5bulk
+package q5
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.db.*
 import qbit.attrName
 import qbit.platform.runBlocking
-import qbit.q5bulk.Trxes.dateTime
+import q5.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
 import qbit.storage.MemStorage
@@ -42,7 +42,9 @@ object Trxes {
 
 object Cats {
 
-    val name = schemaMap.getValue(Category::class.attrName(Category::name))
+    val name = schemaMap.getValue(
+        Category::class.attrName(
+            Category::name))
 
 }
 
@@ -103,7 +105,8 @@ class Q5Test {
                             }
                             device = trx.device
                             assertNotNull(
-                                conn.db().query<Trx>(attrIs(dateTime, trx.dateTime), attrIs(Trxes.device, trx.device))
+                                conn.db().query<Trx>(attrIs(dateTime, trx.dateTime), attrIs(
+                                        Trxes.device, trx.device))
                                     .firstOrNull()
                             )
                             assertNotNull(conn.db().query<Category>(attrIs(Cats.name, trx.category.name)).firstOrNull())
@@ -226,13 +229,14 @@ class Q5Test {
         val comment = if (fields.size > 4) fields[4].replace("\"\"", "\"") else return null
         val device = if (fields.size > 5) fields[5] else return null
         val source = if (fields.size > 6) fields[6] else return null
-        return Trx(null,
-                (sum.replace(",", ".").toDouble() * 100).toLong(),
-                dateTime,
-                catSe,
-                comment,
-                source,
-                device
+        return Trx(
+            null,
+            (sum.replace(",", ".").toDouble() * 100).toLong(),
+            dateTime,
+            catSe,
+            comment,
+            source,
+            device
         )
     }
 

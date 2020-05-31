@@ -69,10 +69,16 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     val systemSerialModule = qbitSerialModule + appSerialModule
     systemSerialModule.dumpTo(SchemaValidator())
     return if (headHash != null) {
-        val head = JvmNodesStorage(storage).load(NodeRef(Hash(headHash)))
+        val head = CommonNodesStorage(storage).load(NodeRef(Hash(headHash)))
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
-        QConn(systemSerialModule, dbUuid, storage, head, KSFactorizer(systemSerialModule)::factor)
+        QConn(
+            systemSerialModule,
+            dbUuid,
+            storage,
+            head,
+            KSFactorizer(systemSerialModule)::factor
+        )
     } else {
         bootstrap(storage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
     }
@@ -80,7 +86,7 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
 
 class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
 
-    private val nodesStorage = JvmNodesStorage(storage)
+    private val nodesStorage = CommonNodesStorage(storage)
 
     var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
 

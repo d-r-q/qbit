@@ -5,15 +5,16 @@ import kotlinx.coroutines.withContext
 import qbit.api.QBitException
 import qbit.api.model.Hash
 import qbit.ns.Namespace
-import qbit.platform.MessageDigests
 import qbit.platform.asInput
 import qbit.platform.createSingleThreadCoroutineDispatcher
+import qbit.serialization.krypto.sha1
 import qbit.spi.Storage
+import kotlin.native.concurrent.SharedImmutable
 
+@SharedImmutable
 private val nodes = Namespace("nodes")
 
-class JvmNodesStorage(private val storage: Storage) :
-        (NodeRef) -> NodeVal<Hash>?,
+class CommonNodesStorage(private val storage: Storage) :
     CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher("Nodes writer")),
     NodesStorage {
 
@@ -31,12 +32,12 @@ class JvmNodesStorage(private val storage: Storage) :
         }
     }
 
-    override fun invoke(ref: NodeRef): NodeVal<Hash>? {
+    override fun load(n: NodeRef): NodeVal<Hash>? {
         try {
-            val value = storage.load(ref.key()) ?: return null
+            val value = storage.load(n.key()) ?: return null
             val hash = hash(value)
-            if (hash != ref.hash) {
-                throw QBitException("Corrupted node. Node hash is ${ref.hash}, but data hash is $hash")
+            if (hash != n.hash) {
+                throw QBitException("Corrupted node. Node hash is ${n.hash}, but data hash is $hash")
             }
             return toHashedNode(SimpleSerialization.deserializeNode(value.asInput()), hash)
         } catch (e: Exception) {
@@ -44,18 +45,14 @@ class JvmNodesStorage(private val storage: Storage) :
         }
     }
 
-    override fun load(n: NodeRef): NodeVal<Hash>? {
-        return invoke(n)
-    }
-
     private fun Node<Hash>.key() = nodes[hash.toHexString()]
 
     private fun Hash.key() = nodes[toHexString()]
 
     private fun toHashedNode(n: NodeVal<Hash?>, hash: Hash): NodeVal<Hash> = when (n) {
-        is Root -> Root(hash, n.source, n.timestamp, n.data)
-        is Leaf -> Leaf(hash, n.parent, n.source, n.timestamp, n.data)
-        is Merge -> Merge(hash, n.parent1, n.parent2, n.source, n.timestamp, n.data)
+        is Root -> Root( hash, n.source, n.timestamp, n.data )
+        is Leaf -> Leaf( hash, n.parent, n.source, n.timestamp, n.data )
+        is Merge -> Merge( hash, n.parent1, n.parent2, n.source, n.timestamp, n.data )
     }
 
     override fun hasNode(head: Node<Hash>): Boolean =
@@ -64,4 +61,4 @@ class JvmNodesStorage(private val storage: Storage) :
 }
 
 fun hash(data: ByteArray): Hash =
-    Hash(MessageDigests.getInstance("SHA-1").digest(data))
+    Hash(data.sha1().bytes)

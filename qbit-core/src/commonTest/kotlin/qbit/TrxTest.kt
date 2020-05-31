@@ -22,11 +22,13 @@ import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.test.model.testsSerialModule
 import qbit.trx.QTrx
+import kotlin.js.JsName
 import kotlin.test.*
 
 
 class TrxTest {
 
+    @JsName("Test_transaction_commit")
     @Test
     fun `Test transaction commit`() {
         runBlocking {
@@ -38,6 +40,7 @@ class TrxTest {
         }
     }
 
+    @JsName("Qbit_should_detect_concurrent_transactions")
     @Test
     fun `Qbit should detect concurrent transactions`() {
         runBlocking {
@@ -62,6 +65,7 @@ class TrxTest {
         }
     }
 
+    @JsName("Qbit_should_ignore_persistence_of_not_changed_entity")
     @Test
     fun `Qbit should ignore persistence of not changed entity`() {
         runBlocking {
@@ -80,6 +84,7 @@ class TrxTest {
         }
     }
 
+    @JsName("When_entity_graph_to_store_contains_both_updated_and_stored_entities_only_updated_entity_should_be_actually_stored")
     @Test
     fun `When entity graph to store contains both updated and stored entities, only updated entity should be actually stored`() {
         runBlocking {
@@ -102,6 +107,7 @@ class TrxTest {
         }
     }
 
+    @JsName("When_entity_graph_to_store_contains_both_new_and_stored_entities_only_updated_entity_should_be_actually_stored")
     @Test
     fun `When entity graph to store contains both new and stored entities, only updated entity should be actually stored`() {
         runBlocking {
@@ -130,6 +136,7 @@ class TrxTest {
                     *entities), conn, testSchemaFactorizer::factor)
 
     @Ignore
+    @JsName("In_case_of_transaction_commit_abort_transaction_should_clean_up_written_data")
     @Test
     fun `In case of transaction commit abort, transaction should clean up written data`() {
         runBlocking {
@@ -148,6 +155,7 @@ class TrxTest {
         }
     }
 
+    @JsName("Test_rollback")
     @Test
     fun `Test rollback`() {
         runBlocking {
@@ -160,6 +168,7 @@ class TrxTest {
         }
     }
 
+    @JsName("Commit_of_rolled_back_transaction_should_fail")
     @Test
     fun `Commit of rolled back transaction should fail`() {
         runBlocking {
@@ -173,6 +182,7 @@ class TrxTest {
         }
     }
 
+    @JsName("Persist_with_rolled_back_transaction_should_fail")
     @Test
     fun `Persist with rolled back transaction should fail`() {
         runBlocking {

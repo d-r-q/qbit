@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 val kotlin_serialization_version: String by rootProject.extra
 val ktor_version: String by rootProject.extra
 
@@ -7,6 +9,7 @@ kotlin {
         compilations.all {
             kotlinOptions {
                 jvmTarget = "1.6"
+                freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
             }
         }
     }

@@ -5,10 +5,11 @@ import qbit.api.db.*
 import qbit.api.gid.Gid
 import qbit.index.InternalDb
 import qbit.platform.runBlocking
-import qbit.serialization.JvmNodesStorage
+import qbit.serialization.CommonNodesStorage
 import qbit.serialization.NodeRef
 import qbit.storage.MemStorage
 import qbit.test.model.*
+import kotlin.js.JsName
 import kotlin.test.*
 
 
@@ -77,6 +78,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_pulling_of_referenced_entity")
     @Test
     fun `Test pulling of referenced entity()`() {
         runBlocking {
@@ -86,6 +88,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Test_persistence_and_pulling_of_entities_cycle")
     @Test
     fun `Test persistence and pulling of entities cycle`() {
         runBlocking {
@@ -105,8 +108,9 @@ class FunTest {
         }
     }
 
+    @JsName("When_not_changed_entity_is_stored_qbit_should_not_write_new_transaction")
     @Test
-    fun `When not changed entity is stored, qbit should not write new transaction`() {
+    fun `When not changed entity is stored qbit should not write new transaction`() {
         runBlocking {
             val conn = setupTestData()
             val head = conn.head
@@ -116,6 +120,7 @@ class FunTest {
         }
     }
 
+    @JsName("When_new_entity_referencing_not_changed_entity_is_stored_qbit_should_write_only_new_entity")
     @Test
     fun `When new entity referencing not changed entity is stored, qbit should write only new entity`() {
         runBlocking {
@@ -125,12 +130,13 @@ class FunTest {
 
             assertEquals(
                 5,
-                JvmNodesStorage(storage).load(NodeRef(conn.head))!!.data.trxes.size,
+                CommonNodesStorage(storage).load(NodeRef(conn.head))!!.data.trxes.size,
                 "5 facts (2 for region and 3 for instance) expected"
             )
         }
     }
 
+    @JsName("Test_updating_entity_with_unique_attribute_it_shouldnt_treated_as_unique_constraint_violation")
     @Test
     fun `Test updating entity with unique attribute (it shouldn't treated as unique constraint violation)`() {
         runBlocking {
@@ -142,6 +148,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_persistence_entity_with_scalar_list_attribute")
     @Test
     fun `Test persistence entity with scalar list attribute`() {
         runBlocking {
@@ -152,6 +159,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_persistence_entity_with_ref_list_attribute")
     @Test
     fun `Test persistence entity with ref list attribute`() {
         runBlocking {
@@ -162,6 +170,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_deletion_of_scalar_list_element")
     @Test
     fun `Test deletion of scalar list element`() {
         runBlocking {
@@ -172,6 +181,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_reoreder_of_ref_list_elements")
     @Test
     fun `Test reoreder of ref list elements`() {
         runBlocking {
@@ -185,6 +195,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Test_scalar_list_clearing")
     @Test
     fun `Test scalar list clearing`() {
         runBlocking {
@@ -195,6 +206,7 @@ class FunTest {
         }
     }
 
+    @JsName("Storage_of_different_states_of_same_entity_should_fail")
     @Test
     fun `Storage of different states of same entity should fail`() {
         runBlocking {
@@ -209,6 +221,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Storage_of_the_same_state_of_same_entity_should_store_single_entity")
     @Test
     fun `Storage of the same state of same entity should store single entity`() {
         runBlocking {
@@ -223,6 +236,7 @@ class FunTest {
         }
     }
 
+    @JsName("Storage_of_two_entities_with_same_value_of_unique_attribute_should_fail_with_uniqueness_violation_exception")
     @Test
     fun `Storage of two entities with same value of unique attribute should fail with uniqueness violation exception`() {
         runBlocking {
@@ -241,6 +255,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Storage_of_entity_with_empty_list_should_preserve_list")
     @Test
     fun `Storage of entity with empty list should preserve list`() {
         runBlocking {
@@ -252,6 +267,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Qbit_should_forbid_externally_generated_gids")
     @Test
     fun `Qbit should forbid externally generated gids`() {
         runBlocking {
@@ -264,6 +280,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Peristance_of_entity_with_all_attr_eq_null_should_actually_persist_the_entity")
     @Test
     fun `Peristance of entity with all attr = null should actually persist the entity`() {
         runBlocking {
@@ -276,6 +293,7 @@ class FunTest {
     }
 
     @Ignore
+    @JsName("Test_persistence_of_entity_without_attributes")
     @Test
     fun `Test persistence of entity without attributes`() {
         runBlocking {
@@ -287,6 +305,7 @@ class FunTest {
         }
     }
 
+    @JsName("Reopening_existing_storage_should_preserve_state")
     @Test
     fun `Reopening existing storage should preserve state`() {
         runBlocking {
@@ -302,6 +321,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_bomb_with_nulls_handling")
     @Test
     fun `Test bomb with nulls handling`() {
         runBlocking {
@@ -332,6 +352,7 @@ class FunTest {
         }
     }
 
+    @JsName("Test_bomb_without_nulls_handling")
     @Test
     fun `Test bomb without nulls handling`() {
         runBlocking {
@@ -378,7 +399,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967371, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967377, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
