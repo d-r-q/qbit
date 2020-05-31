@@ -1,7 +1,10 @@
 package qbit.api.model
 
+import kotlin.native.concurrent.ThreadLocal
+
 const val HASH_LEN = 20
 
+@ThreadLocal
 val nullHash = Hash(ByteArray(HASH_LEN))
 
 data class Hash(val bytes: ByteArray) {

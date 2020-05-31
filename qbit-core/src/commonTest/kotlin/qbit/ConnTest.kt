@@ -11,17 +11,19 @@ import qbit.serialization.*
 import qbit.storage.MemStorage
 import qbit.test.model.IntEntity
 import qbit.test.model.testsSerialModule
+import kotlin.js.JsName
 import kotlin.test.Test
 
 
 class ConnTest {
 
+    @JsName("Test_head_ref_in_storage_is_updated_after_updating_connection_head")
     @Test
     fun `Test head ref in storage is updated after updating connection head`() {
         runBlocking {
             val storage = MemStorage()
             val dbUuid = DbUuid(Iid(0, 4))
-            val nodesStorage = JvmNodesStorage(storage)
+            val nodesStorage = CommonNodesStorage(storage)
 
             val root = Root(null, dbUuid, currentTimeMillis(), NodeData(emptyArray()))
             val storedRoot = nodesStorage.store(root)
@@ -30,7 +32,13 @@ class ConnTest {
             val storedLeaf = nodesStorage.store(leaf)
             storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
-            val conn = QConn(testsSerialModule, dbUuid, storage, storedRoot, testSchemaFactorizer::factor)
+            val conn = QConn(
+                testsSerialModule,
+                dbUuid,
+                storage,
+                storedRoot,
+                testSchemaFactorizer::factor
+            )
 
             val newLog = FakeTrxLog(storedLeaf.hash)
             conn.update(conn.trxLog, newLog, EmptyDb)
@@ -39,6 +47,7 @@ class ConnTest {
         }
     }
 
+    @JsName("Transaction_committing_should_update_connections_head")
     @Test
     fun `Transaction committing should update connection's head`() {
         runBlocking {

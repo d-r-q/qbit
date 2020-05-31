@@ -14,6 +14,6 @@ pluginManagement {
     }
 }
 rootProject.name = 'qbit'
-include ':qbit-test-fixtures', ':qbit-core', ':qbit-core-jvm', ':qbit-fss', ':qbit-http-storages', ':qbit-storages-tests'
+include ':qbit-test-fixtures', ':qbit-core', ':qbit-fss', ':qbit-http-storages', ':qbit-storages-tests'
 
 enableFeaturePreview('GRADLE_METADATA')

@@ -19,7 +19,7 @@ kotlin {
         }
         commonMain {
             dependencies {
-                api project(':qbit-core-jvm')
+                api project(':qbit-core')
                 implementation "io.ktor:ktor-client-core:$ktor_version"
                 implementation "io.ktor:ktor-client-json:$ktor_version"
                 implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2"

@@ -3,6 +3,7 @@ package qbit
 import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
+import qbit.api.db.Conn
 import qbit.api.db.Fetch
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
@@ -17,6 +18,8 @@ import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.serialization.Node
 import qbit.serialization.NodeVal
+import qbit.spi.Storage
+import qbit.storage.MemStorage
 import qbit.test.model.testsSerialModule
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -128,3 +131,19 @@ inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: Strin
     )
 }
 
+suspend fun setupTestSchema(storage: Storage = MemStorage()): Conn {
+    val conn = qbit(storage, testsSerialModule)
+    testSchema.forEach {
+        conn.persist(it)
+    }
+    return conn
+}
+
+suspend fun setupTestData(storage: Storage = MemStorage()): Conn {
+    return with(setupTestSchema(storage)) {
+        listOf(eCodd, pChen, mStonebreaker, eBrewer, uk, tw, us, ru, nsk).forEach {
+            persist(it)
+        }
+        this
+    }
+}

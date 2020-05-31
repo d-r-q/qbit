@@ -4,23 +4,24 @@ import qbit.Attr
 import qbit.Entity
 import qbit.Scientists.extId
 import qbit.TestIndexer
-import qbit.api.*
 import qbit.api.db.AttrPred
 import qbit.api.db.AttrValuePred
 import qbit.api.db.attrIn
 import qbit.api.db.attrIs
 import qbit.api.gid.Gid
+import qbit.api.gid.Iid
 import qbit.api.model.*
 import qbit.api.system.DbUuid
-import qbit.api.gid.Iid
 import qbit.assertArrayEquals
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.trx.toFacts
 import kotlin.js.JsName
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import qbit.Scientists.name as userName
-import qbit.api.tombstone as tsAttr
 
 class IndexTest {
 
@@ -90,7 +91,6 @@ class IndexTest {
         assertEquals(3, idx.eidsByPred(AttrPred(userName.name)).count())
     }
 
-/*
     @Test
     fun testCreateIndex() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -121,7 +121,6 @@ class IndexTest {
         assertEquals(1, index.entityById(eid)!!.getValue("/attr2")[0])
         assertEquals(0, index.entityById(eid)!!.getValue("/attr3")[0])
     }
-*/
 
     @Test
     fun testRangeSearch() {
@@ -212,7 +211,6 @@ class IndexTest {
         assertNotNull(filtered.entityById(anotherGid))
     }
 
-/*
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
         val data = SimpleSerialization.serializeNode(n)
         val hash = hash(data)
@@ -222,7 +220,6 @@ class IndexTest {
             else -> throw IllegalArgumentException("Unexpected $n")
         }
     }
-*/
 
     private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Eav(Gid(0, eid), attr.name, value)
 
