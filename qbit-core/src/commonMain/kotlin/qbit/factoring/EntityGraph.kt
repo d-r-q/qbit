@@ -44,7 +44,7 @@ internal data class EntityBuilder(
 
 internal data class Ref(val obj: Any)
 
-internal data class AttrName(val className: String, val name: String) {
+data class AttrName(val className: String, val name: String) {
 
     fun asString(): String {
         return "${className.substringAfterLast(".")}/$name"
