@@ -12,6 +12,7 @@ import qbit.api.model.impl.DetachedEntity
 import qbit.api.model.impl.QTombstone
 import qbit.ns.Namespace
 import qbit.trx.toFacts
+import kotlin.js.JsName
 import kotlin.test.*
 
 @Suppress("UNCHECKED_CAST")
@@ -46,6 +47,7 @@ class EntityTest {
         assertEquals(5, e2.entries.size)
     }
 
+    @JsName("Getting_value_of_reference_attr_should_return_gid")
     @Test
     fun `Getting value of reference attr should return gid`() {
         val gids = Gid(0, 0).nextGids()
@@ -57,6 +59,7 @@ class EntityTest {
         assertEquals(referred.gid, referring[refAttr])
     }
 
+    @JsName("Pulling_value_of_reference_attr_should_return_StoredEntity")
     @Test
     fun `Pulling value of reference attr should return StoredEntity`() {
         val gids = Gid(0, 0).nextGids()
@@ -78,6 +81,7 @@ class EntityTest {
         fail("attr eq \"\" should not compile")
     }
 
+    @JsName("Factoring_of_reference_attribute_returns_Fact_x_x_value_eq_gid_")
     @Test
     fun `Factoring of reference attribute returns Fact(_, _, value = gid)`() {
         val e1 = Entity(Gid(0, 0))
@@ -86,11 +90,13 @@ class EntityTest {
         assertTrue(value is Gid, "Gid expected, but got $value")
     }
 
+    @JsName("Creation_of_Attr_for_Any_class_has_QRef_type")
     @Test
     fun `Creation of Attr for Any class has QRef type`() {
         assertEquals(QRef.code, Attr<Any>("any").type)
     }
 
+    @JsName("Test_Tombstone_toString")
     @Test
     fun `Test Tombstone toString`() {
         assertEquals("Tombstone(gid = 0/0)", QTombstone(Gid(0, 0)).toString())
