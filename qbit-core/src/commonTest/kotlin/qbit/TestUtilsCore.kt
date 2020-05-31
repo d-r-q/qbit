@@ -6,6 +6,7 @@ import qbit.api.QBitException
 import qbit.api.db.Fetch
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
+import qbit.api.gid.nextGids
 import qbit.api.model.*
 import qbit.api.model.impl.DetachedEntity
 import qbit.api.model.impl.QStoredEntity
@@ -107,3 +108,23 @@ fun Entity(gid: Gid, vararg entries: Any): Entity {
 fun AttachedEntity(gid: Gid, entries: Map<Attr<Any>, Any>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
     return QStoredEntity(gid, entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value }, resolveGid)
 }
+
+internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): InternalDb {
+    val addedAttrs = entities
+        .filterIsInstance<Attr<*>>()
+        .map { it.name to it }
+        .toMap()
+    val facts = entities.flatMap { testSchemaFactorizer.factor(it, (bootstrapSchema + addedAttrs)::get, eids) }
+    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }), testsSerialModule)
+}
+
+inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
+    return Attr(
+        id,
+        name,
+        types[T::class]?.code ?: throw QBitException("Unsupported type: ${T::class} for attribute: $name"),
+        unique,
+        false
+    )
+}
+

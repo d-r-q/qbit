@@ -29,7 +29,9 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(Region::class)
     entity(City::class)
     entity(Paper::class)
-    entity(Scientist::class)
+    entity(Scientist::class) {
+        uniqueInt(Scientist::externalId)
+    }
     entity(NullableScalar::class)
     entity(NullableList::class)
     entity(NullableRef::class)
