@@ -63,7 +63,7 @@ sealed class DataType<out T : Any> {
 
     fun value(): Boolean = !ref()
 
-    fun typeClass(): KClass<*> {
+    private fun typeClass(): KClass<*> {
         return when (this) {
             is QBoolean -> Boolean::class
             is QByte -> Byte::class

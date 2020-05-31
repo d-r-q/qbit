@@ -23,7 +23,7 @@ class CommonNodesStorage(private val storage: Storage) :
             val data = SimpleSerialization.serializeNode(n)
             val hash = hash(data)
             if (n.hash != null && n.hash != hash) {
-                throw AssertionError("NodeVal has hash ${n.hash!!.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+                throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
             }
             if (!storage.hasKey(hash.key())) {
                 storage.add(hash.key(), data)

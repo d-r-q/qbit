@@ -28,10 +28,6 @@ data class Namespace(val parent: Namespace?, val name: String) {
         require(name != "" || parent == null)
     }
 
-    val parts: List<String> =
-            if (parent == null) listOf(name)
-            else parent.parts + name
-
     operator fun get(key: String) = Key(this, key)
 
     operator fun invoke(subNs: String) = subNs(subNs)

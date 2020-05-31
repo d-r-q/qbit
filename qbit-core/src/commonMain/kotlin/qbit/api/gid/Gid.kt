@@ -23,8 +23,6 @@ data class Gid(val iid: Int, val eid: Int) : Comparable<Gid> {
 
 }
 
-val NullGid = Gid(0)
-
 fun Gid.nextGids(): Iterator<Gid> =
     generateSequence(this) { eid -> Gid(eid.iid, eid.eid + 1) }
         .iterator()
