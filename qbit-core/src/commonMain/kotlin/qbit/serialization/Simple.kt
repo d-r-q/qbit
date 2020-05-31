@@ -41,10 +41,10 @@ object SimpleSerialization : Serialization {
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
-        val iid = deserialize(ins, QInt) as Int
-        val instanceBits = deserialize(ins, QByte) as Byte
+        val iid = deserialize(ins, QLong) as Long
+        val instanceBits = deserialize(ins, QLong) as Long
         val timestamp = deserialize(ins, QLong) as Long
-        val factsCount = deserialize(ins, QInt) as Int
+        val factsCount = deserialize(ins, QLong) as Long
         val facts = (1..factsCount).asSequence().map {
             val eid = deserialize(ins, QGid) as Gid
             val attr = deserialize(ins, QString) as String
@@ -53,9 +53,9 @@ object SimpleSerialization : Serialization {
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
-            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
-            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
-            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(Iid(iid, instanceBits)), timestamp, nodeData)
+            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
+            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
+            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
             else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
@@ -66,19 +66,21 @@ object SimpleSerialization : Serialization {
 @OptIn(ExperimentalIoApi::class)
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
-        when (a) {
-            is Node<*> -> serialize(a.hash!!.bytes)
-            is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
-            is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
-            is Byte -> byteArray(QByte.code, a)
-            is Int -> byteArray(QInt.code, serializeInt(a))
-            is Long -> byteArray(QLong.code, serializeLong(a))
-            is String -> byteArray(QString.code, byteArray(a))
-            is NodeData -> byteArray(serialize(a.trxes.size), *a.trxes.map { serialize(it) }.toTypedArray())
-            is Eav -> serialize(a.gid, a.attr, a.value)
-            is Gid -> byteArray(QGid.code, serializeLong(a.value()))
-            is ByteArray -> byteArray(QBytes.code, serializeInt(a.size), a)
-            else -> throw AssertionError("Should never happen, a is $a")
+        if (a as? Number != null) {
+            byteArray(QLong.code, serializeLong(a.toLong()))
+        } else {
+            when (a) {
+                is Node<*> -> serialize(a.hash!!.bytes)
+                is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
+                is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
+                is Number -> byteArray(QLong.code, a)
+                is String -> byteArray(QString.code, byteArray(a))
+                is NodeData -> byteArray(serialize(a.trxes.size), *a.trxes.map { serialize(it) }.toTypedArray())
+                is Eav -> serialize(a.gid, a.attr, a.value)
+                is Gid -> byteArray(QGid.code, serializeLong(a.value()))
+                is ByteArray -> byteArray(QBytes.code, serializeLong(a.size.toLong()), a)
+                else -> throw AssertionError("Should never happen, a is $a: ${a::class}")
+            }
         }
     }
     return byteArray(*bytes.toTypedArray())
@@ -86,7 +88,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
 
 @ExperimentalIoApi
 private fun byteArray(str: String): ByteArray =
-        byteArray(serializeInt(str.encodeToUtf8().size), str.encodeToUtf8())
+        byteArray(serializeLong(str.encodeToUtf8().size.toLong()), str.encodeToUtf8())
 
 @OptIn(ExperimentalIoApi::class)
 private fun encodeToUtf8(c: Char): ByteArray =
@@ -161,16 +163,14 @@ internal fun deserialize(ins: Input): Any {
 private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
     return when (expectedMark) {
         QBoolean -> (ins.readByte() == 1.toByte()) as T
-        QByte -> ins.readByte() as T
-        QInt -> readInt(ins) as T
-        QLong -> readLong(ins) as T
+        QByte, QInt, QLong -> readLong(ins) as T
 
-        QBytes -> readInt(ins).let { count ->
-            readBytes(ins, count) as T
+        QBytes -> readLong(ins).let { count ->
+            readBytes(ins, count.toInt()) as T
         }
 
-        QString -> readInt(ins).let { count ->
-            readBytes(ins, count).decodeUtf8() as T
+        QString -> readLong(ins).let { count ->
+            readBytes(ins, count.toInt()).decodeUtf8() as T
         }
         QGid -> Gid(readLong(ins)) as T
         QRef -> throw AssertionError("Should never happen")

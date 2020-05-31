@@ -138,7 +138,7 @@ class IndexDb(
                     .map {
                         val e: Map<String, List<Any>> = index.entityById(it)!!
                         val name = e.getValue(name.name)[0] as String
-                        val type = e.getValue(type.name)[0] as Byte
+                        val type = (e.getValue(type.name)[0] as? Long)?.toByte() ?: e.getValue(type.name)[0] as Byte
                         val unique = e[unique.name]?.firstOrNull() as? Boolean ?: false
                         val list = e[list.name]?.firstOrNull() as? Boolean ?: false
                         val attr = Attr<Any>(it, name, type, unique, list)

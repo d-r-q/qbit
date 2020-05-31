@@ -13,32 +13,14 @@ import qbit.platform.currentTimeMillis
 import qbit.random
 import qbit.randomBytes
 import qbit.randomString
-import kotlin.js.JsName
 import kotlin.test.*
 
 
 @OptIn(ExperimentalIoApi::class)
-@Ignore
 class SimpleSerializationTest {
 
     private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())
     private val longValues: List<Long> = listOf(Long.MAX_VALUE, Long.MIN_VALUE, *(intValues.map { it.toLong() }.toTypedArray()))
-
-    @JsName("Test_byte_serializatoin")
-    @Test
-    fun `Test byte serializatoin`() {
-        // Given a byte
-        val byte: Byte = 1.toByte()
-        println("$byte: ${byte::class}")
-
-        // When it is serialized
-        val serial = serialize(byte)
-
-        // Then result is [<byte type code>, <value>]
-        assertEquals(QByte.code, serial[0])
-        assertEquals(2, serial.size)
-        assertEquals(byte, serial[1])
-    }
 
     @Test
     fun testReadLong() {
@@ -55,6 +37,7 @@ class SimpleSerializationTest {
         testValues(longValues, { serialize(it) }, { deserialize(it, QLong) as Long })
     }
 
+    @Ignore
     @Test
     fun testMaxInt() {
         assertEquals(Int.MAX_VALUE, deserialize(serialize(Int.MAX_VALUE).asInput(), QInt))
@@ -72,6 +55,7 @@ class SimpleSerializationTest {
         assertArrayEquals(byteArrayOf(-128, 0, 0, 0), minRes)
     }
 
+    @Ignore
     @Test
     fun testDeserializeInt() {
         testValues(intValues, { serialize(it) }, { deserialize(it, QInt) as Int })
@@ -89,6 +73,7 @@ class SimpleSerializationTest {
         assertEquals(false, deserialize(serialize(false).asInput(), QBoolean))
     }
 
+    @Ignore
     @Test
     fun testN() {
         assertEquals(nullHash, Hash(deserialize(serialize(NodeRef(nullHash)).asInput(), QBytes) as ByteArray))
@@ -112,7 +97,7 @@ class SimpleSerializationTest {
         )
         assertArrayEquals(random, deserialize(serialize(random).asInput(), QBytes) as ByteArray)
 
-        val twoBytes = byteArrayOf(QBytes.code, 0, 0, 0, 3, 0, 0)
+        val twoBytes = byteArrayOf(QBytes.code, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0)
         try {
             deserialize(twoBytes.asInput(), QBytes)
             fail("eof error expected")
@@ -140,13 +125,14 @@ class SimpleSerializationTest {
     fun testRoot() {
         val iid = Iid(1, 4)
         val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
-        val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput())
+        val serializeNode = SimpleSerialization.serializeNode(root)
+        val res = SimpleSerialization.deserializeNode(serializeNode.asInput())
         assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
         assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
-        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
+        assertEquals((root.data.trxes[0].value as Int).toLong(), res.data.trxes[0].value)
     }
 
     @Test
@@ -165,7 +151,7 @@ class SimpleSerializationTest {
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
         assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
-        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
+        assertEquals((root.data.trxes[0].value as Int).toLong(), res.data.trxes[0].value)
     }
 
     @Test
@@ -184,7 +170,7 @@ class SimpleSerializationTest {
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
         assertEquals(root.data.trxes[0].attr, res.data.trxes[0].attr)
-        assertEquals(root.data.trxes[0].value, res.data.trxes[0].value)
+        assertEquals((root.data.trxes[0].value as Int).toLong(), res.data.trxes[0].value)
     }
 
 }

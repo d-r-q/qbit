@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.0.3",
   "description": "Kotlin multi-platform distributed database",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
-    "mocha": "6.0.0"
+    "mocha": "6.0.0",
+    "text-encoding": "^0.7.0"
   }
 }

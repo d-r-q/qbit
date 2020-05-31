@@ -41,6 +41,9 @@ internal val aveCmp = Comparator<Eav> { o1, o2 ->
 }
 
 internal fun compareValues(v1: Any, v2: Any): Int {
+    if (v1 is Number && v2 is Number) {
+        return v1.toLong().compareTo(v2.toLong())
+    }
     @Suppress("UNCHECKED_CAST")
     return (v1 as Comparable<Any>).compareTo(v2)
 }
