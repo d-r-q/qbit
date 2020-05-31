@@ -11,6 +11,7 @@ import qbit.index.Index
 import qbit.index.IndexDb
 import qbit.schema.schema
 import qbit.test.model.*
+import kotlin.js.JsName
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,6 +28,7 @@ class MappingTest {
         IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }), testsSerialModule)
 
 
+    @JsName("Test_simple_entity_mapping")
     @Test
     fun `Test simple entity mapping`() {
         val user = MUser(
@@ -50,6 +52,7 @@ class MappingTest {
         assertEquals("lstAddr", fullUser.theSimplestEntities[0].scalar)
     }
 
+    @JsName("Test_entity_graph_with_mulitple_entity_types_mapping")
     @Test
     fun `Test entity graph with mulitple entity types mapping`() {
         val entity = TheSimplestEntity(null, "addr")
@@ -74,6 +77,7 @@ class MappingTest {
     }
 
     @Ignore
+    @JsName("test_multiple_states_of_entity_in_entity_graph_is_prohibited")
     @Test
     fun `test multiple states of entity in entity graph is prohibited`() {
         val addr = TheSimplestEntity(1, "addr")
@@ -94,6 +98,7 @@ class MappingTest {
 
     // Support of self-refefencing entitys is under question now
     @Ignore
+    @JsName("Test_factoring_of_self_referencing_entity")
     @Test
     fun `Test factoring of self-referencing entity`() {
         val s = Scientist(null, 1, "s", emptyList(), Country(null, "c", 0), null)
@@ -105,6 +110,7 @@ class MappingTest {
         assertEquals(Gid(0, 7), facts.first { it.attr == Scientists.reviewer.name }.value)
     }
 
+    @JsName("Test_bomb_schema_generation")
     @Test
     fun `Test bomb schema generation`() {
         val attrs = schema(testsSerialModule) {
@@ -229,6 +235,7 @@ class MappingTest {
         )
     }
 
+    @JsName("Test_bomb_with_nulls_mapping")
     @Test
     fun `Test bomb with nulls mapping`() {
         // Given a bomb with nulls and a db
@@ -248,6 +255,7 @@ class MappingTest {
         assertEquals(bomb, typedBomb)
     }
 
+    @JsName("Test_bomb_without_nulls_mapping")
     @Test
     fun `Test bomb without nulls mapping`() {
         // Given a bomb with nulls and a db

@@ -1,5 +1,6 @@
-package qbit
+package qbit.index
 
+import qbit.*
 import qbit.Scientists.country
 import qbit.Scientists.extId
 import qbit.Scientists.name
@@ -20,6 +21,7 @@ import qbit.serialization.NodeData
 import qbit.serialization.NodeVal
 import qbit.serialization.Root
 import qbit.test.model.Scientist
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 
@@ -36,6 +38,7 @@ class DbTest {
         assertArrayEquals(arrayOf(Gid(pChen.id!!)), db.query(attrIn(extId, 1, 3), attrIs(name, "Peter Chen")).map { it.gid }.toList().toTypedArray())
     }
 
+    @JsName("Entity_with_multiple_values_of_list_attribute_should_be_returned_from_query_only_once")
     @Test
     fun `Entity with multiple values of list attribute should be returned from query only once`() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -46,6 +49,7 @@ class DbTest {
         assertArrayEquals(arrayOf(Gid(eCodd.id!!)), db.query(attrIn(nicks, "n", "u")).map { it.gid }.toList().toTypedArray())
     }
 
+    @JsName("Indexer_can_index_multiple_transactions")
     @Test
     fun `Indexer can index multiple transactions`() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -71,6 +75,7 @@ class DbTest {
         assertNotNull(db.pull<Scientist>(mStonebreaker.id!!))
     }
 
+    @JsName("Indexer_can_index_updates")
     @Test
     fun `Indexer can index updates`() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -90,6 +95,7 @@ class DbTest {
         assertNotNull(db.query(attrIs(extId, 5)))
     }
 
+    @JsName("pull_with_fetch_eq_Eager_should_fetch_nullable_refs")
     @Test
     fun `pull with fetch = Eager should fetch nullable refs`() {
         val dbUuid = DbUuid(Iid(0, 1))

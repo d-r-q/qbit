@@ -7,10 +7,13 @@ import kotlinx.serialization.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.Attrs
 import qbit.api.Instances
+import qbit.api.gid.Gid
+import qbit.api.gid.Iid
 import qbit.api.model.Attr
+import qbit.api.model.Eav
+import qbit.api.model.QBoolean
 import qbit.api.model.impl.QTombstone
 import qbit.api.system.Instance
-import qbit.api.tombstone
 
 
 val qbitSerialModule = SerializersModule {
@@ -18,6 +21,14 @@ val qbitSerialModule = SerializersModule {
     contextual(Instance::class, Instance.serializer())
     contextual(QTombstone::class, QTombstone.serializer())
 }
+
+val tombstone = Attr<Boolean>(
+    Gid(Iid(1, 4), 7),
+    "qbit.api/tombstone",
+    QBoolean.code,
+    unique = false,
+    list = false
+)
 
 val bootstrapSchema: Map<String, Attr<Any>> = mapOf(
     (Attrs.name.name to Attrs.name) as Pair<String, Attr<Any>>,
@@ -44,3 +55,10 @@ private class FakeSerializer<T> : KSerializer<T> {
     }
 
 }
+
+fun Attr<*>.toFacts(): List<Eav> = listOf(
+    Eav(this.id!!, Attrs.name.name, this.name),
+    Eav(this.id!!, Attrs.type.name, this.type),
+    Eav(this.id!!, Attrs.unique.name, this.unique),
+    Eav(this.id!!, Attrs.list.name, this.list)
+)

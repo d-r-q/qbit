@@ -4,24 +4,25 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import qbit.api.QBitException
 import qbit.api.model.Hash
-import qbit.api.model.hash
 import qbit.ns.Namespace
+import qbit.platform.MessageDigests
 import qbit.platform.asInput
 import qbit.platform.createSingleThreadCoroutineDispatcher
 import qbit.spi.Storage
 
 private val nodes = Namespace("nodes")
 
-class NodesStorage(private val storage: Storage) :
+class JvmNodesStorage(private val storage: Storage) :
         (NodeRef) -> NodeVal<Hash>?,
-    CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher("Nodes writer")) {
+    CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher("Nodes writer")),
+    NodesStorage {
 
-    suspend fun store(n: NodeVal<Hash?>): NodeVal<Hash> {
+    override suspend fun store(n: NodeVal<Hash?>): NodeVal<Hash> {
         return withContext(this.coroutineContext) {
             val data = SimpleSerialization.serializeNode(n)
             val hash = hash(data)
             if (n.hash != null && n.hash != hash) {
-                throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+                throw AssertionError("NodeVal has hash ${n.hash!!.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
             }
             if (!storage.hasKey(hash.key())) {
                 storage.add(hash.key(), data)
@@ -43,7 +44,7 @@ class NodesStorage(private val storage: Storage) :
         }
     }
 
-    fun load(n: NodeRef): NodeVal<Hash>? {
+    override fun load(n: NodeRef): NodeVal<Hash>? {
         return invoke(n)
     }
 
@@ -57,6 +58,10 @@ class NodesStorage(private val storage: Storage) :
         is Merge -> Merge(hash, n.parent1, n.parent2, n.source, n.timestamp, n.data)
     }
 
-    fun hasNode(head: Node<Hash>): Boolean =
+    override fun hasNode(head: Node<Hash>): Boolean =
             storage.hasKey(head.key())
+
 }
+
+fun hash(data: ByteArray): Hash =
+    Hash(MessageDigests.getInstance("SHA-1").digest(data))

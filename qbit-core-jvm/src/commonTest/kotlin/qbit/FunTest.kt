@@ -5,8 +5,8 @@ import qbit.api.db.*
 import qbit.api.gid.Gid
 import qbit.index.InternalDb
 import qbit.platform.runBlocking
+import qbit.serialization.JvmNodesStorage
 import qbit.serialization.NodeRef
-import qbit.serialization.NodesStorage
 import qbit.storage.MemStorage
 import qbit.test.model.*
 import kotlin.test.*
@@ -125,7 +125,7 @@ class FunTest {
 
             assertEquals(
                 5,
-                NodesStorage(storage).load(NodeRef(conn.head))!!.data.trxes.size,
+                JvmNodesStorage(storage).load(NodeRef(conn.head))!!.data.trxes.size,
                 "5 facts (2 for region and 3 for instance) expected"
             )
         }

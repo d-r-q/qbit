@@ -3,7 +3,7 @@ package qbit.api.db
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 
-abstract class Conn internal constructor() {
+abstract class Conn() {
 
     abstract val dbUuid: DbUuid
 

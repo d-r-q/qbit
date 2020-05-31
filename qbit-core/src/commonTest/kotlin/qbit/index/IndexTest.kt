@@ -1,6 +1,9 @@
-package qbit
+package qbit.index
 
+import qbit.Attr
+import qbit.Entity
 import qbit.Scientists.extId
+import qbit.TestIndexer
 import qbit.api.*
 import qbit.api.db.AttrPred
 import qbit.api.db.AttrValuePred
@@ -10,10 +13,11 @@ import qbit.api.gid.Gid
 import qbit.api.model.*
 import qbit.api.system.DbUuid
 import qbit.api.gid.Iid
-import qbit.index.*
+import qbit.assertArrayEquals
 import qbit.platform.currentTimeMillis
 import qbit.serialization.*
 import qbit.trx.toFacts
+import kotlin.js.JsName
 import kotlin.test.*
 import qbit.Scientists.name as userName
 import qbit.api.tombstone as tsAttr
@@ -86,6 +90,7 @@ class IndexTest {
         assertEquals(3, idx.eidsByPred(AttrPred(userName.name)).count())
     }
 
+/*
     @Test
     fun testCreateIndex() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -116,6 +121,7 @@ class IndexTest {
         assertEquals(1, index.entityById(eid)!!.getValue("/attr2")[0])
         assertEquals(0, index.entityById(eid)!!.getValue("/attr3")[0])
     }
+*/
 
     @Test
     fun testRangeSearch() {
@@ -151,6 +157,7 @@ class IndexTest {
                 index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
     }
 
+/*
     @Test
     fun testLoadTombstones() {
         val dbUuid = DbUuid(Iid(0, 1))
@@ -165,7 +172,9 @@ class IndexTest {
         val index = TestIndexer().index(n2).index
         assertNull(index.entityById(eid))
     }
+*/
 
+    @JsName("Test_putting_tombstone_into_index_should_filter_all_facts_of_corresponding_entity")
     @Test
     fun `Test putting tombstone into index should filter all facts of corresponding entity`() {
         val deletedEntityGid = Gid(0, 0)
@@ -177,6 +186,7 @@ class IndexTest {
         assertEquals(2, filtered.indices.size)
     }
 
+    @JsName("Test_putting_tombstone_into_index_should_remove_all_facts_of_corresponding_entity_even_if_facts_of_origin_entity_are_unsorted")
     @Test
     fun `Test putting tombstone into index should remove all facts of corresponding entity even if facts of origin entity are unsorted`() {
         // Given an index with two entities with interleaving eavs
@@ -202,6 +212,7 @@ class IndexTest {
         assertNotNull(filtered.entityById(anotherGid))
     }
 
+/*
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
         val data = SimpleSerialization.serializeNode(n)
         val hash = hash(data)
@@ -211,6 +222,7 @@ class IndexTest {
             else -> throw IllegalArgumentException("Unexpected $n")
         }
     }
+*/
 
     private fun <T : Any> f(eid: Int, attr: Attr<T>, value: T) = Eav(Gid(0, eid), attr.name, value)
 

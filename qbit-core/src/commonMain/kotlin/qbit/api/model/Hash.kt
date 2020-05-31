@@ -1,12 +1,8 @@
 package qbit.api.model
 
-import qbit.platform.MessageDigests
-
 const val HASH_LEN = 20
 
 val nullHash = Hash(ByteArray(HASH_LEN))
-
-fun hash(data: ByteArray): Hash = Hash(MessageDigests.getInstance("SHA-1").digest(data))
 
 data class Hash(val bytes: ByteArray) {
 

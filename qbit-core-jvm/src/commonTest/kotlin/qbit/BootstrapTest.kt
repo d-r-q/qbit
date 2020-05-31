@@ -27,7 +27,12 @@ class BootstrapTest {
     private val newDb: Conn
 
     init {
-        newDb = runBlocking { bootstrap(storage, DbUuid(Iid(1, 4)), testSchemaFactorizer::factor, qbitSerialModule + testsSerialModule) }
+        newDb = runBlocking {
+            bootstrap(
+                storage,
+                DbUuid(Iid(1, 4)), testSchemaFactorizer::factor, qbitSerialModule + testsSerialModule
+            )
+        }
     }
 
     @Test
