@@ -5,7 +5,7 @@
 
 **I have made qbit truly multiplafrom and able to pass all the tests on native/linux and js/node platforms (see [Make qbit truly multiplatform](https://github.com/d-r-q/qbit/projects/1)).**
 
-**The next goal is to [clean up](https://github.com/d-r-q/qbit/projects/2) major design flaws and API**
+**The next goal is to [clean up](https://github.com/d-r-q/qbit/projects/2) major design flaws and API. [New information model and sync concept (on russian)](https://github.com/d-r-q/qbit/wiki/qbit-v4-information-model-and-sync-concept-(rus))**
 
 ## Vision
 qbit is a research project aiming at creating distributed high availablity storage technology for Kotlin Multiplatform projects.
