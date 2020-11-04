@@ -31,7 +31,7 @@ class IndexDb(
 
     private val entityCache = atomic<LimitedPersistentMap<Gid, StoredEntity>>(LimitedPersistentMap(1024))
 
-    private val dcCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
+    private val dataClassesCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
 
     override fun with(facts: Iterable<Eav>): InternalDb {
         return IndexDb(index.addFacts(facts), serialModule)
@@ -63,7 +63,7 @@ class IndexDb(
 
     override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
         val entity = pullEntity(gid) ?: return null
-        val cached = dcCache.value[entity]
+        val cached = dataClassesCache.value[entity]
         if (cached === notFound) {
             return null
         } else if (cached != null) {
@@ -72,7 +72,7 @@ class IndexDb(
         }
 
         val dc = typify(schema::get, entity, type, serialModule)
-        dcCache.update { it.put(entity, dc) }
+        dataClassesCache.update { it.put(entity, dc) }
         return dc
     }
 
