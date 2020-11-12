@@ -70,7 +70,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             byteArray(QLong.code, serializeLong(a.toLong()))
         } else {
             when (a) {
-                is Node<*> -> serialize(a.hash!!.bytes)
+                is Node<*> -> serialize(a.parentHash!!.bytes)
                 is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
                 is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
                 is Number -> byteArray(QLong.code, a)

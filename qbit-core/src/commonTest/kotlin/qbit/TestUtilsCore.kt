@@ -60,7 +60,7 @@ internal object EmptyDb : InternalDb() {
 
 val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash> }
 
-fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
+fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.parentHash] }
 
 internal fun TestIndexer(
     serialModule: SerialModule = testsSerialModule,

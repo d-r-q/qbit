@@ -15,7 +15,7 @@ interface TrxLog {
 
 class QTrxLog(private val head: NodeVal<Hash>, private val writer: Writer) : TrxLog {
 
-    override val hash = head.hash
+    override val hash = head.parentHash
 
     override suspend fun append(facts: Collection<Eav>): TrxLog {
         val newHead = writer.store(head, facts)

@@ -14,13 +14,13 @@ class Indexer(private val serialModule: SerialModule, private val base: IndexDb?
     fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {
             return when {
-                from.hash == to -> emptyList()
+                from.parentHash == to -> emptyList()
                 from is Root-> {
                     listOf(from)
                 }
                 from is Leaf -> {
                     val fromVal = resolveNode(from.parent)
-                            ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
+                            ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.parentHash}")
                     nodesBetween(fromVal, to) + from
                 }
                 from is Merge -> throw UnsupportedOperationException("Merges not yet supported")
@@ -29,7 +29,7 @@ class Indexer(private val serialModule: SerialModule, private val base: IndexDb?
         }
 
         val fromVal = resolveNode(from)
-                ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
+                ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.parentHash}")
         val nodes = nodesBetween(fromVal, baseHash)
         return nodes.fold(base ?: IndexDb(Index(), serialModule)) { db, n ->
             val entities = n.data.trxes.toList()

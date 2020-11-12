@@ -21,11 +21,8 @@ import qbit.index.InternalDb
 import qbit.ns.Namespace
 import qbit.serialization.*
 import qbit.spi.Storage
-import qbit.trx.CommitHandler
-import qbit.trx.QTrx
-import qbit.trx.QTrxLog
-import qbit.trx.TrxLog
-import qbit.trx.Writer
+import qbit.storage.SerializedStorage
+import qbit.trx.*
 import kotlin.reflect.KClass
 
 class SchemaValidator : SerialModuleCollector {
@@ -36,33 +33,37 @@ class SchemaValidator : SerialModuleCollector {
 
     private fun validateDescriptor(desc: SerialDescriptor) {
         val nullableListProps =
-            desc.elementDescriptors()
-                .withIndex()
-                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
-                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
-                .map { it.second }
+                desc.elementDescriptors()
+                        .withIndex()
+                        .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                        .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                        .map { it.second }
         if (nullableListProps.isNotEmpty()) {
             throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.serialName}.${nullableListProps.joinToString(
-                    ",",
-                    "(",
-                    ")"
-                ) { it }}"
+                    "List of nullable elements is not supported. Properties: ${desc.serialName}.${
+                        nullableListProps.joinToString(
+                                ",",
+                                "(",
+                                ")"
+                        ) { it }
+                    }"
             )
         }
     }
 
 
     override fun <Base : Any, Sub : Base> polymorphic(
-        baseClass: KClass<Base>,
-        actualClass: KClass<Sub>,
-        actualSerializer: KSerializer<Sub>
+            baseClass: KClass<Base>,
+            actualClass: KClass<Sub>,
+            actualSerializer: KSerializer<Sub>
     ) {
         TODO("Not yet implemented")
     }
 
 }
+
 suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
+    val serializedStorage = SerializedStorage(storage)
     val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
     val headHash = storage.load(Namespace("refs")["head"])
@@ -73,14 +74,14 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
                 ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
         QConn(
-            systemSerialModule,
-            dbUuid,
-            storage,
-            head,
-            KSFactorizer(systemSerialModule)::factor
+                systemSerialModule,
+                dbUuid,
+                serializedStorage,
+                head,
+                KSFactorizer(systemSerialModule)::factor
         )
     } else {
-        bootstrap(storage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
+        bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
     }
 }
 
@@ -119,9 +120,9 @@ class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage
         if (this.trxLog != trxLog) {
             throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
         }
-        this.trxLog = newLog
-        db = newDb
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
+        this.trxLog = newLog
+        this.db = newDb
     }
 
 }
