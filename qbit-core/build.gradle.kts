@@ -18,7 +18,8 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(kotlin("stdlib-common"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$kotlin_serialization_version")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:0.20.0")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.1")
                 api("io.ktor:ktor-io:$ktor_version")
                 implementation("org.jetbrains.kotlinx:atomicfu-common:0.14.2-1.4-M1")
             }
@@ -28,7 +29,7 @@ kotlin {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
                 implementation(project(":qbit-test-fixtures")){
-                    exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core:1.3.5-1.4-M1")
+                    exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core:1.4.1")
                 }
             }
         }
@@ -47,12 +48,12 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 api(kotlin("stdlib"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$kotlin_serialization_version")
-                api("io.ktor:ktor-io-native:$ktor_version") {
+                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:0.20.0")
+                api("io.ktor:ktor-io-native:1.3.1") {
                     exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core")
                     exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core-native")
                 }
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.3.5-native-mt-1.4-M1")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.3.8")
             }
         }
         val linuxTest by getting {

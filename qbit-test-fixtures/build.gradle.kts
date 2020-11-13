@@ -17,7 +17,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(kotlin("stdlib-common"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$kotlin_serialization_version")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:0.20.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core-common:$kotlin_coroutines_version")
 
@@ -36,7 +36,7 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 api(kotlin("stdlib"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$kotlin_serialization_version")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:0.20.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:$kotlin_coroutines_version")
             }
         }
