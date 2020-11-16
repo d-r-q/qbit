@@ -12,6 +12,7 @@ import qbit.api.QBitException
 import qbit.api.db.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
+import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
@@ -20,6 +21,11 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
+import qbit.platform.collections.merge
+import qbit.resolving.createMergeByEntities
+import qbit.resolving.createRawEntitiesWithoutConflicts
+import qbit.resolving.hasConflict
+import qbit.resolving.model.HasConflictResult
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
@@ -104,7 +110,7 @@ class QConn(
 
     private val nodesStorage = CommonNodesStorage(storage)
 
-    var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
+    var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head, 0)), nodesStorage, dbUuid)
 
     private val resolveNode = nodesResolver(nodesStorage)
 
@@ -132,12 +138,23 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        if (this.trxLog != trxLog) {
-            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
+        val conflictResult = hasConflict(trxLog ,this.trxLog, newLog, resolveNode)
+        var mergeDb : InternalDb? = null
+        if (conflictResult.result != HasConflictResult.NO_CHANGES) {
+            val entities = createRawEntitiesWithoutConflicts(trxLog, this.trxLog,
+                newLog, conflictResult, resolveNode)
+            val eavs = entities.values.map { it.second }.flatten()
+            mergeDb = newDb.with(eavs)
+            newLog.mergeWith(this.trxLog,
+                eavs, resolveNode)
         }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
         this.trxLog = newLog
-        this.db = newDb
+        if (conflictResult.result == HasConflictResult.NO_CHANGES) {
+            this.db = newDb
+        } else {
+            this.db = mergeDb!!
+        }
     }
 
 }

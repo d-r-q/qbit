@@ -199,6 +199,17 @@ class TrxTest {
         }
     }
 
+    @Ignore
+    @JsName("Update_transaction_log_with_no_changes")
+    @Test
+    fun `Update transaction log with no changes`(){
+        runBlocking {
+            val conn = setupTestData()
+            conn.persist(eCodd.copy(name = "Im updated"))
+
+        }
+    }
+
     private suspend fun openEmptyConn(): Pair<Conn, Storage> {
         val storage = MemStorage()
         val conn = qbit(storage, testsSerialModule)

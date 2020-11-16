@@ -12,7 +12,7 @@ import qbit.index.InternalDb
 import qbit.platform.collections.EmptyIterator
 
 
-class QTrx(
+internal class QTrx(
     private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
     private val commitHandler: CommitHandler, private val factor: Factor,
 ) : Trx() {

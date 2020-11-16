@@ -10,7 +10,7 @@ class Indexer(
     private val base: IndexDb?,
     private val baseHash: Hash?,
     val resolveNode: (Node<Hash>) -> NodeVal<Hash>?
-) {
+)  {
 
     fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {

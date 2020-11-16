@@ -413,4 +413,62 @@ class FunTest {
         }
     }
 
+    @JsName("Test_conflict_resolving_in_no_conflicts_case_with_same_changes")
+    @Test
+    fun `Test conflict resolving in no conflicts case with same changes`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im same change"))
+            val trx2 = conn.trx()
+            trx2.persist(eCodd.copy(name = "Im same change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im same change", it.pull<Scientist>(eCodd.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_conflict_resolving_in_no_conflicts_case_with_different_changes")
+    @Test
+    fun `Test conflict resolving in no conflicts case with different changes`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im different change"))
+            val trx2 = conn.trx()
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im different change", it.pull<Scientist>(eCodd.id!!)!!.name)
+            }
+            conn.db {
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_conflict_resolving_in_conflicts_case")
+    @Test
+    fun `Test conflict resolving in conflicts case`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im change 1"))
+            trx1.persist(eBrewer.copy(name = "Im different change"))
+            val trx2 = conn.trx()
+            trx2.persist(eCodd.copy(name = "Im change 2"))
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(eBrewer.id!!)!!.name)
+            }
+        }
+    }
+
 }
