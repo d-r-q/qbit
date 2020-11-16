@@ -17,9 +17,8 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(kotlin("stdlib-common"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:0.20.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-common:$kotlin_coroutines_version")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlin_serialization_version")
 
                 api(kotlin("test-common"))
                 api(kotlin("test-annotations-common"))
@@ -28,7 +27,6 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 api(kotlin("stdlib-jdk8"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version")
 
                 implementation(kotlin("test-junit"))
             }
@@ -36,15 +34,11 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 api(kotlin("stdlib"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:0.20.0")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-native:$kotlin_coroutines_version")
             }
         }
         val nodeJsMain by getting {
             dependencies {
                 api(kotlin("stdlib-js"))
-                api("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$kotlin_serialization_version")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$kotlin_coroutines_version")
                 implementation(kotlin("test-js"))
             }
         }

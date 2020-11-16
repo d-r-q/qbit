@@ -3,9 +3,11 @@
 package qbit.factoring.serializatoin
 
 import kotlinx.serialization.*
-import kotlinx.serialization.modules.SerialModule
-import kotlinx.serialization.modules.SerialModuleCollector
-import kotlinx.serialization.modules.getContextual
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.SerializersModuleCollector
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
@@ -21,7 +23,7 @@ import qbit.factoring.Pointer
 import qbit.factoring.Ref
 import kotlin.reflect.KClass
 
-class KSFactorizer(private val serialModule: SerialModule) {
+class KSFactorizer(private val serialModule: SerializersModule) {
 
     fun factor(e: Any, schema: (String) -> Attr<*>?, gids: Iterator<Gid>): EntityGraphFactoring {
         val encoder = EntityEncoder(
@@ -29,8 +31,8 @@ class KSFactorizer(private val serialModule: SerialModule) {
             EntityGraph(),
             e
         )
-        val serializer = serialModule.getContextual(e)
-            ?: throw QBitException("Cannot find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")
+        val serializer = (serialModule.getContextual(e::class)
+            ?: throw QBitException("Cannot find serializer for $e (${e::class})\nserializers are available for:\n${serialModule.dump()}")) as KSerializer<Any>
         serializer.serialize(encoder, e)
         val eavs = encoder.entityGraph.resolveRefs(schema, gids).map { it.key to it.value.toEavs() }
         return EntityGraphFactoring(IdentityMap(*eavs.toTypedArray()))
@@ -50,7 +52,7 @@ private fun Entity.toEavs(): List<Eav> =
     }
 
 internal class EntityEncoder(
-    override val context: SerialModule,
+    override val serializersModule: SerializersModule,
     internal val entityGraph: EntityGraph,
     private val obj: Any
 ) : StubEncoder() {
@@ -108,14 +110,14 @@ internal class EntityEncoder(
 
     private fun serializeRefList(values: Iterable<Any>): List<Ref> =
         values.map { item ->
-            val itemSerializer = context.getContextual(item) ?: throw QBitException("Cannot find serializer for $item")
+            val itemSerializer: KSerializer<Any> = (serializersModule.getContextual(item::class) ?: throw QBitException("Cannot find serializer for $item")) as KSerializer<Any>
             serializeRef(item, itemSerializer)
         }
 
     private fun <T> serializeRef(value: T, serializer: SerializationStrategy<T>): Ref {
         serializer.serialize(
             EntityEncoder(
-                context,
+                serializersModule,
                 entityGraph,
                 value as Any
             ), value)
@@ -223,13 +225,13 @@ enum class ValueKind {
 internal fun AttrName(descriptor: SerialDescriptor, index: Int) =
     AttrName(descriptor.serialName, descriptor.getElementName(index))
 
-private fun SerialModule.dump(): String {
+private fun SerializersModule.dump(): String {
     val collector = ToStringSerialModuleCollector()
     this.dumpTo(collector)
     return collector.buffer.toString()
 }
 
-private class ToStringSerialModuleCollector : SerialModuleCollector {
+private class ToStringSerialModuleCollector : SerializersModuleCollector {
 
     val buffer = StringBuilder()
 
@@ -243,6 +245,13 @@ private class ToStringSerialModuleCollector : SerialModuleCollector {
         actualSerializer: KSerializer<Sub>
     ) {
         buffer.append("$baseClass($actualClass)")
+    }
+
+    override fun <Base : Any> polymorphicDefault(
+        baseClass: KClass<Base>,
+        defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
     }
 
 }

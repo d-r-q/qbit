@@ -1,6 +1,6 @@
 package qbit
 
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.Attrs
 import qbit.api.Instances
 import qbit.api.db.Conn
@@ -16,7 +16,7 @@ import qbit.serialization.NodeData
 import qbit.serialization.Root
 import qbit.spi.Storage
 
-suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialModule: SerialModule): Conn {
+suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialModule: SerializersModule): Conn {
     val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
             .flatMap { it.toFacts() }
             .plus(factor(protoInstance, bootstrapSchema::get, EmptyIterator))

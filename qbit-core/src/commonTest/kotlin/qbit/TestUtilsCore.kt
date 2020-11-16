@@ -1,6 +1,6 @@
 package qbit
 
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
 import qbit.api.db.Conn
@@ -63,7 +63,7 @@ val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.parentHash] }
 
 internal fun TestIndexer(
-    serialModule: SerialModule = testsSerialModule,
+    serialModule: SerializersModule = testsSerialModule,
     baseDb: IndexDb? = null,
     baseHash: Hash? = null,
     nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver) =

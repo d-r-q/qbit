@@ -1,6 +1,6 @@
 package qbit.index
 
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.model.Hash
 import qbit.serialization.Leaf
@@ -9,7 +9,7 @@ import qbit.serialization.Node
 import qbit.serialization.NodeVal
 import qbit.serialization.Root
 
-class Indexer(private val serialModule: SerialModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
+class Indexer(private val serialModule: SerializersModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
 
     fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {

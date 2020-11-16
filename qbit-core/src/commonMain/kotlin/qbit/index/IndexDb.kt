@@ -2,7 +2,7 @@ package qbit.index
 
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.Attrs.list
 import qbit.api.Attrs.name
 import qbit.api.Attrs.type
@@ -22,7 +22,7 @@ import kotlin.reflect.KClass
 
 class IndexDb(
     internal val index: Index,
-    private val serialModule: SerialModule
+    private val serialModule: SerializersModule
 ) : InternalDb() {
 
     private val schema = loadAttrs(index)

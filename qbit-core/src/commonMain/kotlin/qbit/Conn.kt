@@ -1,11 +1,12 @@
 package qbit
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialDescriptor
-import kotlinx.serialization.StructureKind
-import kotlinx.serialization.elementDescriptors
-import kotlinx.serialization.modules.SerialModule
-import kotlinx.serialization.modules.SerialModuleCollector
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.elementDescriptors
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.SerializersModuleCollector
 import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
 import qbit.api.db.*
@@ -25,7 +26,8 @@ import qbit.storage.SerializedStorage
 import qbit.trx.*
 import kotlin.reflect.KClass
 
-class SchemaValidator : SerialModuleCollector {
+@Suppress("EXPERIMENTAL_API_USAGE")
+class SchemaValidator : SerializersModuleCollector {
 
     override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
         validateDescriptor(serializer.descriptor)
@@ -33,7 +35,7 @@ class SchemaValidator : SerialModuleCollector {
 
     private fun validateDescriptor(desc: SerialDescriptor) {
         val nullableListProps =
-                desc.elementDescriptors()
+                desc.elementDescriptors
                         .withIndex()
                         .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
                         .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
@@ -60,9 +62,16 @@ class SchemaValidator : SerialModuleCollector {
         TODO("Not yet implemented")
     }
 
+    override fun <Base : Any> polymorphicDefault(
+        baseClass: KClass<Base>,
+        defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
 }
 
-suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
+suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
     val serializedStorage = SerializedStorage(storage)
     val iid = Iid(1, 4)
     val dbUuid = DbUuid(iid)
@@ -85,7 +94,7 @@ suspend fun qbit(storage: Storage, appSerialModule: SerialModule): Conn {
     }
 }
 
-class QConn(serialModule: SerialModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+class QConn(serialModule: SerializersModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
 
     private val nodesStorage = CommonNodesStorage(storage)
 

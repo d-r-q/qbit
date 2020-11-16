@@ -3,6 +3,11 @@ import com.moowork.gradle.node.task.NodeTask
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import java.net.URI
 
+buildscript {
+    dependencies {
+        classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.14.4")
+    }
+}
 
 group = "org.qbit"
 version = "0.3.0-SNAPSHOT"
@@ -21,6 +26,7 @@ subprojects {
 
     apply(plugin = ("kotlin-multiplatform"))
     apply(plugin = ("kotlinx-serialization"))
+    apply(plugin = ("kotlinx-atomicfu"))
     apply(plugin = ("com.moowork.node"))
 
     repositories {
