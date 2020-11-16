@@ -20,6 +20,9 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
+import qbit.resolving.HasConflictResult
+import qbit.resolving.hasConflict
+import qbit.resolving.resolveConflicts
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
@@ -104,7 +107,7 @@ class QConn(
 
     private val nodesStorage = CommonNodesStorage(storage)
 
-    var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
+    var trxLog: TrxLog = QTrxLog(head, HashMap(), Writer(nodesStorage, dbUuid))
 
     private val resolveNode = nodesResolver(nodesStorage)
 
@@ -132,8 +135,9 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        if (this.trxLog != trxLog) {
-            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
+        val conflictResult = hasConflict(this.trxLog, trxLog)
+        if (conflictResult.result == HasConflictResult.CONFLICT) {
+            resolveConflicts()
         }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
         this.trxLog = newLog
