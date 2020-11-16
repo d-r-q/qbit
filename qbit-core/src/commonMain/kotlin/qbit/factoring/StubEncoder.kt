@@ -2,12 +2,17 @@ package qbit.factoring
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
 
 
 abstract class StubEncoder : Encoder, CompositeEncoder {
+
+    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
+        return this
+    }
 
     override fun encodeBoolean(value: Boolean) {
         TODO("Not yet implemented")
@@ -92,10 +97,6 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
     override fun endStructure(descriptor: SerialDescriptor) {
     }
 
-    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        TODO("Not yet implemented")
-    }
-
     @ExperimentalSerializationApi
     override fun <T : Any> encodeNullableSerializableElement(
         descriptor: SerialDescriptor,
@@ -103,6 +104,20 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
         serializer: SerializationStrategy<T>,
         value: T?
     ) {
+        if (value != null) {
+            when (descriptor.getElementDescriptor(index).kind) {
+                PrimitiveKind.BOOLEAN -> encodeBooleanElement(descriptor, index, value as Boolean)
+                PrimitiveKind.BYTE -> encodeByteElement(descriptor, index, value as Byte)
+                PrimitiveKind.CHAR -> encodeCharElement(descriptor, index, value as Char)
+                PrimitiveKind.SHORT -> encodeShortElement(descriptor, index, value as Short)
+                PrimitiveKind.INT -> encodeIntElement(descriptor, index, value as Int)
+                PrimitiveKind.LONG -> encodeLongElement(descriptor, index, value as Long)
+                PrimitiveKind.FLOAT -> encodeFloatElement(descriptor, index, value as Float)
+                PrimitiveKind.DOUBLE -> encodeDoubleElement(descriptor, index, value as Double)
+                PrimitiveKind.STRING -> encodeStringElement(descriptor, index, value as String)
+                else -> encodeSerializableElement(descriptor, index, serializer, value)
+            }
+        }
     }
 
     override fun <T> encodeSerializableElement(

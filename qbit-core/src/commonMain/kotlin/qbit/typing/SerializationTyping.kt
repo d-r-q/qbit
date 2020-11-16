@@ -45,7 +45,8 @@ class EntityDecoder(
     override fun <T : Any> decodeNullableSerializableElement(
         descriptor: SerialDescriptor,
         index: Int,
-        deserializer: DeserializationStrategy<T?>
+        deserializer: DeserializationStrategy<T?>,
+        previousValue: T?
     ): T? {
         val elementDescriptor = descriptor.getElementDescriptor(index)
         val elementKind = elementDescriptor.kind
@@ -127,6 +128,7 @@ class EntityDecoder(
         descriptor: SerialDescriptor,
         index: Int,
         deserializer: DeserializationStrategy<T>,
+        previousValue: T?,
     ): T {
         return decodeNullableSerializableElement(descriptor, index, deserializer as DeserializationStrategy<Any?>) as T
     }
