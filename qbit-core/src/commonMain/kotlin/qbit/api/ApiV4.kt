@@ -1,5 +1,6 @@
 package qbit.api
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.*
 import kotlin.random.Random
 import kotlin.reflect.KProperty0
@@ -14,12 +15,14 @@ sealed class Eid : Ref {
     override val id: Eid get() = this
 }
 
+@Serializable
 data class Gid(override val value: Long) : Eid()
 
+@Serializable
 data class Tid(override val value: Long) : Eid()
 
 @Serializable
-data class Tombstone(override val id: Eid) : Ref {
+data class Tombstone(override val id: Eid) : Entity {
 
     override fun tombstone(): Tombstone = this
 
@@ -35,7 +38,29 @@ interface Ref {
 
 }
 
-fun persist(vararg refs: Ref) {
+interface Entity : Ref
+
+class Record {
+
+    inline fun <reified T> attr(name: String): T {
+        TODO("Not yet implemented")
+    }
+
+}
+
+object Qbit {
+
+    suspend fun persist(vararg refs: Entity) {
+
+    }
+
+    fun query(sql: String): Flow<Record> {
+        TODO("Not yet implemented")
+    }
+
+    fun <T> query(graphSpec: GraphSpec<T>): Flow<T> {
+        TODO("Not yet implemented")
+    }
 
 }
 
