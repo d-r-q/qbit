@@ -25,7 +25,7 @@ internal data class EntityBuilder(
     }
 
     fun toEntity(schema: (String) -> Attr<*>?, resolve: (Any) -> Gid): DetachedEntity {
-        check(gid != null) { "Entity $values has no gid"}
+        check(gid != null) { "Entity $values has no gid" }
         val attrValues: Map<Attr<*>, Any> = values
             .mapKeys { schema(it.key.asString()) ?: throw QBitException("Attr for ${it.key.asString()} not found") }
             .mapValues { resolveRefs(it.value, resolve) }
@@ -68,7 +68,10 @@ internal class EntityGraph {
         assignGids(gids)
         val gid2builder = deduplicateEntityStates()
         val entries: List<Pair<Any, Entity>> = builders
-            .map { (ref, builder) -> ref to (gid2builder[builder.gid] ?: throw QBitException("Could not find builder for ref $ref via ${builder.gid}")) }
+            .map { (ref, builder) ->
+                ref to (gid2builder[builder.gid]
+                    ?: throw QBitException("Could not find builder for ref $ref via ${builder.gid}"))
+            }
             .map { (ref, builder) ->
                 ref to builder.toEntity(schema) { r ->
                     val refereeBuilder = builders[r] ?: throw AssertionError("Unexpected ref: $r")

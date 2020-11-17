@@ -46,7 +46,11 @@ class SchemaDslTest {
         // Then it contains single attribute
         assertEquals(1, schema.size)
         // and the attibute's type is bytearray
-        assertEquals(QBytes.list().code, schema[0].type, "QList<QBytes> expected but got ${DataType.ofCode(schema[0].type)}")
+        assertEquals(
+            QBytes.list().code,
+            schema[0].type,
+            "QList<QBytes> expected but got ${DataType.ofCode(schema[0].type)}"
+        )
         // and itn't list
         assertTrue(schema[0].list)
         // and itn't unique
@@ -64,7 +68,11 @@ class SchemaDslTest {
         // Then it contains single attribute
         assertEquals(1, schema.size)
         // and the attibute's type is bytearray
-        assertEquals(QString.list().code, schema[0].type, "QList<QString> expected but got ${DataType.ofCode(schema[0].type)}")
+        assertEquals(
+            QString.list().code,
+            schema[0].type,
+            "QList<QString> expected but got ${DataType.ofCode(schema[0].type)}"
+        )
         // and itn't list
         assertTrue(schema[0].list)
         // and itn't unique
@@ -82,7 +90,11 @@ class SchemaDslTest {
         // Then it contains single attribute
         assertEquals(1, schema.size)
         // and the attibute's type is bytearray
-        assertEquals(QByte.list().code, schema[0].type, "QList<QByte> expected but got ${DataType.ofCode(schema[0].type)}")
+        assertEquals(
+            QByte.list().code,
+            schema[0].type,
+            "QList<QByte> expected but got ${DataType.ofCode(schema[0].type)}"
+        )
         // and itn't list
         assertTrue(schema[0].list)
         // and itn't unique

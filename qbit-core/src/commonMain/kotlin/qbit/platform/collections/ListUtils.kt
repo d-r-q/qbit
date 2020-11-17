@@ -19,7 +19,7 @@ fun <E> List<E>.firstMatchIdx(c: (E) -> Int): Int {
 }
 
 fun <E> List<E>.subList(from: Int): List<E> =
-        this.subList(from, this.size)
+    this.subList(from, this.size)
 
 // CoW ArrayList operations
 
@@ -30,7 +30,7 @@ fun <E : Any> set(arr: ArrayList<E>, el: E, idx: Int): ArrayList<E> {
 }
 
 fun <E : Any> insert(arr: ArrayList<E>, el: E, idx: Int): ArrayList<E> =
-        insert(arr, arrayListOf(el), idx)
+    insert(arr, arrayListOf(el), idx)
 
 fun <E : Any> insert(arr: ArrayList<E>, els: ArrayList<E>, idx: Int): ArrayList<E> {
     val new = ArrayList(arr)
@@ -40,7 +40,7 @@ fun <E : Any> insert(arr: ArrayList<E>, els: ArrayList<E>, idx: Int): ArrayList<
 }
 
 fun <E : Any> merge(arr: ArrayList<E>, el: E, cmp: Comparator<E>): ArrayList<E> =
-        merge(arr, arrayListOf(el), cmp)
+    merge(arr, arrayListOf(el), cmp)
 
 fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>): ArrayList<E> {
     assert { sorted(arr1, cmp) }
@@ -88,14 +88,14 @@ fun <E : Any> replaceAll(arr: ArrayList<E>, el: List<E>, vararg indexes: Int): A
 }
 
 fun <E : Any> replace(arr: ArrayList<E>, el: E, vararg indexes: Int): ArrayList<E> =
-        replaceAll(arr, listOf(el), *indexes)
+    replaceAll(arr, listOf(el), *indexes)
 
 fun <E : Any> remove(arr: ArrayList<E>, vararg indexes: Int): ArrayList<E> {
     val new = ArrayList(arr)
     indexes.sortedDescending()
-            .forEach { idx ->
-                new.removeAt(idx)
-            }
+        .forEach { idx ->
+            new.removeAt(idx)
+        }
     return new
 }
 
@@ -117,8 +117,8 @@ fun <E : Any> split(arr: ArrayList<E>, chunkSize: Int, minChunkSize: Int): Array
     require(chunkSize in minChunkSize..maxChunkSize)
 
     val res = ArrayList(arr.asSequence()
-            .chunked(chunkSize) { ArrayList(it) }
-            .toList())
+        .chunked(chunkSize) { ArrayList(it) }
+        .toList())
     while (res.last().size < minChunkSize) {
         val last = res.removeAt(res.size - 1)
         res.last().addAll(last)

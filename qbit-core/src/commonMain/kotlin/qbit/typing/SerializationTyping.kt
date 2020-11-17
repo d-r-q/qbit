@@ -1,6 +1,6 @@
 package qbit.typing
 
-import kotlinx.serialization.*
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -70,7 +70,12 @@ class EntityDecoder(
 
         return when {
             isValueAttr(elementDescriptor) -> entity.tryGet(attr)
-            isRefAttr(elementDescriptor) -> decodeReferred(elementDescriptor, attrName, entity.tryGet(attr as Attr<Gid>), deserializer) as T?
+            isRefAttr(elementDescriptor) -> decodeReferred(
+                elementDescriptor,
+                attrName,
+                entity.tryGet(attr as Attr<Gid>),
+                deserializer
+            ) as T?
             else -> throw QBitException("$elementKind not yet supported")
         }
     }

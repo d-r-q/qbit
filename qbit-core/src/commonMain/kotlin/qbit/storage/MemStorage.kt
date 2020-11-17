@@ -32,12 +32,13 @@ class MemStorage : Storage {
     override fun load(key: Key): ByteArray? = data.value[key.ns]?.get(key)
 
     @Suppress("UNCHECKED_CAST")
-    override fun keys(namespace: Namespace): Collection<Key> = (data.value[namespace]?.keys as? Collection<Key>) ?: setOf()
+    override fun keys(namespace: Namespace): Collection<Key> =
+        (data.value[namespace]?.keys as? Collection<Key>) ?: setOf()
 
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> =
-            data.value.keys.asSequence()
-                    .filter { it.isSubNs(namespace) }
-                    .toList()
+        data.value.keys.asSequence()
+            .filter { it.isSubNs(namespace) }
+            .toList()
 
     override fun hasKey(key: Key): Boolean = nsMap(key).containsKey(key)
 

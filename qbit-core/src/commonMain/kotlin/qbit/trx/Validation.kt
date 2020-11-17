@@ -12,8 +12,8 @@ fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyLi
 
     // check for unknown attributes
     val unknownAttrNames = factAttrs
-            .filter { it.value == null }
-            .map { it.key }
+        .filter { it.value == null }
+        .map { it.key }
     if (unknownAttrNames.isNotEmpty()) {
         throw QBitException("Unknown attributes: ${unknownAttrNames.joinToString(", ")}")
     }
@@ -21,10 +21,10 @@ fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyLi
     // check for uniquiness violation
     // within trx
     facts
-            .filter { factAttrs.getValue(it.attr)?.unique ?: false }
-            .groupBy { it.attr to it.value }
-            .filterValues { it.size > 1 }
-            .forEach { throw QBitException("Uniqueness violation for attr ${it.key}, entities: ${it.value.map { f -> f.gid }}") }
+        .filter { factAttrs.getValue(it.attr)?.unique ?: false }
+        .groupBy { it.attr to it.value }
+        .filterValues { it.size > 1 }
+        .forEach { throw QBitException("Uniqueness violation for attr ${it.key}, entities: ${it.value.map { f -> f.gid }}") }
 
     // within db
     facts.forEach {
@@ -39,10 +39,10 @@ fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyLi
 
     // check that scalar attrs has single fact
     facts.groupBy { it.gid to it.attr }
-            .filter { !factAttrs.getValue(it.key.second)!!.list }
-            .forEach {
-                if (it.value.size > 1) {
-                    throw QBitException("Duplicate facts $it for scalar attribute: ${it.value}")
-                }
+        .filter { !factAttrs.getValue(it.key.second)!!.list }
+        .forEach {
+            if (it.value.size > 1) {
+                throw QBitException("Duplicate facts $it for scalar attribute: ${it.value}")
             }
+        }
 }

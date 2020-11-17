@@ -2,11 +2,7 @@ package qbit.api
 
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
-import qbit.api.model.Attr
-import qbit.api.model.QBoolean
-import qbit.api.model.QByte
-import qbit.api.model.QInt
-import qbit.api.model.QString
+import qbit.api.model.*
 import qbit.api.system.Instance
 
 

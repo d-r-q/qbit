@@ -35,29 +35,29 @@ class SchemaValidator : SerializersModuleCollector {
 
     private fun validateDescriptor(desc: SerialDescriptor) {
         val nullableListProps =
-                desc.elementDescriptors
-                        .withIndex()
-                        .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
-                        .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
-                        .map { it.second }
+            desc.elementDescriptors
+                .withIndex()
+                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                .map { it.second }
         if (nullableListProps.isNotEmpty()) {
             throw QBitException(
-                    "List of nullable elements is not supported. Properties: ${desc.serialName}.${
-                        nullableListProps.joinToString(
-                                ",",
-                                "(",
-                                ")"
-                        ) { it }
-                    }"
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${
+                    nullableListProps.joinToString(
+                        ",",
+                        "(",
+                        ")"
+                    ) { it }
+                }"
             )
         }
     }
 
 
     override fun <Base : Any, Sub : Base> polymorphic(
-            baseClass: KClass<Base>,
-            actualClass: KClass<Sub>,
-            actualSerializer: KSerializer<Sub>
+        baseClass: KClass<Base>,
+        actualClass: KClass<Sub>,
+        actualSerializer: KSerializer<Sub>
     ) {
         TODO("Not yet implemented")
     }
@@ -80,21 +80,27 @@ suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
     systemSerialModule.dumpTo(SchemaValidator())
     return if (headHash != null) {
         val head = CommonNodesStorage(storage).load(NodeRef(Hash(headHash)))
-                ?: throw QBitException("Corrupted head: no such node")
+            ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
         QConn(
-                systemSerialModule,
-                dbUuid,
-                serializedStorage,
-                head,
-                KSFactorizer(systemSerialModule)::factor
+            systemSerialModule,
+            dbUuid,
+            serializedStorage,
+            head,
+            KSFactorizer(systemSerialModule)::factor
         )
     } else {
         bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
     }
 }
 
-class QConn(serialModule: SerializersModule, override val dbUuid: DbUuid, val storage: Storage, head: NodeVal<Hash>, private val factor: Factor) : Conn(), CommitHandler {
+class QConn(
+    serialModule: SerializersModule,
+    override val dbUuid: DbUuid,
+    val storage: Storage,
+    head: NodeVal<Hash>,
+    private val factor: Factor
+) : Conn(), CommitHandler {
 
     private val nodesStorage = CommonNodesStorage(storage)
 

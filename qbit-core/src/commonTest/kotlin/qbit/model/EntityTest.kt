@@ -1,13 +1,9 @@
 package qbit.model
 
-import qbit.Entity
-import qbit.AttachedEntity
-import qbit.Attr
-import qbit.ListAttr
+import qbit.*
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.*
-import qbit.assertArrayEquals
 import qbit.api.model.impl.DetachedEntity
 import qbit.api.model.impl.QTombstone
 import qbit.ns.Namespace
@@ -30,12 +26,13 @@ class EntityTest {
 
         val e1 = Entity(gids.next(), _attr eq "e1")
         val e2 = Entity(
-                gids.next(),
-                _attr eq "e2",
-                _ref eq e1,
-                _eid eq Gid(0, 3),
-                _list eq listOf("one", "two"),
-                _refList eq listOf(e1))
+            gids.next(),
+            _attr eq "e2",
+            _ref eq e1,
+            _eid eq Gid(0, 3),
+            _list eq listOf("one", "two"),
+            _refList eq listOf(e1)
+        )
         assertTrue((e2 as DetachedEntity).entries.size == 5)
 
         assertEquals("e2", e2[_attr])

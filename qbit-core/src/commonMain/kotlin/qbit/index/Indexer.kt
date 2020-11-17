@@ -5,7 +5,12 @@ import qbit.api.QBitException
 import qbit.api.model.Hash
 import qbit.serialization.*
 
-class Indexer(private val serialModule: SerializersModule, private val base: IndexDb?, private val baseHash: Hash?, val resolveNode: (Node<Hash>) -> NodeVal<Hash>?) {
+class Indexer(
+    private val serialModule: SerializersModule,
+    private val base: IndexDb?,
+    private val baseHash: Hash?,
+    val resolveNode: (Node<Hash>) -> NodeVal<Hash>?
+) {
 
     fun index(from: Node<Hash>): IndexDb {
         fun nodesBetween(from: NodeVal<Hash>, to: Hash?): List<NodeVal<Hash>> {
@@ -29,8 +34,8 @@ class Indexer(private val serialModule: SerializersModule, private val base: Ind
         val nodes = nodesBetween(fromVal, baseHash)
         return nodes.fold(base ?: IndexDb(Index(), serialModule)) { db, n ->
             val entities = n.data.trxes.toList()
-                    .groupBy { it.gid }
-                    .map { it.key to it.value }
+                .groupBy { it.gid }
+                .map { it.key to it.value }
             IndexDb(db.index.add(entities), serialModule)
         }
     }

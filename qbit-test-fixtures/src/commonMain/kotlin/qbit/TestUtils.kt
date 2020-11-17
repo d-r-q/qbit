@@ -64,7 +64,7 @@ fun createBombWithoutNulls(
 
         country = countries[0],
         optCountry = countries[0],
-        countiesList = listOf(Country(Gid(3, 1), "Country1", 0),countries[2]),
+        countiesList = listOf(Country(Gid(3, 1), "Country1", 0), countries[2]),
         countriesListOpt = emptyList(),
 
         mutCountry = countries[0],
@@ -135,11 +135,13 @@ fun createBombWithNulls(
 
 val random = Random(1)
 
-fun randomString(count: Int, random: Random) = CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random(random) }.concatToString()
+fun randomString(count: Int, random: Random) =
+    CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random(random) }.concatToString()
 
 fun <T> List<T>.random(random: Random) = this[random.nextInt(this.size)]
 
-fun randomBytes(count: Int, random: Random) = ByteArray(count) { Byte.MIN_VALUE.plus(random.nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
+fun randomBytes(count: Int, random: Random) =
+    ByteArray(count) { Byte.MIN_VALUE.plus(random.nextInt(Byte.MAX_VALUE * 2 + 1)).toByte() }
 
 fun assertArrayEquals(arr1: ByteArray?, arr2: ByteArray?) {
     arr1!!; arr2!!

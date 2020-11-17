@@ -45,7 +45,7 @@ class IdentityMap<K : Any, V> : Map<K, V> {
     override fun isEmpty(): Boolean {
         return impl.isEmpty()
     }
-    
+
     operator fun set(key: K, value: V) {
         impl[Key(key)] = value
     }

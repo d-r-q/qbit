@@ -1,7 +1,7 @@
 package qbit.storage
 
-import io.ktor.utils.io.core.use
-import io.ktor.utils.io.errors.IOException
+import io.ktor.utils.io.core.*
+import io.ktor.utils.io.errors.*
 import qbit.api.QBitException
 import qbit.ns.Key
 import qbit.ns.Namespace
@@ -45,15 +45,15 @@ class FileSystemStorage(private val root: File) : Storage {
     override fun keys(namespace: Namespace): Collection<Key> {
         val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isFile() }
-                ?.map { namespace[it.getName()] }
-                ?: emptyList()
+            ?.map { namespace[it.getName()] }
+            ?: emptyList()
     }
 
     override fun subNamespaces(namespace: Namespace): Collection<Namespace> {
         val dir = root.resolve(namespace.toFile())
         return dir.listFiles { f -> f.isDirectory() }
-                ?.map { namespace.subNs(it.getName()) }
-                ?: emptyList()
+            ?.map { namespace.subNs(it.getName()) }
+            ?: emptyList()
     }
 
     override fun hasKey(key: Key): Boolean {

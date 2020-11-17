@@ -17,9 +17,18 @@ import qbit.serialization.Root
 import qbit.spi.Storage
 
 suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialModule: SerializersModule): Conn {
-    val trx = listOf(Attrs.name, Attrs.type, Attrs.unique, Attrs.list, Instances.iid, Instances.forks, Instances.nextEid, tombstone)
-            .flatMap { it.toFacts() }
-            .plus(factor(protoInstance, bootstrapSchema::get, EmptyIterator))
+    val trx = listOf(
+        Attrs.name,
+        Attrs.type,
+        Attrs.unique,
+        Attrs.list,
+        Instances.iid,
+        Instances.forks,
+        Instances.nextEid,
+        tombstone
+    )
+        .flatMap { it.toFacts() }
+        .plus(factor(protoInstance, bootstrapSchema::get, EmptyIterator))
 
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = CommonNodesStorage(storage).store(root)

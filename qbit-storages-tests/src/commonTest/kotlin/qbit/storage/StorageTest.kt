@@ -2,7 +2,6 @@ package qbit.storage
 
 import qbit.assertArrayEquals
 import qbit.ns.Namespace
-import qbit.ns.ns
 import qbit.ns.root
 import qbit.platform.runBlocking
 import qbit.spi.Storage

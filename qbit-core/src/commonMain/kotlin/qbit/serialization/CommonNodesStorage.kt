@@ -50,13 +50,13 @@ class CommonNodesStorage(private val storage: Storage) :
     private fun Hash.key() = nodes[toHexString()]
 
     private fun toHashedNode(n: NodeVal<Hash?>, hash: Hash): NodeVal<Hash> = when (n) {
-        is Root -> Root( hash, n.source, n.timestamp, n.data )
-        is Leaf -> Leaf( hash, n.parent, n.source, n.timestamp, n.data )
-        is Merge -> Merge( hash, n.parent1, n.parent2, n.source, n.timestamp, n.data )
+        is Root -> Root(hash, n.source, n.timestamp, n.data)
+        is Leaf -> Leaf(hash, n.parent, n.source, n.timestamp, n.data)
+        is Merge -> Merge(hash, n.parent1, n.parent2, n.source, n.timestamp, n.data)
     }
 
     override fun hasNode(head: Node<Hash>): Boolean =
-            storage.hasKey(head.key())
+        storage.hasKey(head.key())
 
 }
 

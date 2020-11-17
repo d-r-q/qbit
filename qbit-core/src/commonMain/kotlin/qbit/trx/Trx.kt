@@ -26,7 +26,7 @@ class QTrx(
     private var rollbacked = false
 
     override fun db() =
-            (this.curDb ?: this.base)
+        (this.curDb ?: this.base)
 
     private val db: InternalDb
         get() = db()
@@ -35,16 +35,16 @@ class QTrx(
         ensureReady()
         val facts = factor(entityGraphRoot, db::attr, gids)
         val entities = facts.map { it.gid }
-                .distinct()
-                .mapNotNull { db.pullEntity(it)?.toFacts()?.toList() }
-                .map { it[0].gid to it }
-                .toMap()
+            .distinct()
+            .mapNotNull { db.pullEntity(it)?.toFacts()?.toList() }
+            .map { it[0].gid to it }
+            .toMap()
         val updatedFacts = facts.groupBy { it.gid }
-                .filter { ue ->
-                    ue.value.sortedWith(EavComparator) != entities[ue.key]?.sortedWith(EavComparator)
-                }
-                .values
-                .flatten()
+            .filter { ue ->
+                ue.value.sortedWith(EavComparator) != entities[ue.key]?.sortedWith(EavComparator)
+            }
+            .values
+            .flatten()
         if (updatedFacts.isEmpty()) {
             return QbitWriteResult(entityGraphRoot, db)
         }
@@ -93,33 +93,33 @@ class QTrx(
 }
 
 fun Entity.toFacts(): Collection<Eav> =
-        this.entries.flatMap { (attr: Attr<Any>, value) ->
-            val type = DataType.ofCode(attr.type)!!
-            @Suppress("UNCHECKED_CAST")
-            when {
-                type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
-                type.value() && attr.list -> listToFacts(gid, attr, value as List<Any>)
-                type.ref() && !attr.list -> listOf(refToFacts(gid, attr, value))
-                type.ref() && attr.list -> refListToFacts(gid, attr, value as List<Any>)
-                else -> throw AssertionError("Unexpected attr kind: $attr")
-            }
+    this.entries.flatMap { (attr: Attr<Any>, value) ->
+        val type = DataType.ofCode(attr.type)!!
+        @Suppress("UNCHECKED_CAST")
+        when {
+            type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
+            type.value() && attr.list -> listToFacts(gid, attr, value as List<Any>)
+            type.ref() && !attr.list -> listOf(refToFacts(gid, attr, value))
+            type.ref() && attr.list -> refListToFacts(gid, attr, value as List<Any>)
+            else -> throw AssertionError("Unexpected attr kind: $attr")
         }
+    }
 
 private fun <T : Any> valToFacts(eid: Gid, attr: Attr<T>, value: T) =
-        Eav(eid, attr, value)
+    Eav(eid, attr, value)
 
 private fun refToFacts(eid: Gid, attr: Attr<Any>, value: Any) =
-        Eav(eid, attr, eidOf(value)!!)
+    Eav(eid, attr, eidOf(value)!!)
 
 private fun listToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
-        value.map { Eav(eid, attr, it) }
+    value.map { Eav(eid, attr, it) }
 
 private fun refListToFacts(eid: Gid, attr: Attr<*>, value: List<Any>) =
-        value.map { Eav(eid, attr, eidOf(it)!!) }
+    value.map { Eav(eid, attr, eidOf(it)!!) }
 
 private fun eidOf(a: Any): Gid? =
-        when (a) {
-            is Entity -> a.gid
-            is Gid -> a
-            else -> null
-        }
+    when (a) {
+        is Entity -> a.gid
+        is Gid -> a
+        else -> null
+    }

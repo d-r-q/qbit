@@ -1,7 +1,7 @@
 package qbit.platform
 
-import io.ktor.utils.io.core.Output
-import io.ktor.utils.io.streams.asOutput
+import io.ktor.utils.io.core.*
+import io.ktor.utils.io.streams.*
 import java.io.FileOutputStream
 import java.nio.file.Files
 import kotlin.io.readBytes as readBytesImpl
@@ -38,7 +38,8 @@ actual fun fileOutput(file: File): QOutput {
     return FileOutputImpl(fos, fos.asOutput(), fos.fd)
 }
 
-class FileOutputImpl(private val fos: FileOutputStream, out: Output, override val fd: FileDescriptor) : QOutput, Output by out {
+class FileOutputImpl(private val fos: FileOutputStream, out: Output, override val fd: FileDescriptor) : QOutput,
+    Output by out {
 
     override fun writeFully(data: ByteArray) {
         fos.write(data)

@@ -76,10 +76,6 @@ abstract class StubDecoder : Decoder,
         TODO("Not yet implemented")
     }
 
-    override fun decodeCollectionSize(descriptor: SerialDescriptor): Int {
-        return super.decodeCollectionSize(descriptor)
-    }
-
     override fun decodeDoubleElement(descriptor: SerialDescriptor, index: Int): Double {
         TODO("Not yet implemented")
     }
@@ -114,6 +110,7 @@ abstract class StubDecoder : Decoder,
     override fun decodeSequentially(): Boolean {
         return super.decodeSequentially()
     }
+
     override fun <T> decodeSerializableElement(
         descriptor: SerialDescriptor,
         index: Int,

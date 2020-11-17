@@ -55,10 +55,10 @@ fun schemaFor(rootDesc: SerialDescriptor, unique: Set<String> = emptySet()): Lis
         .withIndex()
         .filter { rootDesc.getElementName(it.index) !in setOf("id", "gid") }
         .map { (idx, desc) ->
-        val dataType = DataType.of(desc)
-        val attr = AttrName(rootDesc, idx).asString()
-        Attr<Any>(null, attr, dataType.code, attr in unique, dataType.isList())
-    }
+            val dataType = DataType.of(desc)
+            val attr = AttrName(rootDesc, idx).asString()
+            Attr<Any>(null, attr, dataType.code, attr in unique, dataType.isList())
+        }
 }
 
 private fun DataType.Companion.of(desc: SerialDescriptor): DataType<*> =

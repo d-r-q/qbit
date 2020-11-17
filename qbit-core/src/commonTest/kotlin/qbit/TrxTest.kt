@@ -131,9 +131,12 @@ class TrxTest {
     }
 
     private fun createTrx(conn: FakeConn, trxLog: FakeTrxLog, vararg entities: Any) =
-            QTrx(
-                Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(Gid(0, 0).nextGids(),
-                    *entities), conn, testSchemaFactorizer::factor)
+        QTrx(
+            Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(
+                Gid(0, 0).nextGids(),
+                *entities
+            ), conn, testSchemaFactorizer::factor
+        )
 
     @Ignore
     @JsName("In_case_of_transaction_commit_abort_transaction_should_clean_up_written_data")
@@ -201,5 +204,5 @@ class TrxTest {
         val conn = qbit(storage, testsSerialModule)
         return conn to storage
     }
-    
+
 }

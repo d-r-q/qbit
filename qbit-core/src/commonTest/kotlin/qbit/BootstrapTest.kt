@@ -61,9 +61,18 @@ class BootstrapTest {
     fun `Instance attrs is correctly bootstrapped`() {
         runBlocking {
             val db = newDb()
-            assertEquals( Instances.iid.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.iid.name)).first().name )
-            assertEquals( Instances.forks.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.forks.name)).first().name )
-            assertEquals( Instances.nextEid.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.nextEid.name)).first().name )
+            assertEquals(
+                Instances.iid.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.iid.name)).first().name
+            )
+            assertEquals(
+                Instances.forks.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.forks.name)).first().name
+            )
+            assertEquals(
+                Instances.nextEid.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.nextEid.name)).first().name
+            )
         }
     }
 

@@ -2,7 +2,9 @@
 
 package qbit.factoring.serializatoin
 
-import kotlinx.serialization.*
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -17,10 +19,6 @@ import qbit.api.model.Tombstone
 import qbit.api.tombstone
 import qbit.collections.IdentityMap
 import qbit.factoring.*
-import qbit.factoring.AttrName
-import qbit.factoring.EntityGraph
-import qbit.factoring.Pointer
-import qbit.factoring.Ref
 import kotlin.reflect.KClass
 
 class KSFactorizer(private val serialModule: SerializersModule) {
@@ -110,7 +108,9 @@ internal class EntityEncoder(
 
     private fun serializeRefList(values: Iterable<Any>): List<Ref> =
         values.map { item ->
-            val itemSerializer: KSerializer<Any> = (serializersModule.getContextual(item::class) ?: throw QBitException("Cannot find serializer for $item")) as KSerializer<Any>
+            val itemSerializer: KSerializer<Any> = (serializersModule.getContextual(item::class) ?: throw QBitException(
+                "Cannot find serializer for $item"
+            )) as KSerializer<Any>
             serializeRef(item, itemSerializer)
         }
 
@@ -120,7 +120,8 @@ internal class EntityEncoder(
                 serializersModule,
                 entityGraph,
                 value as Any
-            ), value)
+            ), value
+        )
         return Ref(value)
     }
 

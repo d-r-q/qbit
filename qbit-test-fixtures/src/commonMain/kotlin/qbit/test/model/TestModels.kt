@@ -68,7 +68,14 @@ data class Country(val id: Long?, val name: String, val population: Int?)
 data class Region(val id: Long?, val name: String, val country: Country)
 
 @Serializable
-data class Scientist(val id: Long?, val externalId: Int, val name: String, val nicks: List<String>, val country: Country, var reviewer: Scientist? = null) {
+data class Scientist(
+    val id: Long?,
+    val externalId: Int,
+    val name: String,
+    val nicks: List<String>,
+    val country: Country,
+    var reviewer: Scientist? = null
+) {
 
     override fun toString(): String {
         return "Scientist($id, $name)"
@@ -130,53 +137,54 @@ data class EntityWithListOfString(val id: Long?, val strings: List<String>?)
 data class EntityWithListOfBytes(val id: Long?, val bytes: List<Byte>)
 
 @Serializable
-data class Bomb(val id: Long?,
+data class Bomb(
+    val id: Long?,
 
-                val bool: Boolean,
-                val optBool: Boolean?,
-                val boolList: List<Boolean>,
-                val boolListOpt: List<Boolean>?,
-                var mutBool: Boolean,
-                var mutOptBool: Boolean?,
-                var mutBoolList: List<Boolean>,
-                var mutBoolListOpt: List<Boolean>?,
+    val bool: Boolean,
+    val optBool: Boolean?,
+    val boolList: List<Boolean>,
+    val boolListOpt: List<Boolean>?,
+    var mutBool: Boolean,
+    var mutOptBool: Boolean?,
+    var mutBoolList: List<Boolean>,
+    var mutBoolListOpt: List<Boolean>?,
 
-                val byte: Byte,
-                val optByte: Byte?,
-                val byteList: List<Byte>,
-                val byteListOpt: List<Byte>?,
+    val byte: Byte,
+    val optByte: Byte?,
+    val byteList: List<Byte>,
+    val byteListOpt: List<Byte>?,
 
-                val int: Int,
-                val optInt: Int?,
-                val intList: List<Int>,
-                val intListOpt: List<Int>?,
+    val int: Int,
+    val optInt: Int?,
+    val intList: List<Int>,
+    val intListOpt: List<Int>?,
 
-                val long: Long,
-                val optLong: Long?,
-                val longList: List<Long>,
-                val longListOpt: List<Long>?,
+    val long: Long,
+    val optLong: Long?,
+    val longList: List<Long>,
+    val longListOpt: List<Long>?,
 
-                val str: String,
-                val optStr: String?,
-                val strList: List<String>,
-                val strListOpt: List<String>?,
+    val str: String,
+    val optStr: String?,
+    val strList: List<String>,
+    val strListOpt: List<String>?,
 
-                val bytes: ByteArray,
-                val optBytes: ByteArray?,
-                val bytesList: List<ByteArray>,
-                val bytesListOpt: List<ByteArray>?,
+    val bytes: ByteArray,
+    val optBytes: ByteArray?,
+    val bytesList: List<ByteArray>,
+    val bytesListOpt: List<ByteArray>?,
 
-                val country: Country,
-                val optCountry: Country?,
-                val countiesList: List<Country>,
-                val countriesListOpt: List<Country>?,
+    val country: Country,
+    val optCountry: Country?,
+    val countiesList: List<Country>,
+    val countriesListOpt: List<Country>?,
 
-                var mutCountry: Country,
-                var mutOptCountry: Country?,
-                var mutCountriesList: List<Country>,
-                var mutCountriesListOpt: List<Country>?,
+    var mutCountry: Country,
+    var mutOptCountry: Country?,
+    var mutCountriesList: List<Country>,
+    var mutCountriesListOpt: List<Country>?,
 
-                var optBomb: Bomb?
+    var optBomb: Bomb?
 
 
 ) {

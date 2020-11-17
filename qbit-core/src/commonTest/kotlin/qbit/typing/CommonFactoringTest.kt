@@ -413,7 +413,10 @@ abstract class CommonFactoringTest(val factor: Factor, val attrsMap: Map<String,
         val ex = assertFailsWith(QBitException::class) {
             factor(ref, testSchema, gids)
         }
-        assertTrue(ex.message?.contains("Entity ${Gid(2, 0)} has several different states to store") == true, "Actual message: ${ex.message}")
+        assertTrue(
+            ex.message?.contains("Entity ${Gid(2, 0)} has several different states to store") == true,
+            "Actual message: ${ex.message}"
+        )
     }
 
     @Ignore // enable when eav's deduplication will be moved into factoring

@@ -20,7 +20,13 @@ object SimpleSerialization : Serialization {
         }
     }
 
-    override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) =
+    override fun serializeNode(
+        parent1: Node<Hash>,
+        parent2: Node<Hash>,
+        source: DbUuid,
+        timestamp: Long,
+        data: NodeData
+    ) =
         serialize(parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
@@ -38,9 +44,27 @@ object SimpleSerialization : Serialization {
         }
         val nodeData = NodeData(facts.toList().toTypedArray())
         return when {
-            parent1 == nullHash && parent2 == nullHash -> Root(null, DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
-            parent1 == nullHash && parent2 != nullHash -> Leaf(null, NodeRef(parent2), DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
-            parent1 != nullHash && parent2 != nullHash -> Merge(null, NodeRef(parent1), NodeRef(parent2), DbUuid(Iid(iid.toInt(), instanceBits.toByte())), timestamp, nodeData)
+            parent1 == nullHash && parent2 == nullHash -> Root(
+                null,
+                DbUuid(Iid(iid.toInt(), instanceBits.toByte())),
+                timestamp,
+                nodeData
+            )
+            parent1 == nullHash && parent2 != nullHash -> Leaf(
+                null,
+                NodeRef(parent2),
+                DbUuid(Iid(iid.toInt(), instanceBits.toByte())),
+                timestamp,
+                nodeData
+            )
+            parent1 != nullHash && parent2 != nullHash -> Merge(
+                null,
+                NodeRef(parent1),
+                NodeRef(parent2),
+                DbUuid(Iid(iid.toInt(), instanceBits.toByte())),
+                timestamp,
+                nodeData
+            )
             else -> throw DeserializationException("Corrupted node data: parent1: $parent1, parent2: $parent2")
         }
     }
@@ -72,10 +96,10 @@ internal fun serialize(vararg anys: Any): ByteArray {
 
 @ExperimentalIoApi
 private fun byteArray(str: String): ByteArray =
-        byteArray(serializeLong(str.encodeToUtf8().size.toLong()), str.encodeToUtf8())
+    byteArray(serializeLong(str.encodeToUtf8().size.toLong()), str.encodeToUtf8())
 
 private fun encodeToUtf8(c: Char): ByteArray =
-        charArrayOf(c).concatToString().encodeToUtf8()
+    charArrayOf(c).concatToString().encodeToUtf8()
 
 private val coder = HashMap<Char, ByteArray>()
 
@@ -112,8 +136,10 @@ internal fun serializeInt(a: Int): ByteArray = byteArrayOf(byteOf(3, a), byteOf(
 
 internal fun byteOf(idx: Int, i: Int) = i.shr(8 * idx).and(0xFF).toByte()
 
-internal fun serializeLong(a: Long) = byteArrayOf(byteOf(7, a), byteOf(6, a), byteOf(5, a), byteOf(4, a),
-        byteOf(3, a), byteOf(2, a), byteOf(1, a), byteOf(0, a))
+internal fun serializeLong(a: Long) = byteArrayOf(
+    byteOf(7, a), byteOf(6, a), byteOf(5, a), byteOf(4, a),
+    byteOf(3, a), byteOf(2, a), byteOf(1, a), byteOf(0, a)
+)
 
 internal fun byteOf(idx: Int, i: Long) = i.shr(8 * idx).and(0xFF).toByte()
 

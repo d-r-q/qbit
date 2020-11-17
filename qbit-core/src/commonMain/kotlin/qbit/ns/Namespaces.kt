@@ -3,7 +3,7 @@ package qbit.ns
 val root = Namespace(null, "")
 
 fun ns(vararg parts: String) =
-        Namespace.of(*parts)
+    Namespace.of(*parts)
 
 data class Namespace(val parent: Namespace?, val name: String) {
 
@@ -19,7 +19,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
             val name = parts.last()
             val withoutRoot = parts.dropWhile { it == "" }
             val parent = withoutRoot.take(withoutRoot.size - 1)
-                    .fold(root) { parent: Namespace?, n: String -> Namespace(parent, n) }
+                .fold(root) { parent: Namespace?, n: String -> Namespace(parent, n) }
             return Namespace(parent, name)
         }
     }
@@ -39,7 +39,7 @@ data class Namespace(val parent: Namespace?, val name: String) {
     }
 
     fun isSubNs(parent: Namespace) =
-            this.parent == parent
+        this.parent == parent
 
 }
 

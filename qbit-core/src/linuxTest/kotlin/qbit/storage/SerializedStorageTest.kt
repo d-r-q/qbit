@@ -28,12 +28,12 @@ class SerializedStorageTest {
             value.freeze()
 
             // When writer is store some data in storage
-            writer.execute(TransferMode.SAFE, { Triple(storage, key, value) },) { (storage, key, value) ->
+            writer.execute(TransferMode.SAFE, { Triple(storage, key, value) }) { (storage, key, value) ->
                 runBlocking {
                     println("${key.isFrozen} ${value.isFrozen} ${value[0].isFrozen}")
                     storage.add(key, value)
                 }
-            }.consume {  }
+            }.consume { }
 
             // Then reader can read it
             val loaded = reader.execute(TransferMode.SAFE, { Triple(storage, key, value) }) { (storage, key) ->

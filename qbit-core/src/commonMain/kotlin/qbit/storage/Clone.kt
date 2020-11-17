@@ -6,7 +6,7 @@ import qbit.spi.Storage
 
 
 // Workaround for: https://github.com/Kotlin/kotlinx.coroutines/issues/2067
-class CloneStorage(private val from: Storage, private val to: Storage ) {
+class CloneStorage(private val from: Storage, private val to: Storage) {
 
     suspend operator fun invoke() {
         copyNs(root)
