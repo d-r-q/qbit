@@ -22,8 +22,8 @@ class CommonNodesStorage(private val storage: Storage) :
         return withContext(this.coroutineContext) {
             val data = SimpleSerialization.serializeNode(n)
             val hash = hash(data)
-            if (n.parentHash != null && n.parentHash != hash) {
-                throw AssertionError("NodeVal has hash ${n.parentHash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
+            if (n.hash != null && n.hash != hash) {
+                throw AssertionError("NodeVal has hash ${n.hash.toHexString()}, but it's serialization has hash ${hash.toHexString()}")
             }
             if (!storage.hasKey(hash.key())) {
                 storage.add(hash.key(), data)
@@ -36,8 +36,8 @@ class CommonNodesStorage(private val storage: Storage) :
         try {
             val value = storage.load(n.key()) ?: return null
             val hash = hash(value)
-            if (hash != n.parentHash) {
-                throw QBitException("Corrupted node. Node hash is ${n.parentHash}, but data hash is $hash")
+            if (hash != n.hash) {
+                throw QBitException("Corrupted node. Node hash is ${n.hash}, but data hash is $hash")
             }
             return toHashedNode(SimpleSerialization.deserializeNode(value.asInput()), hash)
         } catch (e: Exception) {
@@ -45,7 +45,7 @@ class CommonNodesStorage(private val storage: Storage) :
         }
     }
 
-    private fun Node<Hash>.key() = nodes[parentHash.toHexString()]
+    private fun Node<Hash>.key() = nodes[hash.toHexString()]
 
     private fun Hash.key() = nodes[toHexString()]
 

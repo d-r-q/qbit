@@ -1,24 +1,10 @@
 package qbit.serialization
 
-import io.ktor.utils.io.charsets.Charset
-import io.ktor.utils.io.charsets.decode
-import io.ktor.utils.io.charsets.encode
+import io.ktor.utils.io.charsets.*
 import io.ktor.utils.io.core.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
-import qbit.api.model.DataType
-import qbit.api.model.Eav
-import qbit.api.model.Hash
-import qbit.api.model.QBoolean
-import qbit.api.model.QByte
-import qbit.api.model.QBytes
-import qbit.api.model.QGid
-import qbit.api.model.QInt
-import qbit.api.model.QList
-import qbit.api.model.QLong
-import qbit.api.model.QRef
-import qbit.api.model.QString
-import qbit.api.model.nullHash
+import qbit.api.model.*
 import qbit.api.system.DbUuid
 import qbit.platform.asInput
 
@@ -68,7 +54,7 @@ internal fun serialize(vararg anys: Any): ByteArray {
             byteArray(QLong.code, serializeLong(a.toLong()))
         } else {
             when (a) {
-                is Node<*> -> serialize(a.parentHash!!.bytes)
+                is Node<*> -> serialize(a.hash!!.bytes)
                 is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
                 is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
                 is Number -> byteArray(QLong.code, a)

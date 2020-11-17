@@ -1,8 +1,6 @@
 package qbit.serialization
 
-import io.ktor.utils.io.core.EOFException
-import io.ktor.utils.io.core.ExperimentalIoApi
-import io.ktor.utils.io.core.Input
+import io.ktor.utils.io.core.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.*
@@ -16,7 +14,6 @@ import qbit.randomString
 import kotlin.test.*
 
 
-@OptIn(ExperimentalIoApi::class)
 class SimpleSerializationTest {
 
     private val intValues: List<Int> = listOf(0, 1, -1, Int.MAX_VALUE, Int.MIN_VALUE, Byte.MAX_VALUE.toInt(), Byte.MIN_VALUE.toInt())
@@ -127,7 +124,7 @@ class SimpleSerializationTest {
         val root = Root(null, DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
         val serializeNode = SimpleSerialization.serializeNode(root)
         val res = SimpleSerialization.deserializeNode(serializeNode.asInput())
-        assertEquals(root.parentHash, res.parentHash)
+        assertEquals(root.hash, res.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
@@ -138,15 +135,19 @@ class SimpleSerializationTest {
     @Test
     fun testLeaf() {
         val iid = Iid(0, 4)
-        val root = Leaf(null, NodeRef(Hash(
-            randomBytes(
-                HASH_LEN,
-                random
-            )
-        )), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
+        val root = Leaf(
+            null, NodeRef(
+                Hash(
+                    randomBytes(
+                        HASH_LEN,
+                        random
+                    )
+                )
+            ), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0)))
+        )
         val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Leaf
-        assertEquals(root.parentHash, res.parentHash)
-        assertEquals(root.parent.parentHash, res.parent.parentHash)
+        assertEquals(root.hash, res.hash)
+        assertEquals(root.parent.hash, res.parent.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)
@@ -157,15 +158,24 @@ class SimpleSerializationTest {
     @Test
     fun testMerge() {
         val iid = Iid(0, 4)
-        val root = Merge(null, NodeRef(Hash(
-            randomBytes(
-                HASH_LEN,
-                random
-            )
-        )), NodeRef(Hash(randomBytes(HASH_LEN, random))), DbUuid(iid), currentTimeMillis(), NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0))))
+        val root = Merge(
+            null,
+            NodeRef(
+                Hash(
+                    randomBytes(
+                        HASH_LEN,
+                        random
+                    )
+                )
+            ),
+            NodeRef(Hash(randomBytes(HASH_LEN, random))),
+            DbUuid(iid),
+            currentTimeMillis(),
+            NodeData(arrayOf(Eav(Gid(iid, 1), "test", 0)))
+        )
         val res = SimpleSerialization.deserializeNode(SimpleSerialization.serializeNode(root).asInput()) as Merge
-        assertEquals(root.parent1.parentHash, res.parent1.parentHash)
-        assertEquals(root.parent2.parentHash, res.parent2.parentHash)
+        assertEquals(root.parent1.hash, res.parent1.hash)
+        assertEquals(root.parent2.hash, res.parent2.hash)
         assertEquals(root.source, res.source)
         assertEquals(root.timestamp, res.timestamp)
         assertEquals(root.data.trxes[0].gid, res.data.trxes[0].gid)

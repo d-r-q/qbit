@@ -7,7 +7,10 @@ import qbit.api.system.DbUuid
 import qbit.ns.Namespace
 import qbit.platform.currentTimeMillis
 import qbit.platform.runBlocking
-import qbit.serialization.*
+import qbit.serialization.CommonNodesStorage
+import qbit.serialization.Leaf
+import qbit.serialization.NodeData
+import qbit.serialization.Root
 import qbit.storage.MemStorage
 import qbit.test.model.IntEntity
 import qbit.test.model.testsSerialModule
@@ -30,7 +33,7 @@ class ConnTest {
             val leaf =
                 Leaf(null, storedRoot, dbUuid, currentTimeMillis(), NodeData(arrayOf(Eav(Gid(0, 0), "any", "any"))))
             val storedLeaf = nodesStorage.store(leaf)
-            storage.add(Namespace("refs")["head"], storedLeaf.parentHash.bytes)
+            storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
             val conn = QConn(
                 testsSerialModule,
@@ -40,7 +43,7 @@ class ConnTest {
                 testSchemaFactorizer::factor
             )
 
-            val newLog = FakeTrxLog(storedLeaf.parentHash)
+            val newLog = FakeTrxLog(storedLeaf.hash)
             conn.update(conn.trxLog, newLog, EmptyDb)
 
             assertArrayEquals(newLog.hash.bytes, storage.load(Namespace("refs")["head"]))

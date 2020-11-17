@@ -55,21 +55,25 @@ class DbTest {
         val dbUuid = DbUuid(Iid(0, 1))
 
         val gids = Gid(eBrewer.id!!).nextGids()
-        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
-                testSchema.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
-                extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.parentHash to root)
+        val root = Root(
+            Hash(ByteArray(20)),
+            dbUuid,
+            currentTimeMillis(),
+            NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
+                    testSchema.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
+                    extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
+        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
 
         var db = TestIndexer(nodeResolver = nodeResolver).index(root)
 
         val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
-        nodes[n1.parentHash] = n1
+        nodes[n1.hash] = n1
 
         val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(mStonebreaker.toFacts().toList().toTypedArray()))
-        nodes[n2.parentHash] = n2
+        nodes[n2.hash] = n2
 
-        db = TestIndexer(baseDb = db, baseHash = root.parentHash, nodeResolver = nodeResolver).index(n2)
+        db = TestIndexer(baseDb = db, baseHash = root.hash, nodeResolver = nodeResolver).index(n2)
         assertNotNull(db.pull<Scientist>(eCodd.id!!))
         assertNotNull(db.pull<Scientist>(pChen.id!!))
         assertNotNull(db.pull<Scientist>(mStonebreaker.id!!))
@@ -80,18 +84,23 @@ class DbTest {
     fun `Indexer can index updates`() {
         val dbUuid = DbUuid(Iid(0, 1))
 
-        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.parentHash to root)
+        val root = Root(
+            Hash(ByteArray(20)),
+            dbUuid,
+            currentTimeMillis(),
+            NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray())
+        )
+        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
         var db = TestIndexer(nodeResolver = nodeResolver).index(root)
 
         val n1 = Leaf(Hash(byteArrayOf(1)), root, dbUuid, currentTimeMillis(), NodeData(pChen.toFacts().toList().toTypedArray()))
-        nodes[n1.parentHash] = n1
+        nodes[n1.hash] = n1
 
         val n2 = Leaf(Hash(byteArrayOf(2)), n1, dbUuid, currentTimeMillis(), NodeData(pChen.copy( externalId = 5).toFacts().toList().toTypedArray()))
-        nodes[n2.parentHash] = n2
+        nodes[n2.hash] = n2
 
-        db = TestIndexer(baseDb = db, baseHash = root.parentHash, nodeResolver = nodeResolver).index(n2)
+        db = TestIndexer(baseDb = db, baseHash = root.hash, nodeResolver = nodeResolver).index(n2)
         assertNotNull(db.query(attrIs(extId, 5)))
     }
 
@@ -100,10 +109,14 @@ class DbTest {
     fun `pull with fetch = Eager should fetch nullable refs`() {
         val dbUuid = DbUuid(Iid(0, 1))
 
-        val root = Root(Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData((extId.toFacts() + name.toFacts() + nicks.toFacts() + reviewer.toFacts() + country.toFacts() +
-                Countries.name.toFacts() + Countries.population.toFacts() +
-                eCodd.copy(reviewer = pChen).toFacts()).toTypedArray()))
-        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.parentHash to root)
+        val root = Root(
+            Hash(ByteArray(20)), dbUuid, currentTimeMillis(), NodeData(
+                (extId.toFacts() + name.toFacts() + nicks.toFacts() + reviewer.toFacts() + country.toFacts() +
+                        Countries.name.toFacts() + Countries.population.toFacts() +
+                        eCodd.copy(reviewer = pChen).toFacts()).toTypedArray()
+            )
+        )
+        val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
         val nodeResolver = mapNodeResolver(nodes)
         val db = TestIndexer(nodeResolver = nodeResolver).index(root)
         val pc = db.pull(Gid(eCodd.id!!), Scientist::class, Eager)!!

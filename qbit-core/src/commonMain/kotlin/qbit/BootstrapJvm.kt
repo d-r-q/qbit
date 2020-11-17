@@ -23,7 +23,7 @@ suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialMo
 
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = CommonNodesStorage(storage).store(root)
-    storage.add(Namespace("refs")["head"], storedRoot.parentHash.bytes)
+    storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
     return QConn(serialModule, dbUuid, storage, storedRoot, factor)
 }
 
