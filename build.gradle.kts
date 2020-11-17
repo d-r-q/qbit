@@ -31,7 +31,6 @@ subprojects {
 
     repositories {
         mavenCentral()
-        maven ("https://dl.bintray.com/kotlin/kotlin-eap")
         jcenter()
         maven { url = URI("https://kotlin.bintray.com/kotlinx") }
     }
@@ -40,7 +39,7 @@ subprojects {
         println("Enabling nodejs tests for ${project.name}")
 
         configure<NodeExtension> {
-            yarnVersion = "1.12.3"
+            yarnVersion = "1.22.10"
             workDir = file("${rootProject.buildDir}/nodejs")
             nodeModulesDir = file("${rootProject.projectDir}")
         }

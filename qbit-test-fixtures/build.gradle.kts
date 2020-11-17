@@ -10,13 +10,14 @@ kotlin {
             }
         }
     }
-    js("nodeJs")
+    js("nodeJs") {
+        nodejs()
+    }
     linuxX64("linux")
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(kotlin("stdlib-common"))
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlin_serialization_version")
 
@@ -26,19 +27,11 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                api(kotlin("stdlib-jdk8"))
-
                 implementation(kotlin("test-junit"))
-            }
-        }
-        val linuxMain by getting {
-            dependencies {
-                api(kotlin("stdlib"))
             }
         }
         val nodeJsMain by getting {
             dependencies {
-                api(kotlin("stdlib-js"))
                 implementation(kotlin("test-js"))
             }
         }

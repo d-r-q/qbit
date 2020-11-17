@@ -135,7 +135,7 @@ fun createBombWithNulls(
 
 val random = Random(1)
 
-fun randomString(count: Int, random: Random) = String(CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random(random) })
+fun randomString(count: Int, random: Random) = CharArray(count) { (('a'..'z').toList() + ('A'..'Z').toList() + ('0'..'9').toList()).random(random) }.concatToString()
 
 fun <T> List<T>.random(random: Random) = this[random.nextInt(this.size)]
 

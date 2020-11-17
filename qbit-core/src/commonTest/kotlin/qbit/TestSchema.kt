@@ -60,6 +60,7 @@ fun <R : Any?> attr(prop: KProperty1<*, R>) =
 class AttrDelegate<T : Any, R : Any?>(private val prop: KProperty1<*, R>) : ReadOnlyProperty<EntitySchema, Attr<T>> {
 
     override operator fun getValue(thisRef: EntitySchema, property: KProperty<*>): Attr<T> {
+        @Suppress("UNCHECKED_CAST")
         return schemaMap.getValue(thisRef.type.attrName(prop)) as Attr<T>
     }
 

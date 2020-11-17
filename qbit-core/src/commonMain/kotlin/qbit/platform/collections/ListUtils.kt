@@ -77,7 +77,7 @@ fun <E : Any> merge(arr1: ArrayList<E>, arr2: ArrayList<E>, cmp: Comparator<E>):
 }
 
 fun <E : Any> replaceAll(arr: ArrayList<E>, el: List<E>, vararg indexes: Int): ArrayList<E> {
-    assert { indexes.toSet().size == indexes.max()!! - indexes.min()!! + 1 }
+    assert { indexes.toSet().size == indexes.maxOrNull()!! - indexes.minOrNull()!! + 1 }
     val new = ArrayList(arr)
     indexes.sortedDescending().forEach { idx ->
         new.removeAt(idx)

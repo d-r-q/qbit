@@ -197,7 +197,7 @@ abstract class Hasher(val chunkSize: Int, val digestSize: Int) {
     fun digest(): Hash = Hash(ByteArray(digestSize).also { digestOut(it) })
 }
 
-inline class Hash(val bytes: ByteArray)
+class Hash(val bytes: ByteArray)
 
 fun ByteArray.hash(algo: HasherFactory): Hash = algo.digest(this)
 

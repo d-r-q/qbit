@@ -37,7 +37,6 @@ object SimpleSerialization : Serialization {
     override fun serializeNode(parent1: Node<Hash>, parent2: Node<Hash>, source: DbUuid, timestamp: Long, data: NodeData) =
         serialize(parent1, parent2, source, timestamp, data)
 
-    @OptIn(ExperimentalIoApi::class)
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
@@ -63,7 +62,6 @@ object SimpleSerialization : Serialization {
 
 // Serialization
 
-@OptIn(ExperimentalIoApi::class)
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         if (a as? Number != null) {
@@ -90,9 +88,8 @@ internal fun serialize(vararg anys: Any): ByteArray {
 private fun byteArray(str: String): ByteArray =
         byteArray(serializeLong(str.encodeToUtf8().size.toLong()), str.encodeToUtf8())
 
-@OptIn(ExperimentalIoApi::class)
 private fun encodeToUtf8(c: Char): ByteArray =
-        String(charArrayOf(c)).encodeToUtf8()
+        charArrayOf(c).concatToString().encodeToUtf8()
 
 private val coder = HashMap<Char, ByteArray>()
 
@@ -118,11 +115,10 @@ internal fun byteArray(vararg parts: Any): ByteArray {
     return res
 }
 
-@OptIn(ExperimentalIoApi::class)
 internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
-    is Char -> String(charArrayOf(v)).encodeToUtf8().size
+    is Char -> charArrayOf(v).concatToString().encodeToUtf8().size
     else -> throw AssertionError("Should never happen, v is $v")
 }
 

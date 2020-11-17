@@ -84,7 +84,7 @@ class BootstrapTest {
         runBlocking {
             val db = newDb().db()
             val theInstance = db.query<Instance>(attrIs(Instances.iid, 1)).first()
-            val actualMaxEidValue = db.queryGids().map { it.eid }.max()!!
+            val actualMaxEidValue = db.queryGids().map { it.eid }.maxOrNull()!!
             assertTrue(
                 theInstance.nextEid > actualMaxEidValue,
                 "Next eid value ${theInstance.nextEid} should be greater, than actual max eid value $actualMaxEidValue"

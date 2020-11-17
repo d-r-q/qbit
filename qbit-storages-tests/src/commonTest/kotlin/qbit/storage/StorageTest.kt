@@ -56,7 +56,6 @@ abstract class StorageTest {
     @Test
     fun testCopyNsConstructor() {
         runBlocking {
-            val testNs = ns("nodes")("test")
 
             val origin = MemStorage()
             // qbit(origin, testsSerialModule)
