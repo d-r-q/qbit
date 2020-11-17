@@ -116,7 +116,7 @@ object Hex {
         return out
     }
 
-    fun encode(src: ByteArray): String = encodeBase(src,DIGITS_LOWER)
+    fun encode(src: ByteArray): String = encodeBase(src, DIGITS_LOWER)
     fun encodeLower(src: ByteArray): String = encodeBase(src, DIGITS_LOWER)
     fun encodeUpper(src: ByteArray): String = encodeBase(src, DIGITS_UPPER)
 
@@ -131,8 +131,11 @@ object Hex {
 
 internal fun Int.rotateLeft(bits: Int): Int = ((this shl bits) or (this ushr (32 - bits)))
 
-internal fun arraycopy(src: ByteArray, srcPos: Int, dst: ByteArray, dstPos: Int, count: Int) = src.copyInto(dst, dstPos, srcPos, srcPos + count)
-internal fun arraycopy(src: IntArray, srcPos: Int, dst: IntArray, dstPos: Int, count: Int) = src.copyInto(dst, dstPos, srcPos, srcPos + count)
+internal fun arraycopy(src: ByteArray, srcPos: Int, dst: ByteArray, dstPos: Int, count: Int) =
+    src.copyInto(dst, dstPos, srcPos, srcPos + count)
+
+internal fun arraycopy(src: IntArray, srcPos: Int, dst: IntArray, dstPos: Int, count: Int) =
+    src.copyInto(dst, dstPos, srcPos, srcPos + count)
 
 internal fun ByteArray.readU8(o: Int): Int = this[o].toInt() and 0xFF
 internal fun ByteArray.readS32_be(o: Int): Int =
@@ -197,7 +200,7 @@ abstract class Hasher(val chunkSize: Int, val digestSize: Int) {
     fun digest(): Hash = Hash(ByteArray(digestSize).also { digestOut(it) })
 }
 
-inline class Hash(val bytes: ByteArray)
+class Hash(val bytes: ByteArray)
 
 fun ByteArray.hash(algo: HasherFactory): Hash = algo.digest(this)
 

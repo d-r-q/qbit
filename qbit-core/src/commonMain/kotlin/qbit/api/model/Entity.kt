@@ -18,7 +18,7 @@ abstract class Entity internal constructor() {
     abstract val keys: Set<Attr<Any>>
 
     operator fun <T : Any> get(key: Attr<T>): T = tryGet(key)
-            ?: throw NoSuchElementException("Entity $this does not contain value for ${key.name}")
+        ?: throw NoSuchElementException("Entity $this does not contain value for ${key.name}")
 
     abstract fun <T : Any> tryGet(key: Attr<T>): T?
 

@@ -2,10 +2,10 @@ package q5
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
+import q5.Trxes.dateTime
 import qbit.api.db.*
 import qbit.attrName
 import qbit.platform.runBlocking
-import q5.Trxes.dateTime
 import qbit.qbit
 import qbit.schema.schema
 import qbit.storage.MemStorage
@@ -20,7 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-val nskTz = ZoneId.of("Asia/Novosibirsk")
+val nskTz: ZoneId = ZoneId.of("Asia/Novosibirsk")
 const val datePattern = "dd.MM.yyyy"
 const val timePattern = "HH:mm"
 
@@ -31,7 +31,15 @@ val dateTimeFormatV1 = SimpleDateFormat("yy.MM.dd HH:mm")
 data class Category(val id: Long?, val name: String)
 
 @Serializable
-data class Trx(val id: Long?, val sum: Long, val dateTime: Long, val category: Category, val comment: String, val source: String, val device: String)
+data class Trx(
+    val id: Long?,
+    val sum: Long,
+    val dateTime: Long,
+    val category: Category,
+    val comment: String,
+    val source: String,
+    val device: String
+)
 
 object Trxes {
 
@@ -44,7 +52,9 @@ object Cats {
 
     val name = schemaMap.getValue(
         Category::class.attrName(
-            Category::name))
+            Category::name
+        )
+    )
 
 }
 
@@ -60,7 +70,7 @@ val q5Schema = schema(q5SerialModule) {
     entity(Trx::class)
 }
 
-val schemaMap = q5Schema.map { it.name to it}.toMap()
+val schemaMap = q5Schema.map { it.name to it }.toMap()
 
 class Q5Test {
 
@@ -79,8 +89,8 @@ class Q5Test {
             q5Schema.forEach { conn.persist(it) }
             val categories = HashMap<String, Category>()
 
-            dataFiles
-                .filter { it.isFile() }
+            dataFiles!!
+                .filter { it.isFile }
                 .forEachIndexed { idx, file ->
                     when {
                         idx % 10 == 0 -> loadInTrxPerLine(file, categories, conn)
@@ -90,7 +100,7 @@ class Q5Test {
                     var lines = 0
                     var device = ""
                     val fileDate = ZonedDateTime.parse(
-                        file.getName().substringBefore("-") + "010000+0700",
+                        file.name.substringBefore("-") + "010000+0700",
                         DateTimeFormatter.ofPattern("yyMMddHHmm[X]")
                     )
                     val nextDate = fileDate.plusMonths(1)
@@ -105,8 +115,11 @@ class Q5Test {
                             }
                             device = trx.device
                             assertNotNull(
-                                conn.db().query<Trx>(attrIs(dateTime, trx.dateTime), attrIs(
-                                        Trxes.device, trx.device))
+                                conn.db().query<Trx>(
+                                    attrIs(dateTime, trx.dateTime), attrIs(
+                                        Trxes.device, trx.device
+                                    )
+                                )
                                     .firstOrNull()
                             )
                             assertNotNull(conn.db().query<Category>(attrIs(Cats.name, trx.category.name)).firstOrNull())
@@ -217,8 +230,8 @@ class Q5Test {
         val date = if (fields.isNotEmpty()) fields[0] else return null
         val time = if (fields.size > 1) fields[1] else return null
         val dateTime =
-                if (v1) dateTimeFormatV1.parse("$date $time").getTime()
-                else dateTimeFormat.parse("$date $time").getTime()
+            if (v1) dateTimeFormatV1.parse("$date $time").time
+            else dateTimeFormat.parse("$date $time").time
         val sum = if (fields.size > 2) fields[2] else return null
         val cat = if (fields.size > 3) fields[3] else return null
         var catSe = categories[cat]

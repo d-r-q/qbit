@@ -1,14 +1,16 @@
 package qbit.factoring
 
-import kotlinx.serialization.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.CompositeEncoder
+import kotlinx.serialization.encoding.Encoder
 
 
 abstract class StubEncoder : Encoder, CompositeEncoder {
 
-    override fun beginStructure(
-        descriptor: SerialDescriptor,
-        vararg typeSerializers: KSerializer<*>
-    ): CompositeEncoder {
+    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         return this
     }
 
@@ -56,10 +58,6 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
         TODO("Not yet implemented")
     }
 
-    override fun encodeUnit() {
-        TODO("Not yet implemented")
-    }
-
     override fun encodeBooleanElement(descriptor: SerialDescriptor, index: Int, value: Boolean) {
         TODO("Not yet implemented")
     }
@@ -88,6 +86,18 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
         TODO("Not yet implemented")
     }
 
+    override fun encodeShortElement(descriptor: SerialDescriptor, index: Int, value: Short) {
+        TODO("Not yet implemented")
+    }
+
+    override fun encodeStringElement(descriptor: SerialDescriptor, index: Int, value: String) {
+        TODO("Not yet implemented")
+    }
+
+    override fun endStructure(descriptor: SerialDescriptor) {
+    }
+
+    @ExperimentalSerializationApi
     override fun <T : Any> encodeNullableSerializableElement(
         descriptor: SerialDescriptor,
         index: Int,
@@ -95,18 +105,18 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
         value: T?
     ) {
         if (value != null) {
-             when (descriptor.getElementDescriptor(index).kind) {
-                 PrimitiveKind.BOOLEAN -> encodeBooleanElement(descriptor, index, value as Boolean)
-                 PrimitiveKind.BYTE -> encodeByteElement(descriptor, index, value as Byte)
-                 PrimitiveKind.CHAR -> encodeCharElement(descriptor, index, value as Char)
-                 PrimitiveKind.SHORT -> encodeShortElement(descriptor, index, value as Short)
-                 PrimitiveKind.INT -> encodeIntElement(descriptor, index, value as Int)
-                 PrimitiveKind.LONG -> encodeLongElement(descriptor, index, value as Long)
-                 PrimitiveKind.FLOAT -> encodeFloatElement(descriptor, index, value as Float)
-                 PrimitiveKind.DOUBLE -> encodeDoubleElement(descriptor, index, value as Double)
-                 PrimitiveKind.STRING -> encodeStringElement(descriptor, index, value as String)
-                 else -> encodeSerializableElement(descriptor, index, serializer, value)
-             }
+            when (descriptor.getElementDescriptor(index).kind) {
+                PrimitiveKind.BOOLEAN -> encodeBooleanElement(descriptor, index, value as Boolean)
+                PrimitiveKind.BYTE -> encodeByteElement(descriptor, index, value as Byte)
+                PrimitiveKind.CHAR -> encodeCharElement(descriptor, index, value as Char)
+                PrimitiveKind.SHORT -> encodeShortElement(descriptor, index, value as Short)
+                PrimitiveKind.INT -> encodeIntElement(descriptor, index, value as Int)
+                PrimitiveKind.LONG -> encodeLongElement(descriptor, index, value as Long)
+                PrimitiveKind.FLOAT -> encodeFloatElement(descriptor, index, value as Float)
+                PrimitiveKind.DOUBLE -> encodeDoubleElement(descriptor, index, value as Double)
+                PrimitiveKind.STRING -> encodeStringElement(descriptor, index, value as String)
+                else -> encodeSerializableElement(descriptor, index, serializer, value)
+            }
         }
     }
 
@@ -116,22 +126,6 @@ abstract class StubEncoder : Encoder, CompositeEncoder {
         serializer: SerializationStrategy<T>,
         value: T
     ) {
-        TODO("Not yet implemented")
-    }
-
-    override fun encodeShortElement(descriptor: SerialDescriptor, index: Int, value: Short) {
-        TODO("Not yet implemented")
-    }
-
-    override fun encodeStringElement(descriptor: SerialDescriptor, index: Int, value: String) {
-        TODO("Not yet implemented")
-    }
-
-    override fun encodeUnitElement(descriptor: SerialDescriptor, index: Int) {
-        TODO("Not yet implemented")
-    }
-
-    override fun endStructure(descriptor: SerialDescriptor) {
     }
 
 }

@@ -11,7 +11,7 @@ import qbit.platform.collections.subList
 typealias RawEntity = Pair<Gid, List<Eav>>
 
 fun Index(entities: List<RawEntity>): Index =
-        Index().add(entities)
+    Index().add(entities)
 
 fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
 
@@ -23,9 +23,9 @@ fun attrValuePattern(attr: String, value: Any) = composeComparable(attrPattern(a
 
 internal fun composeComparable(vararg cmps: (Eav) -> Int) = { fact: Eav ->
     cmps.asSequence()
-            .map { it(fact) }
-            .dropWhile { it == 0 }
-            .firstOrNull() ?: 0
+        .map { it(fact) }
+        .dropWhile { it == 0 }
+        .firstOrNull() ?: 0
 }
 
 internal val aveCmp = Comparator<Eav> { o1, o2 ->
@@ -54,12 +54,12 @@ class Index(
 ) {
 
     fun addFacts(facts: List<Eav>): Index =
-            addFacts(facts as Iterable<Eav>)
+        addFacts(facts as Iterable<Eav>)
 
     fun addFacts(facts: Iterable<Eav>): Index {
         val entities = facts
-                .groupBy { it.gid }
-                .map { it.key to it.value }
+            .groupBy { it.gid }
+            .map { it.key to it.value }
         return add(entities)
     }
 
@@ -119,11 +119,11 @@ class Index(
     }
 
     fun entityById(eid: Gid): Map<String, List<Any>>? =
-            entities[eid]?.second
-                    ?.groupBy { it.attr }
-                    ?.mapValues {
-                        it.value.map { f -> f.value }
-                    }
+        entities[eid]?.second
+            ?.groupBy { it.attr }
+            ?.mapValues {
+                it.value.map { f -> f.value }
+            }
 
     fun eidsByPred(pred: QueryPred): Sequence<Gid> {
         val fromIdx = indices.firstMatchIdx {
@@ -137,9 +137,9 @@ class Index(
             return emptySequence()
         }
         return indices.subList(fromIdx)
-                .asSequence()
-                .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
-                .map { it.gid }
+            .asSequence()
+            .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
+            .map { it.gid }
     }
 
 }

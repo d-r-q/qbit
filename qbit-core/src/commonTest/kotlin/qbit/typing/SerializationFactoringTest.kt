@@ -1,9 +1,9 @@
 package qbit.typing
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.modules.SerialModule
-import kotlinx.serialization.modules.SerialModuleCollector
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.SerializersModuleCollector
 import qbit.GidEntity
 import qbit.api.tombstone
 import qbit.factoring.serializatoin.KSFactorizer
@@ -29,9 +29,9 @@ private val attrsMap = schemaAttrs + (tombstone.name to tombstone)
 class SerializationFactoringTest :
     CommonFactoringTest(KSFactorizer(qbitCoreTestsSerialModule)::factor, attrsMap)
 
-fun SerialModule.serializers() =
+fun SerializersModule.serializers() =
     HashMap<KClass<*>, KSerializer<*>>().apply {
-        this@serializers.dumpTo(object : SerialModuleCollector {
+        this@serializers.dumpTo(object : SerializersModuleCollector {
             override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
                 this@apply[kClass] = serializer
             }
@@ -42,6 +42,12 @@ fun SerialModule.serializers() =
                 actualSerializer: KSerializer<Sub>
             ) {
                 this@apply[baseClass] = actualSerializer
+            }
+
+            override fun <Base : Any> polymorphicDefault(
+                baseClass: KClass<Base>,
+                defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+            ) {
             }
         })
     }

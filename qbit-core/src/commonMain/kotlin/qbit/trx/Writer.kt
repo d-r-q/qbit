@@ -5,11 +5,7 @@ import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.platform.currentTimeMillis
-import qbit.serialization.Leaf
-import qbit.serialization.Node
-import qbit.serialization.NodeData
-import qbit.serialization.NodeVal
-import qbit.serialization.NodesStorage
+import qbit.serialization.*
 
 class Writer(private val storage: NodesStorage, private val dbUuid: DbUuid) {
 

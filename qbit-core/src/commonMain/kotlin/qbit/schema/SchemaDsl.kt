@@ -1,20 +1,20 @@
 package qbit.schema
 
-import kotlinx.serialization.*
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.model.*
 import qbit.factoring.serializatoin.AttrName
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
-fun schema(serialModule: SerialModule, body: SchemaBuilder.() -> Unit): List<Attr<Any>> {
+fun schema(serialModule: SerializersModule, body: SchemaBuilder.() -> Unit): List<Attr<Any>> {
     val scb = SchemaBuilder(serialModule)
     scb.body()
     return scb.attrs
 }
 
-class SchemaBuilder(private val serialModule: SerialModule) {
+class SchemaBuilder(private val serialModule: SerializersModule) {
 
     internal val attrs: MutableList<Attr<Any>> = ArrayList()
 
@@ -42,7 +42,7 @@ class EntityBuilder<T : Any>(private val descr: SerialDescriptor) {
     }
 
     private fun uniqueAttr(prop: KProperty1<T, *>) {
-        val (idx, _) = descr.elementNames()
+        val (idx, _) = descr.elementNames
             .withIndex().firstOrNull { (_, name) -> name == prop.name }
             ?: throw QBitException("Cannot find attr for ${prop.name} in $descr")
         uniqueProps.add(AttrName(descr, idx).asString())
@@ -51,14 +51,14 @@ class EntityBuilder<T : Any>(private val descr: SerialDescriptor) {
 }
 
 fun schemaFor(rootDesc: SerialDescriptor, unique: Set<String> = emptySet()): List<Attr<Any>> {
-    return rootDesc.elementDescriptors()
+    return rootDesc.elementDescriptors
         .withIndex()
         .filter { rootDesc.getElementName(it.index) !in setOf("id", "gid") }
         .map { (idx, desc) ->
-        val dataType = DataType.of(desc)
-        val attr = AttrName(rootDesc, idx).asString()
-        Attr<Any>(null, attr, dataType.code, attr in unique, dataType.isList())
-    }
+            val dataType = DataType.of(desc)
+            val attr = AttrName(rootDesc, idx).asString()
+            Attr<Any>(null, attr, dataType.code, attr in unique, dataType.isList())
+        }
 }
 
 private fun DataType.Companion.of(desc: SerialDescriptor): DataType<*> =

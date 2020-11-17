@@ -60,6 +60,7 @@ fun <R : Any?> attr(prop: KProperty1<*, R>) =
 class AttrDelegate<T : Any, R : Any?>(private val prop: KProperty1<*, R>) : ReadOnlyProperty<EntitySchema, Attr<T>> {
 
     override operator fun getValue(thisRef: EntitySchema, property: KProperty<*>): Attr<T> {
+        @Suppress("UNCHECKED_CAST")
         return schemaMap.getValue(thisRef.type.attrName(prop)) as Attr<T>
     }
 
@@ -189,6 +190,7 @@ fun KClass<*>.attrName(prop: KProperty1<*, *>): String {
         ?: throw IllegalArgumentException("qbit entities should be represented but usual classes with simpleName, got: $this")
     return AttrName(className, prop.name).asString()
 }
+
 val uk = Country(gids.next().value(), "United Kingdom", 63_000_000)
 val tw = Country(gids.next().value(), "Taiwan", 23_000_000)
 val us = Country(gids.next().value(), "USA", 328_000_000)

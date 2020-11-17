@@ -2,7 +2,7 @@ package qbit.index
 
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.Attrs.list
 import qbit.api.Attrs.name
 import qbit.api.Attrs.type
@@ -22,7 +22,7 @@ import kotlin.reflect.KClass
 
 class IndexDb(
     internal val index: Index,
-    private val serialModule: SerialModule
+    private val serialModule: SerializersModule
 ) : InternalDb() {
 
     private val schema = loadAttrs(index)
@@ -95,36 +95,36 @@ class IndexDb(
         val seenEids = hashMapOf<Gid, Array<Boolean>>()
 
         return base // iterate candidates and check that candidate matches filters
-                .filter { cEid ->
-                    val filtersSeenEid = seenEids.getOrPut(cEid, arrayOfFalse)
+            .filter { cEid ->
+                val filtersSeenEid = seenEids.getOrPut(cEid, arrayOfFalse)
 
-                    if (filtersSeenEid.all { it }) {
-                        // the eid already has been returned, so skip duplicate
-                        return@filter false
+                if (filtersSeenEid.all { it }) {
+                    // the eid already has been returned, so skip duplicate
+                    return@filter false
+                }
+
+                // seek all filters for the eid
+                filtersSeenEid
+                    .take(filters.size)
+                    .withIndex()
+                    .filterNot { f -> f.value } // for filters for which the eid was not seen yet...
+                    .forEach { f ->
+                        // seek it for the eid
+                        val matches = filters[f.index].asSequence() // "enrich" iterator with takeWhile
+                            .onEach { fEid ->
+                                // remember what we saw in process of...
+                                seenEids.getOrPut(fEid, arrayOfFalse)[f.index] = true
+                            }
+                            .any { fEid -> fEid == cEid } // searching of the eid
+
+                        // if the eid has been found, then it has been seen in the filter
+                        seenEids.getValue(cEid)[f.index] = matches
                     }
 
-                    // seek all filters for the eid
-                    filtersSeenEid
-                            .take(filters.size)
-                            .withIndex()
-                            .filterNot { f -> f.value } // for filters for which the eid was not seen yet...
-                            .forEach { f ->
-                                // seek it for the eid
-                                val matches = filters[f.index].asSequence() // "enrich" iterator with takeWhile
-                                        .onEach { fEid ->
-                                            // remember what we saw in process of...
-                                            seenEids.getOrPut(fEid, arrayOfFalse)[f.index] = true
-                                        }
-                                        .any { fEid -> fEid == cEid } // searching of the eid
-
-                                // if the eid has been found, then it has been seen in the filter
-                                seenEids.getValue(cEid)[f.index] = matches
-                            }
-
-                    // candidate is matches if it has been seen in all filters
-                    filtersSeenEid[filtersSeenEid.size - 1] = true // mark, that eid was seen for base sequence
-                    filtersSeenEid.all { it }
-                }
+                // candidate is matches if it has been seen in all filters
+                filtersSeenEid[filtersSeenEid.size - 1] = true // mark, that eid was seen for base sequence
+                filtersSeenEid.all { it }
+            }
     }
 
     override fun attr(attr: String): Attr<Any>? = schema[attr]
@@ -133,17 +133,18 @@ class IndexDb(
 
         private fun loadAttrs(index: Index): Map<String, Attr<Any>> {
             val attrEids = index.eidsByPred(hasAttr(name))
+
             @Suppress("UNCHECKED_CAST")
             val attrFacts = attrEids
-                    .map {
-                        val e: Map<String, List<Any>> = index.entityById(it)!!
-                        val name = e.getValue(name.name)[0] as String
-                        val type = (e.getValue(type.name)[0] as? Long)?.toByte() ?: e.getValue(type.name)[0] as Byte
-                        val unique = e[unique.name]?.firstOrNull() as? Boolean ?: false
-                        val list = e[list.name]?.firstOrNull() as? Boolean ?: false
-                        val attr = Attr<Any>(it, name, type, unique, list)
-                        (name to attr)
-                    }
+                .map {
+                    val e: Map<String, List<Any>> = index.entityById(it)!!
+                    val name = e.getValue(name.name)[0] as String
+                    val type = (e.getValue(type.name)[0] as? Long)?.toByte() ?: e.getValue(type.name)[0] as Byte
+                    val unique = e[unique.name]?.firstOrNull() as? Boolean ?: false
+                    val list = e[list.name]?.firstOrNull() as? Boolean ?: false
+                    val attr = Attr<Any>(it, name, type, unique, list)
+                    (name to attr)
+                }
             return attrFacts.toMap()
         }
     }

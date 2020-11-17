@@ -31,7 +31,7 @@ class QTombstone(override val gid: Gid) : Tombstone() {
         get() = emptySet()
 
     override fun <T : Any> tryGet(key: Attr<T>): T? =
-            null
+        null
 
     override fun toString(): String {
         return "Tombstone(gid = $gid)"
@@ -70,7 +70,8 @@ class DetachedEntity(eid: Gid, map: Map<Attr<Any>, Any>) : QEntity(eid) {
 
 }
 
-class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) : StoredEntity() {
+class QStoredEntity(override val gid: Gid, map: Map<Attr<Any>, Any>, val resolveGid: (Gid) -> StoredEntity?) :
+    StoredEntity() {
 
     private val delegate = MapEntity(gid, map)
 

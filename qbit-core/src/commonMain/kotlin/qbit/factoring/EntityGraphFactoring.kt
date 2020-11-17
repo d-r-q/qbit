@@ -10,7 +10,7 @@ typealias Factor = (Any, (String) -> Attr<*>?, Iterator<Gid>) -> EntityGraphFact
 class EntityGraphFactoring(val entityFacts: IdentityMap<Any, List<Eav>>) : Iterable<Eav> {
 
     val size: Int =
-            entityFacts.values.sumBy { it.size }
+        entityFacts.values.sumBy { it.size }
 
     override fun iterator(): Iterator<Eav> {
         return entityFacts.values.flatten().iterator()

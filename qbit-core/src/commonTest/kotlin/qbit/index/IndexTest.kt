@@ -53,13 +53,16 @@ class IndexTest {
     @Test
     fun testEntitiesByAttrVal() {
         val idx = Index()
-                .addFacts(listOf(f(0, extId, 0),
-                        f(1, extId, 1),
-                        f(0, extId, 1),
-                        f(0, userName, "baz"),
-                        f(1, userName, "bar"),
-                        f(2, userName, "bar")
-                ))
+            .addFacts(
+                listOf(
+                    f(0, extId, 0),
+                    f(1, extId, 1),
+                    f(0, extId, 1),
+                    f(0, userName, "baz"),
+                    f(1, userName, "bar"),
+                    f(2, userName, "bar")
+                )
+            )
 
         var lst = idx.eidsByPred(AttrValuePred(extId.name, 1))
         assertEquals(2, lst.count())
@@ -80,12 +83,15 @@ class IndexTest {
     @Test
     fun testEntitiesByAttr() {
         val idx = Index()
-                .addFacts(listOf(f(0, extId, 0),
-                        f(1, extId, 1),
-                        f(0, userName, "bar"),
-                        f(1, userName, "bar"),
-                        f(2, userName, "baz")
-                ))
+            .addFacts(
+                listOf(
+                    f(0, extId, 0),
+                    f(1, extId, 1),
+                    f(0, userName, "bar"),
+                    f(1, userName, "bar"),
+                    f(2, userName, "baz")
+                )
+            )
 
         assertEquals(2, idx.eidsByPred(AttrPred(extId.name)).count())
         assertEquals(3, idx.eidsByPred(AttrPred(userName.name)).count())
@@ -102,15 +108,25 @@ class IndexTest {
         val _attr3 = "/attr3"
 
         val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
-        val n2 = Leaf(nullHash, toHashed(n1), dbUuid, time1 + 1,
-                NodeData(arrayOf(
-                        Eav(eid, _attr1, 1),
-                        Eav(eid, _attr2, 0))))
-        val n3 = Leaf(nullHash, toHashed(n2), dbUuid, time1 + 2,
-                NodeData(arrayOf(
-                        Eav(eid, _attr1, 2),
-                        Eav(eid, _attr2, 1),
-                        Eav(eid, _attr3, 0))))
+        val n2 = Leaf(
+            nullHash, toHashed(n1), dbUuid, time1 + 1,
+            NodeData(
+                arrayOf(
+                    Eav(eid, _attr1, 1),
+                    Eav(eid, _attr2, 0)
+                )
+            )
+        )
+        val n3 = Leaf(
+            nullHash, toHashed(n2), dbUuid, time1 + 2,
+            NodeData(
+                arrayOf(
+                    Eav(eid, _attr1, 2),
+                    Eav(eid, _attr2, 1),
+                    Eav(eid, _attr3, 0)
+                )
+            )
+        )
 
         val index = TestIndexer().index(n3).index
         assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
@@ -137,23 +153,38 @@ class IndexTest {
         val e2 = Entity(eid1, _date eq 2L)
         val e3 = Entity(eid2, _date eq 3L)
         val e4 = Entity(eid3, _date eq 4L)
-        val root = Root(Hash(ByteArray(20)), dbUuid, time1, NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray()))
+        val root = Root(
+            Hash(ByteArray(20)),
+            dbUuid,
+            time1,
+            NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray())
+        )
         val index = TestIndexer().index(root).index
 
         val vRes = index.eidsByPred(attrIs(_date, 2L))
         assertEquals(1, vRes.count())
         assertEquals(eid1, vRes.first())
 
-        assertArrayEquals(arrayOf(eid0, eid1, eid2),
-                index.eidsByPred(attrIn(_date, 1L, 3L)).toList().toTypedArray())
-        assertArrayEquals(arrayOf(eid0, eid1, eid2, eid3),
-                index.eidsByPred(attrIn(_date, 0L, 5L)).toList().toTypedArray())
-        assertArrayEquals(arrayOf(eid1, eid2),
-                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
-        assertArrayEquals(arrayOf(eid0, eid1),
-                index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray())
-        assertArrayEquals(arrayOf(eid1, eid2),
-                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray())
+        assertArrayEquals(
+            arrayOf(eid0, eid1, eid2),
+            index.eidsByPred(attrIn(_date, 1L, 3L)).toList().toTypedArray()
+        )
+        assertArrayEquals(
+            arrayOf(eid0, eid1, eid2, eid3),
+            index.eidsByPred(attrIn(_date, 0L, 5L)).toList().toTypedArray()
+        )
+        assertArrayEquals(
+            arrayOf(eid1, eid2),
+            index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
+        )
+        assertArrayEquals(
+            arrayOf(eid0, eid1),
+            index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray()
+        )
+        assertArrayEquals(
+            arrayOf(eid1, eid2),
+            index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
+        )
     }
 
 /*
@@ -177,9 +208,12 @@ class IndexTest {
     @Test
     fun `Test putting tombstone into index should filter all facts of corresponding entity`() {
         val deletedEntityGid = Gid(0, 0)
-        val idx = Index(listOf(
-            deletedEntityGid to listOf(Eav(deletedEntityGid, "any", "any")),
-                Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))))
+        val idx = Index(
+            listOf(
+                deletedEntityGid to listOf(Eav(deletedEntityGid, "any", "any")),
+                Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))
+            )
+        )
         val filtered = idx.addFacts(listOf(Eav(deletedEntityGid, qbit.api.tombstone.name, true)))
         assertEquals(1, filtered.entities.size)
         assertEquals(2, filtered.indices.size)

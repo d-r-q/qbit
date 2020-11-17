@@ -1,6 +1,6 @@
 package qbit
 
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.plus
 import qbit.api.QBitException
 import qbit.api.db.Conn
@@ -63,17 +63,18 @@ val identityNodeResolver: (Node<Hash>) -> NodeVal<Hash>? = { it as? NodeVal<Hash
 fun mapNodeResolver(map: Map<Hash, NodeVal<Hash>>): (Node<Hash>) -> NodeVal<Hash>? = { n -> map[n.hash] }
 
 internal fun TestIndexer(
-    serialModule: SerialModule = testsSerialModule,
+    serialModule: SerializersModule = testsSerialModule,
     baseDb: IndexDb? = null,
     baseHash: Hash? = null,
-    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver) =
+    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver
+) =
     Indexer(serialModule, baseDb, baseHash, nodeResolver)
 
 inline fun <reified E : Throwable> assertThrows(body: () -> Unit) {
     try {
         body()
         fail("${E::class} exception expected")
-    } catch (e : Throwable) {
+    } catch (e: Throwable) {
         if (e !is E) {
             throw e
         }
@@ -105,11 +106,18 @@ val types: Map<KClass<*>, DataType<*>> = mapOf(
 )
 
 fun Entity(gid: Gid, vararg entries: Any): Entity {
-    return DetachedEntity(gid, entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap())
+    return DetachedEntity(
+        gid,
+        entries.filterIsInstance<AttrValue<Attr<Any>, Any>>().map { it.attr to entity2gid(it.value) }.toMap()
+    )
 }
 
 fun AttachedEntity(gid: Gid, entries: Map<Attr<Any>, Any>, resolveGid: (Gid) -> StoredEntity?): StoredEntity {
-    return QStoredEntity(gid, entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value }, resolveGid)
+    return QStoredEntity(
+        gid,
+        entries.toMap().mapValues { if (it.value is Entity) (it.value as Entity).gid else it.value },
+        resolveGid
+    )
 }
 
 internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: Any): InternalDb {

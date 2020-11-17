@@ -7,13 +7,14 @@ kotlin {
             }
         }
     }
-    js("nodeJs")
+    js("nodeJs") {
+        nodejs()
+    }
     linuxX64("linux")
 
     sourceSets {
         val commonTest by getting {
             dependencies {
-                implementation(kotlin("stdlib-common"))
                 implementation(project(":qbit-core"))
                 implementation(project(":qbit-test-fixtures"))
 
@@ -25,11 +26,6 @@ kotlin {
             dependencies {
                 implementation(kotlin("test-junit"))
                 implementation(project(":qbit-fss"))
-            }
-        }
-        val linuxTest by getting {
-            dependencies {
-                api(kotlin("stdlib"))
             }
         }
         val nodeJsTest by getting {

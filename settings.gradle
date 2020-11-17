@@ -2,6 +2,7 @@ pluginManagement {
     resolutionStrategy {
         eachPlugin {
             if (requested.id.id == "kotlin-multiplatform") {
+                def kotlin_version = System.properties.get('kotlin_version')
                 useVersion kotlin_version
                 useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
             }
@@ -10,10 +11,8 @@ pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
-        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+        jcenter()
     }
 }
 rootProject.name = 'qbit'
 include ':qbit-test-fixtures', ':qbit-core', ':qbit-fss', ':qbit-http-storages', ':qbit-storages-tests'
-
-enableFeaturePreview('GRADLE_METADATA')

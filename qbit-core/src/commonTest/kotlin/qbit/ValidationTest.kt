@@ -19,7 +19,8 @@ class ValidationTest {
     @Test
     fun `Addition of unique attribute value with different gid should lead to QbitException`() {
         assertFailsWith<QBitException> {
-            val db = dbOf(Gid(0, 0).nextGids(), *(bootstrapSchema.values + testSchema).toTypedArray()).with(eCodd.toFacts())
+            val db =
+                dbOf(Gid(0, 0).nextGids(), *(bootstrapSchema.values + testSchema).toTypedArray()).with(eCodd.toFacts())
             validate(db, listOf(Eav(Gid(pChen.id!!), extId, eCodd.externalId)))
         }
     }
@@ -27,7 +28,10 @@ class ValidationTest {
     @JsName("Subsequent_storing_of_unique_value_for_the_same_entity_should_not_be_treated_as_uniqueness_violation")
     @Test
     fun `Subsequent storing of unique value for the same entity should not be treated as uniqueness violation`() {
-        val db = dbOf(Gid(0, firstInstanceEid).nextGids(), *(bootstrapSchema.values + testSchema).toTypedArray()).with(eCodd.toFacts())
+        val db = dbOf(
+            Gid(0, firstInstanceEid).nextGids(),
+            *(bootstrapSchema.values + testSchema).toTypedArray()
+        ).with(eCodd.toFacts())
         validate(db, listOf(Eav(Gid(eCodd.id!!), extId, eCodd.externalId)))
     }
 
@@ -43,8 +47,12 @@ class ValidationTest {
         assertFailsWith<QBitException> {
             val attr = Attr<String>("scalar", true)
             val db = dbOf(Gid(0, 0).nextGids(), attr)
-            validate(db, listOf(Eav(Gid(0, 1), attr, "scalar1"),
-                    Eav(Gid(0, 1), attr, "scalar2")))
+            validate(
+                db, listOf(
+                    Eav(Gid(0, 1), attr, "scalar1"),
+                    Eav(Gid(0, 1), attr, "scalar2")
+                )
+            )
         }
     }
 

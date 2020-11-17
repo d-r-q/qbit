@@ -1,8 +1,12 @@
 package qbit.typing
 
-import kotlinx.serialization.*
-import kotlinx.serialization.CompositeDecoder.Companion.READ_DONE
-import kotlinx.serialization.modules.SerialModule
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.encoding.CompositeDecoder
+import kotlinx.serialization.encoding.CompositeDecoder.Companion.DECODE_DONE
+import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
@@ -14,7 +18,7 @@ fun <T : Any> typify(
     schema: (String) -> Attr<*>?,
     entity: StoredEntity,
     type: KClass<T>,
-    serialModule: SerialModule,
+    serialModule: SerializersModule,
 ): T {
     val contextual = serialModule.getContextual(type) ?: throw QBitException("Cannot find serializer for $type")
     return contextual.deserialize(EntityDecoder(schema, entity, serialModule))
@@ -24,8 +28,7 @@ fun <T : Any> typify(
 class EntityDecoder(
     val schema: (String) -> Attr<*>?,
     val entity: StoredEntity,
-    override val context: SerialModule,
-    override val updateMode: UpdateMode = UpdateMode.BANNED,
+    override val serializersModule: SerializersModule,
 ) : StubDecoder() {
 
     private var fields = 0
@@ -34,7 +37,7 @@ class EntityDecoder(
 
     private val cache = HashMap<Gid, Any?>()
 
-    override fun beginStructure(descriptor: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeDecoder {
+    override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         fields = descriptor.elementsCount
         return this
     }
@@ -42,7 +45,8 @@ class EntityDecoder(
     override fun <T : Any> decodeNullableSerializableElement(
         descriptor: SerialDescriptor,
         index: Int,
-        deserializer: DeserializationStrategy<T?>
+        deserializer: DeserializationStrategy<T?>,
+        previousValue: T?
     ): T? {
         val elementDescriptor = descriptor.getElementDescriptor(index)
         val elementKind = elementDescriptor.kind
@@ -56,7 +60,7 @@ class EntityDecoder(
         }
 
         if (descriptor.kind == StructureKind.LIST && elementKind == StructureKind.CLASS) {
-            val decoder = EntityDecoder(schema, entity, context)
+            val decoder = EntityDecoder(schema, entity, serializersModule)
             return deserializer.deserialize(decoder)
         }
 
@@ -66,7 +70,12 @@ class EntityDecoder(
 
         return when {
             isValueAttr(elementDescriptor) -> entity.tryGet(attr)
-            isRefAttr(elementDescriptor) -> decodeReferred(elementDescriptor, attrName, entity.tryGet(attr as Attr<Gid>), deserializer) as T?
+            isRefAttr(elementDescriptor) -> decodeReferred(
+                elementDescriptor,
+                attrName,
+                entity.tryGet(attr as Attr<Gid>),
+                deserializer
+            ) as T?
             else -> throw QBitException("$elementKind not yet supported")
         }
     }
@@ -91,7 +100,7 @@ class EntityDecoder(
 
         val referreds = sureGids.map {
             val referee = entity.pull(it) ?: throw QBitException("Dangling ref: $it")
-            val decoder = EntityDecoder(schema, referee, context)
+            val decoder = EntityDecoder(schema, referee, serializersModule)
             val res = cache.getOrPut(it, { deserializer.deserialize(decoder) })
             if (res is List<*>) {
                 res[0] as T
@@ -124,12 +133,13 @@ class EntityDecoder(
         descriptor: SerialDescriptor,
         index: Int,
         deserializer: DeserializationStrategy<T>,
+        previousValue: T?,
     ): T {
         return decodeNullableSerializableElement(descriptor, index, deserializer as DeserializationStrategy<Any?>) as T
     }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
-        return if (idx < fields) idx++ else READ_DONE
+        return if (idx < fields) idx++ else DECODE_DONE
     }
 
     override fun decodeBooleanElement(descriptor: SerialDescriptor, index: Int): Boolean {

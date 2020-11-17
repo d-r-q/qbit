@@ -61,9 +61,18 @@ class BootstrapTest {
     fun `Instance attrs is correctly bootstrapped`() {
         runBlocking {
             val db = newDb()
-            assertEquals( Instances.iid.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.iid.name)).first().name )
-            assertEquals( Instances.forks.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.forks.name)).first().name )
-            assertEquals( Instances.nextEid.name, db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.nextEid.name)).first().name )
+            assertEquals(
+                Instances.iid.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.iid.name)).first().name
+            )
+            assertEquals(
+                Instances.forks.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.forks.name)).first().name
+            )
+            assertEquals(
+                Instances.nextEid.name,
+                db.db().query<Attr<*>>(attrIs(Attrs.name, Instances.nextEid.name)).first().name
+            )
         }
     }
 
@@ -84,7 +93,7 @@ class BootstrapTest {
         runBlocking {
             val db = newDb().db()
             val theInstance = db.query<Instance>(attrIs(Instances.iid, 1)).first()
-            val actualMaxEidValue = db.queryGids().map { it.eid }.max()!!
+            val actualMaxEidValue = db.queryGids().map { it.eid }.maxOrNull()!!
             assertTrue(
                 theInstance.nextEid > actualMaxEidValue,
                 "Next eid value ${theInstance.nextEid} should be greater, than actual max eid value $actualMaxEidValue"

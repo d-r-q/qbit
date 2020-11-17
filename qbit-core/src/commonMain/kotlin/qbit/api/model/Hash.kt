@@ -11,7 +11,7 @@ data class Hash(val bytes: ByteArray) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (this::class != other?.let { it::class } ) return false
+        if (this::class != other?.let { it::class }) return false
 
         other as Hash
 

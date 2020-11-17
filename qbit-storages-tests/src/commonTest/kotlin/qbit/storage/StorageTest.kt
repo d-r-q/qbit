@@ -2,7 +2,6 @@ package qbit.storage
 
 import qbit.assertArrayEquals
 import qbit.ns.Namespace
-import qbit.ns.ns
 import qbit.ns.root
 import qbit.platform.runBlocking
 import qbit.spi.Storage
@@ -56,7 +55,6 @@ abstract class StorageTest {
     @Test
     fun testCopyNsConstructor() {
         runBlocking {
-            val testNs = ns("nodes")("test")
 
             val origin = MemStorage()
             // qbit(origin, testsSerialModule)

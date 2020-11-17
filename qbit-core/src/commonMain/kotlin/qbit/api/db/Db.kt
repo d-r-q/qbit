@@ -20,4 +20,4 @@ inline fun <reified R : Any> Db.pull(eid: Long): R? {
 }
 
 inline fun <reified R : Any> Db.query(vararg preds: QueryPred, fetch: Fetch = Lazy): Sequence<R> =
-        this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }
+    this.queryGids(*preds).map { this.pull(it, R::class, fetch)!! }

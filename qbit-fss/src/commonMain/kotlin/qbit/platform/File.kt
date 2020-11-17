@@ -1,10 +1,11 @@
 package qbit.platform
 
-import io.ktor.utils.io.core.Output
+import io.ktor.utils.io.core.*
 
 expect class File {
     constructor(parent: File, child: String)
     constructor(parent: String)
+
     fun createNewFile(): Boolean
     fun exists(): Boolean
     fun mkdirs(): Boolean
