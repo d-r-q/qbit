@@ -3,17 +3,38 @@ package qbit.resolving
 import qbit.api.gid.Gid
 import qbit.api.model.Eav
 import qbit.api.model.Hash
-import qbit.index.composeComparable
+import qbit.resolving.model.ConflictGid
+import qbit.resolving.model.HasConflictResult
 import qbit.serialization.*
 import qbit.trx.TrxLog
 
 class ConflictResult(
     internal val result: HasConflictResult,
-    internal val conflictsMap: Map<Gid, List<Pair<Eav, Eav>>> = HashMap()
+    internal val conflictsMap: Map<Gid, ConflictGid> = HashMap()
 )
 
-internal fun hasConflict(log1: TrxLog, log2: TrxLog): ConflictResult {
-    TODO("Not yet implemented")
+internal fun hasConflict(base: TrxLog, trxLog: TrxLog, newLog: TrxLog): ConflictResult {
+    if(base == trxLog){
+        return ConflictResult(HasConflictResult.NO_CHANGES)
+    }
+    val conflictsMap = HashMap<Gid, ConflictGid>()
+    val nodes = trxLog.nodesSince(base.hash)
+    val newNodes = newLog.nodesSince(base.hash)
+    for(node in nodes){
+        for(newNode in newNodes){
+            for (eav in node.data.trxes){
+                for(newEav in newNode.data.trxes){
+                    if(hasConflictEav(eav, newEav) == HasConflictResult.CONFLICT){
+                        conflictsMap[eav.gid] = ConflictGid(eav.gid, node, newNode)
+                    }
+                }
+            }
+        }
+    }
+    if(conflictsMap.isEmpty()){
+        return ConflictResult(HasConflictResult.NO_CONFLICT)
+    }
+    return ConflictResult(HasConflictResult.CONFLICT, conflictsMap)
 }
 
 private fun hasConflictEav(eav1: Eav, eav2: Eav): HasConflictResult {
@@ -30,7 +51,7 @@ internal fun resolveConflicts() {
     TODO("Not yet implemented")
 }
 
-internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Node<Hash>, Int>): Node<Hash>{
+fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Node<Hash>, Int>): Node<Hash>{
      return when{
          node1 == node2 -> node1
          node1 is Root -> node1

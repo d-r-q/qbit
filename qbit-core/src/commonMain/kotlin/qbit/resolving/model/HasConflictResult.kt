@@ -1,4 +1,4 @@
-package qbit.resolving
+package qbit.resolving.model
 
 enum class HasConflictResult {
     NO_CHANGES,

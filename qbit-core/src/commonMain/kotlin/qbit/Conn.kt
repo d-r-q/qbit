@@ -20,7 +20,7 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
-import qbit.resolving.HasConflictResult
+import qbit.resolving.model.HasConflictResult
 import qbit.resolving.hasConflict
 import qbit.resolving.resolveConflicts
 import qbit.serialization.*
@@ -135,7 +135,7 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        val conflictResult = hasConflict(this.trxLog, trxLog)
+        val conflictResult = hasConflict(trxLog ,this.trxLog, trxLog)
         if (conflictResult.result == HasConflictResult.CONFLICT) {
             resolveConflicts()
         }
