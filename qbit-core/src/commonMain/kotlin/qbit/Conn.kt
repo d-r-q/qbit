@@ -20,9 +20,10 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
-import qbit.resolving.model.HasConflictResult
+import qbit.resolving.createMergeByEntities
+import qbit.resolving.createRawEntitiesWithoutConflicts
 import qbit.resolving.hasConflict
-import qbit.resolving.resolveConflicts
+import qbit.resolving.model.HasConflictResult
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
@@ -107,7 +108,7 @@ class QConn(
 
     private val nodesStorage = CommonNodesStorage(storage)
 
-    var trxLog: TrxLog = QTrxLog(head, HashMap(), Writer(nodesStorage, dbUuid))
+    var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head, 0)), Writer(nodesStorage, dbUuid))
 
     private val resolveNode = nodesResolver(nodesStorage)
 
@@ -135,9 +136,12 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        val conflictResult = hasConflict(trxLog ,this.trxLog, trxLog)
-        if (conflictResult.result == HasConflictResult.CONFLICT) {
-            resolveConflicts()
+        val conflictResult = hasConflict(trxLog ,this.trxLog, newLog)
+        if (conflictResult.result != HasConflictResult.NO_CHANGES) {
+            val entities = createRawEntitiesWithoutConflicts(trxLog, this.trxLog, newLog, conflictResult)
+            //первая недоверсия метода
+            createMergeByEntities(dbUuid, this.trxLog.nodesSince(this.trxLog.hash)[0],
+                newLog.nodesSince(newLog.hash)[0], entities)
         }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
         this.trxLog = newLog

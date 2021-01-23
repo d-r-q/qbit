@@ -1,5 +1,6 @@
 package qbit.trx
 
+import qbit.api.QBitException
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.serialization.*
@@ -12,7 +13,7 @@ interface TrxLog {
 
     suspend fun append(facts: Collection<Eav>): TrxLog
 
-    fun nodesSince(hash: Hash): Sequence<NodeVal<Hash>>
+    fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>>
 
 }
 
@@ -29,15 +30,33 @@ class QTrxLog(
         val depth = when (newHead) {
             is Merge -> max(nodesDepth.getValue(newHead.parent1), nodesDepth.getValue(newHead.parent2)) + 1
             is Leaf -> nodesDepth.getValue(newHead.parent) + 1
-            is Root -> 0
+            else -> throw AssertionError("Should never happen $newHead is Root")
         }
         val newNodesDepth = nodesDepth.plus(Pair(newHead, depth))
         return QTrxLog(newHead, newNodesDepth, writer)
     }
 
-    override fun nodesSince(hash: Hash): Sequence<NodeVal<Hash>> {
-        TODO("Not yet implemented")
+    override fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
+        val fromNodes = arrayListOf(head)
+        val nodesBetween = mutableListOf<NodeVal<Hash>>()
+        while (fromNodes.isNotEmpty()){
+            val fromNode = fromNodes.removeLast()
+            when{
+                fromNode.hash == to -> {
+                    nodesBetween.add(fromNode)
+                    continue
+                }
+                fromNode is Leaf -> {
+                    nodesBetween.add(fromNode)
+                    val fromVal = resolveNode(fromNode.parent)
+                        ?: throw QBitException("Corrupted transaction graph, could not load transaction ${fromNode.hash}")
+                    fromNodes.add(fromVal)
+                }
+                fromNode is Merge -> throw UnsupportedOperationException("Merges not yet supported")
+                else -> throw AssertionError("Should never happen, from: $fromNode")
+            }
+        }
+        return nodesBetween.toList()
     }
-
 }
 
