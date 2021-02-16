@@ -1,40 +1,48 @@
 package qbit.resolving
 
-import qbit.api.model.Hash
 import qbit.platform.runBlocking
-import qbit.serialization.Node
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ResolveConflictsTest {
 
     @Test
-    fun findBaseTest(){
+    fun findBaseForNodesWithDifferentDepth(){
         runBlocking {
-            val nodesDepth = HashMap<Node<Hash>, Int>()
-            var nodes = createNodesOver(nodesDepth)
-            var expectedBase = nodes[2]
+            val result = createNodesOver()
+            val nodesDepth = result.first
+            val nodes = result.second
+            val expectedBase = nodes[2]
             var actualBase = findBaseNode(nodes[0], nodes[1], nodesDepth)
-
             assertEquals(expectedBase, actualBase)
             actualBase = findBaseNode(nodes[1], nodes[0], nodesDepth)
             assertEquals(expectedBase, actualBase)
+        }
+    }
 
-            actualBase = findBaseNode(nodes[0], nodes[0], nodesDepth)
-            assertEquals(nodes[0], actualBase)
-
-            nodesDepth.clear()
-            expectedBase = createNodesRoot(nodesDepth)
-            actualBase = findBaseNode(nodes[0], expectedBase, nodesDepth)
+    @Test
+    fun findBaseForRootNode(){
+        runBlocking {
+            val result = createNodesRoot()
+            val nodesDepth = result.first
+            val nodes = result.second
+            val expectedBase = result.second[0]
+            var actualBase = findBaseNode(nodes[0], nodes[1], nodesDepth)
             assertEquals(expectedBase, actualBase)
 
-            actualBase = findBaseNode(expectedBase, nodes[0], nodesDepth)
+            actualBase = findBaseNode(nodes[1], nodes[0], nodesDepth)
             assertEquals(expectedBase, actualBase)
+        }
+    }
 
-            nodesDepth.clear()
-            nodes = createNodesEqually(nodesDepth)
-            expectedBase = nodes[2]
-            actualBase = findBaseNode(nodes[0], nodes[1], nodesDepth)
+    @Test
+    fun findBaseForNodesWithSameDepth(){
+        runBlocking {
+            val result = createNodesEqually()
+            val nodesDepth = result.first
+            val nodes = result.second
+            val expectedBase = result.second[2]
+            val actualBase = findBaseNode(nodes[0], nodes[1], nodesDepth)
             assertEquals(expectedBase, actualBase)
         }
     }

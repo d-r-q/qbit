@@ -12,7 +12,6 @@ import qbit.api.QBitException
 import qbit.api.db.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
-import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.api.theInstanceEid
@@ -21,15 +20,16 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
-import qbit.platform.collections.merge
-import qbit.resolving.createMergeByEntities
 import qbit.resolving.createRawEntitiesWithoutConflicts
 import qbit.resolving.hasConflict
 import qbit.resolving.model.HasConflictResult
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
-import qbit.trx.*
+import qbit.trx.CommitHandler
+import qbit.trx.QTrx
+import qbit.trx.QTrxLog
+import qbit.trx.TrxLog
 import kotlin.reflect.KClass
 
 @Suppress("EXPERIMENTAL_API_USAGE")

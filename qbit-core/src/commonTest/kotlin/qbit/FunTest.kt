@@ -443,8 +443,6 @@ class FunTest {
             trx2.commit()
             conn.db {
                 assertEquals("Im different change", it.pull<Scientist>(eCodd.id!!)!!.name)
-            }
-            conn.db {
                 assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
             }
         }

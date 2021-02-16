@@ -6,14 +6,15 @@ import qbit.api.model.nullHash
 import qbit.api.system.DbUuid
 import qbit.serialization.*
 
-fun createNodesOver(nodesDepth: HashMap<Node<Hash>, Int>): List<Node<Hash>> {
+fun createNodesOver(): Pair<HashMap<Node<Hash>, Int>, List<Node<Hash>>> {
+    val nodesDepth = HashMap<Node<Hash>, Int>()
     val testDbUuid = DbUuid(Iid(5, 2))
     val testTimestamp = 10L
     val testNodeData = NodeData(emptyArray())
     val root = Root(nullHash, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[root] = 0
     val leaf1 = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
-    nodesDepth[leaf1] =  1
+    nodesDepth[leaf1] = 1
     val leaf2 = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf2] = 1
     val leaf3 = Leaf(nullHash, leaf1, testDbUuid, testTimestamp, testNodeData)
@@ -24,26 +25,29 @@ fun createNodesOver(nodesDepth: HashMap<Node<Hash>, Int>): List<Node<Hash>> {
     nodesDepth[leaf4] = 2
     val leaf5 = Leaf(nullHash, merge1, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf5] = 4
-    return listOf(leaf4, leaf5, leaf2)
+    return Pair(nodesDepth, listOf(leaf4, leaf5, leaf2))
 }
 
-fun createNodesRoot(nodesDepth: HashMap<Node<Hash>, Int>): Node<Hash>{
+fun createNodesRoot(): Pair<HashMap<Node<Hash>, Int>, List<Node<Hash>>> {
+    val nodesDepth = HashMap<Node<Hash>, Int>()
     val testDbUuid = DbUuid(Iid(5, 2))
     val testTimestamp = 10L
     val testNodeData = NodeData(emptyArray())
     val root = Root(nullHash, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[root] = 0
-    return root
+    val node = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
+    return Pair(nodesDepth , listOf(root, node))
 }
 
-fun createNodesEqually(nodesDepth: HashMap<Node<Hash>, Int>):List<Node<Hash>>{
+fun createNodesEqually(): Pair<HashMap<Node<Hash>, Int>, List<Node<Hash>>> {
+    val nodesDepth = HashMap<Node<Hash>, Int>()
     val testDbUuid = DbUuid(Iid(5, 2))
     val testTimestamp = 10L
     val testNodeData = NodeData(emptyArray())
     val root = Root(nullHash, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[root] = 0
     val leaf1 = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
-    nodesDepth[leaf1] =  1
+    nodesDepth[leaf1] = 1
     val leaf2 = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf2] = 1
     val leaf3 = Leaf(nullHash, root, testDbUuid, testTimestamp, testNodeData)
@@ -66,6 +70,6 @@ fun createNodesEqually(nodesDepth: HashMap<Node<Hash>, Int>):List<Node<Hash>>{
     nodesDepth[merge3] = 4
     val merge4 = Merge(nullHash, leaf5, merge2, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge4] = 4
-    return listOf(merge3, merge4, root)
+    return Pair(nodesDepth ,listOf(merge3, merge4, root))
 }
 

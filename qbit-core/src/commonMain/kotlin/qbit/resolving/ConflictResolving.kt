@@ -3,18 +3,19 @@ package qbit.resolving
 import qbit.api.gid.Gid
 import qbit.api.model.Eav
 import qbit.api.model.Hash
-import qbit.api.system.DbUuid
 import qbit.index.RawEntity
-import qbit.platform.currentTimeMillis
-import qbit.resolving.model.ConflictGid
 import qbit.resolving.model.HasConflictResult
 import qbit.serialization.*
 import qbit.trx.TrxLog
 
-class ConflictResult(
+data class ConflictResult(
     internal val result: HasConflictResult,
-    internal val conflictsMap: Map<Gid, ConflictGid> = HashMap()
+    internal val conflictsMap: Map<GidAttr, Pair<PersistedEav, PersistedEav>> = HashMap()
 )
+
+data class PersistedEav(val eav: Eav, val timestamp: Long, val node: Hash)
+
+data class GidAttr(val gid: Gid, val attr: String)
 
 internal fun hasConflict(
     base: TrxLog,
@@ -25,36 +26,43 @@ internal fun hasConflict(
     if (base == trxLog) {
         return ConflictResult(HasConflictResult.NO_CHANGES)
     }
-    val conflictsMap = HashMap<Gid, ConflictGid>()
     val baseNode = base.nodesSince(base.hash, resolveNode)
     val nodes = trxLog.nodesSince(base.hash, resolveNode) - baseNode
     val newNodes = newLog.nodesSince(base.hash, resolveNode) - baseNode
-    for (node in nodes) {
-        for (newNode in newNodes) {
-            for (eav in node.data.trxes) {
-                for (newEav in newNode.data.trxes) {
-                    if (hasConflictEav(eav, newEav) == HasConflictResult.CONFLICT) {
-                        conflictsMap[eav.gid] = ConflictGid(eav.gid, node, newNode)
-                    }
-                }
-            }
-        }
+    var entityAttrsA: Map<GidAttr, List<PersistedEav>> = nodesToGidAttrMap(nodes)
+    var entityAttrsB : Map<GidAttr, List<PersistedEav>> = nodesToGidAttrMap(newNodes)
+    val writesIntersection = entityAttrsA.keys.intersect(entityAttrsB.keys)
+    if (writesIntersection.isEmpty()) {
+        return ConflictResult(HasConflictResult.NO_CONFLICT, emptyMap())
     }
-    if (conflictsMap.isEmpty()) {
-        return ConflictResult(HasConflictResult.NO_CONFLICT)
+    sortEavsByTimestamp(entityAttrsA)
+    sortEavsByTimestamp(entityAttrsB)
+    val conflictingWrites = writesIntersection.filter { entityAttrsA[it]!!.last().eav.value != entityAttrsB[it]!!.last().eav.value }
+    if (conflictingWrites.isEmpty()) {
+        return ConflictResult(HasConflictResult.NO_CONFLICT, emptyMap())
     }
+    entityAttrsA = deleteNoConflictGids(entityAttrsA, conflictingWrites)
+    entityAttrsB = deleteNoConflictGids(entityAttrsB, conflictingWrites)
+    val conflictsMap = entityAttrsA.mapValues { Pair(it.value.last(), entityAttrsB[it.key]!!.last()) }
     return ConflictResult(HasConflictResult.CONFLICT, conflictsMap)
 }
 
-private fun hasConflictEav(eav1: Eav, eav2: Eav): HasConflictResult {
-    if (eav1.gid == eav2.gid && eav1.attr == eav2.attr) {
-        if (eav1.value == eav2.value) {
-            return HasConflictResult.NO_CHANGES
-        }
-        return HasConflictResult.CONFLICT
-    }
-    return HasConflictResult.NO_CONFLICT
+private fun deleteNoConflictGids(
+    entityAttrsA: Map<GidAttr, List<PersistedEav>>,
+    conflictingWrites: List<GidAttr>
+): Map<GidAttr, List<PersistedEav>> {
+    return entityAttrsA.filter { conflictingWrites.contains(it.key) }
 }
+
+private fun sortEavsByTimestamp(entityAttrsA: Map<GidAttr, List<PersistedEav>>) {
+    entityAttrsA.forEach { entry -> entry.value.sortedBy { it.timestamp } }
+}
+
+private fun nodesToGidAttrMap(nodes: List<NodeVal<Hash>>) =
+    nodes.flatMap { n -> n.data.trxes.map { PersistedEav(it, n.timestamp, n.hash) } }
+        .groupBy { GidAttr(it.eav.gid, it.eav.attr) }
+
+
 
 internal fun createRawEntitiesWithoutConflicts(
     base: TrxLog, trxLog: TrxLog,
@@ -73,69 +81,26 @@ internal fun createRawEntitiesWithoutConflicts(
             }
         }
     } else {
-        val conflictEavs1 = HashMap<Eav, HasConflictResult>()
-        val conflictEavs2 = HashMap<Eav, HasConflictResult>()
-        sortedEavsByConflict(nodes, conflictResult, conflictEavs1, entitiesMap)
-        sortedEavsByConflict(newNodes, conflictResult, conflictEavs2, entitiesMap)
-        for (eav1 in conflictEavs1.keys) {
-            for (eav2 in conflictEavs2.keys) {
-            if (hasConflictEav(eav1, eav2) != HasConflictResult.NO_CONFLICT) {
-                    conflictEavs1[eav1] = HasConflictResult.CONFLICT
-                    conflictEavs2[eav2] = HasConflictResult.CONFLICT
-                    val conflictGid =
-                        conflictResult.conflictsMap[eav1.gid] ?: throw AssertionError("Should be not null")
-                    if (conflictGid.node1.timestamp > conflictGid.node2.timestamp) {
-                        entitiesMap.getOrPut(eav1.gid, { mutableListOf() }).add(eav1)
-                    } else {
-                        entitiesMap.getOrPut(eav2.gid, { mutableListOf() }).add(eav2)
-                    }
-                }
-            }
-            if (conflictEavs1[eav1] == HasConflictResult.NO_CONFLICT) {
-                entitiesMap.getOrPut(eav1.gid, { mutableListOf() }).add(eav1)
-            }
+        val entityEavs = nodes.flatMap { n -> n.data.trxes.asList() }
+            .filter { eav -> !conflictResult.conflictsMap.values.map { it.first.eav }.contains(eav) }
+        val entityEavsNew = newNodes.flatMap { n -> n.data.trxes.asList() }
+            .filter { eav -> !conflictResult.conflictsMap.values.map { it.second.eav }.contains(eav) }
+        for (eav in entityEavs + entityEavsNew) {
+            entitiesMap.getOrPut(eav.gid, { mutableListOf() }).add(eav)
         }
-        conflictEavs2.forEach { entry ->
-            if (entry.component2() == HasConflictResult.NO_CONFLICT) {
-                entitiesMap.getOrPut(entry.component1().gid, { mutableListOf() }).add(entry.component1())
-            }
-        }
-    }
-    return entitiesMap.mapValues { RawEntity(it.key, it.value.toList()) }
-}
-
-private fun sortedEavsByConflict(
-    nodes: List<NodeVal<Hash>>,
-    conflictResult: ConflictResult,
-    conflictEavs1: HashMap<Eav, HasConflictResult>,
-    entitiesMap: HashMap<Gid, MutableList<Eav>>
-) {
-    for (node in nodes) {
-        for (eav in node.data.trxes) {
-            val conflictGid = conflictResult.conflictsMap[eav.gid]
-            if (conflictGid != null && (conflictGid.node1 == node || conflictGid.node2 == node)) {
-                conflictEavs1[eav] = HasConflictResult.NO_CONFLICT
+        for(pairEav in conflictResult.conflictsMap.values){
+            if(pairEav.first.timestamp > pairEav.second.timestamp){
+                entitiesMap.getOrPut(pairEav.first.eav.gid, { mutableListOf() }).add(pairEav.first.eav)
             } else {
-                entitiesMap.getOrPut(eav.gid, { mutableListOf() }).add(eav)
+                entitiesMap.getOrPut(pairEav.second.eav.gid, { mutableListOf() }).add(pairEav.second.eav)
             }
         }
     }
+
+    return entitiesMap.mapValues { RawEntity(it.key, it.value.distinctBy { eav -> Pair(eav.attr, eav.value) }.toList()) }
 }
 
-internal fun createMergeByEntities(
-    dbUuid: DbUuid,
-    parent1: NodeVal<Hash>,
-    parent2: NodeVal<Hash>,
-    entities : Map<Gid, RawEntity>
-): Merge<Hash?> {
-    var eavs = setOf<Eav>()
-    for (entity in entities.values){
-        eavs = eavs.union(entity.second)
-    }
-    return Merge(null, parent1, parent2, dbUuid, currentTimeMillis(), NodeData(eavs.toTypedArray()))
-}
-
-fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Node<Hash>, Int>): Node<Hash> {
+internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Node<Hash>, Int>): Node<Hash> {
     return when {
         node1 == node2 -> node1
         node1 is Root -> node1
@@ -182,9 +147,9 @@ fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Node<Hash
                 node1 is Merge && node2 is Merge -> {
                     val listBases = ArrayList<Node<Hash>>()
                     listBases.add(findBaseNode(node1.parent1, node2.parent1, nodesDepth))
-                    listBases.add(findBaseNode(node1.parent1, node2.parent1, nodesDepth))
-                    listBases.add(findBaseNode(node1.parent1, node2.parent1, nodesDepth))
-                    listBases.add(findBaseNode(node1.parent1, node2.parent1, nodesDepth))
+                    listBases.add(findBaseNode(node1.parent1, node2.parent2, nodesDepth))
+                    listBases.add(findBaseNode(node1.parent2, node2.parent1, nodesDepth))
+                    listBases.add(findBaseNode(node1.parent2, node2.parent2, nodesDepth))
                     listBases.maxByOrNull { nodesDepth.getValue(it) }!!
                 }
                 else -> throw AssertionError("Should never happen, between: $node1 and $node2")
