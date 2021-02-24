@@ -30,7 +30,7 @@ internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxL
         TODO("Not yet implemented")
     }
 
-    override fun getNodeDepth(node: Node<Hash>): Int {
+    override fun getNodeDepth(node: Hash): Int {
         TODO("Not yet implemented")
     }
 

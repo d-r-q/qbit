@@ -23,13 +23,13 @@ interface TrxLog {
 
     fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>>
 
-    fun getNodeDepth(node: Node<Hash>): Int
+    fun getNodeDepth(nodeHash: Hash): Int
 
 }
 
 class QTrxLog(
     internal val head: NodeVal<Hash>,
-    internal val nodesDepth: Map<Node<Hash>, Int>,
+    internal val nodesDepth: Map<Hash, Int>,
     private val storage: NodesStorage,
     private val dbUuid: DbUuid
 ) : TrxLog {
@@ -47,13 +47,13 @@ class QTrxLog(
         }
     }
 
-    private fun updateMapOfNodesDepth(newHead: NodeVal<Hash>, depthAnotherParent: Int = 0): Map<Node<Hash>, Int> {
+    private fun updateMapOfNodesDepth(newHead: NodeVal<Hash>, depthAnotherParent: Int = 0): Map<Hash, Int> {
         val depth = when (newHead) {
-            is Merge -> max(nodesDepth.getValue(newHead.parent1), depthAnotherParent) + 1
-            is Leaf -> nodesDepth.getValue(newHead.parent) + 1
+            is Merge -> max(nodesDepth.getValue(newHead.parent1.hash), depthAnotherParent) + 1
+            is Leaf -> nodesDepth.getValue(newHead.parent.hash) + 1
             else -> throw AssertionError("Should never happen $newHead is Root")
         }
-        return nodesDepth.plus(Pair(newHead, depth))
+        return nodesDepth.plus(Pair(newHead.hash, depth))
     }
 
     override suspend fun append(facts: Collection<Eav>): TrxLog {
@@ -67,23 +67,26 @@ class QTrxLog(
         e: Collection<Eav>,
         resolveNode: (Node<Hash>) -> NodeVal<Hash>?
     ): TrxLog {
-        val anotherHead = trxLog.nodesSince(trxLog.hash, resolveNode)[0]
-        val newHead = store(Merge(null, head, anotherHead,
-            dbUuid, currentTimeMillis(), NodeData(e.toTypedArray())))
-        val newNodesDepth = updateMapOfNodesDepth(newHead, trxLog.getNodeDepth(anotherHead))
+        val anotherHead = resolveNode(NodeRef(trxLog.hash))
+            ?: throw QBitException("Corrupted transaction graph, could not load transaction ${trxLog.hash}")
+        val newHead = store(
+            Merge(
+                null, head, anotherHead,
+                dbUuid, currentTimeMillis(), NodeData(e.toTypedArray())
+            )
+        )
+        val newNodesDepth = updateMapOfNodesDepth(newHead, trxLog.getNodeDepth(anotherHead.hash))
         return QTrxLog(newHead, newNodesDepth, storage, dbUuid)
     }
 
     override fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
         val fromNodes = arrayListOf(head)
         val nodesBetween = mutableListOf<NodeVal<Hash>>()
-        while (fromNodes.isNotEmpty()){
+        while (fromNodes.isNotEmpty()) {
             val fromNode = fromNodes.removeLast()
-            when{
-                fromNode.hash == to -> {
-                    nodesBetween.add(fromNode)
-                    continue
-                }
+            when {
+                fromNode.hash == to -> continue
+                fromNode is Root -> continue
                 fromNode is Leaf -> {
                     nodesBetween.add(fromNode)
                     val fromVal = resolveNode(fromNode.parent)
@@ -97,8 +100,8 @@ class QTrxLog(
         return nodesBetween.toList()
     }
 
-    override fun getNodeDepth(node: Node<Hash>): Int {
-        return nodesDepth.getValue(node)
+    override fun getNodeDepth(nodeHash: Hash): Int {
+        return nodesDepth.getValue(nodeHash)
     }
 }
 

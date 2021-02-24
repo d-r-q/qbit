@@ -1,13 +1,16 @@
 package qbit.resolving
 
+import qbit.api.model.Hash
 import qbit.platform.runBlocking
+import qbit.serialization.NodeVal
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ResolveConflictsTest {
 
     @Test
-    fun findBaseForNodesWithDifferentDepth(){
+    fun findBaseForNodesWithDifferentDepth() {
         runBlocking {
             val result = createNodesOver()
             val nodesDepth = result.first
@@ -21,7 +24,7 @@ class ResolveConflictsTest {
     }
 
     @Test
-    fun findBaseForRootNode(){
+    fun findBaseForRootNode() {
         runBlocking {
             val result = createNodesRoot()
             val nodesDepth = result.first
@@ -36,7 +39,7 @@ class ResolveConflictsTest {
     }
 
     @Test
-    fun findBaseForNodesWithSameDepth(){
+    fun findBaseForNodesWithSameDepth() {
         runBlocking {
             val result = createNodesEqually()
             val nodesDepth = result.first
@@ -47,4 +50,18 @@ class ResolveConflictsTest {
         }
     }
 
+    @JsName("Test_conflict_resolving_if_branch_have_few_changes_for_attribute")
+    @Test
+    fun `Test conflict resolving if branch have few changes for attribute`() {
+        runBlocking {
+            val res = createLogsForResolveTest()
+            val eavA = res.second[0]
+            val eavB = res.second[1]
+            val logs = res.first
+            val diff = logsDiff(logs[0], logs[1], logs[2]) { it as NodeVal<Hash> }
+            val result = diff.merge(lastWriterWinsResolve())
+            assertEquals(eavA.value, result[eavA.gid]!!.second[0].value)
+            assertEquals(eavB.value, result[eavB.gid]!!.second[0].value)
+        }
+    }
 }

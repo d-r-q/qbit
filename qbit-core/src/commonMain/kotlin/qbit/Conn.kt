@@ -20,9 +20,8 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.ns.Namespace
-import qbit.resolving.createRawEntitiesWithoutConflicts
-import qbit.resolving.hasConflict
-import qbit.resolving.model.HasConflictResult
+import qbit.resolving.*
+import qbit.resolving.lastWriterWinsResolve
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
@@ -110,7 +109,7 @@ class QConn(
 
     private val nodesStorage = CommonNodesStorage(storage)
 
-    var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head, 0)), nodesStorage, dbUuid)
+    var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head.hash, 0)), nodesStorage, dbUuid)
 
     private val resolveNode = nodesResolver(nodesStorage)
 
@@ -138,11 +137,10 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        val conflictResult = hasConflict(trxLog ,this.trxLog, newLog, resolveNode)
+        val logsDifference = logsDiff(trxLog ,this.trxLog, newLog, resolveNode)
         var mergeDb : InternalDb? = null
-        if (conflictResult.result != HasConflictResult.NO_CHANGES) {
-            val entities = createRawEntitiesWithoutConflicts(trxLog, this.trxLog,
-                newLog, conflictResult, resolveNode)
+        if (logsDifference != LogsDiff.noChanges) {
+            val entities = logsDifference.merge(lastWriterWinsResolve())
             val eavs = entities.values.map { it.second }.flatten()
             mergeDb = newDb.with(eavs)
             newLog.mergeWith(this.trxLog,
@@ -150,7 +148,7 @@ class QConn(
         }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
         this.trxLog = newLog
-        if (conflictResult.result == HasConflictResult.NO_CHANGES) {
+        if (logsDifference == LogsDiff.noChanges) {
             this.db = newDb
         } else {
             this.db = mergeDb!!
