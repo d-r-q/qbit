@@ -40,31 +40,6 @@ class TrxTest {
         }
     }
 
-    @JsName("Qbit_should_detect_concurrent_transactions")
-    @Test
-    fun `Qbit should detect concurrent transactions`() {
-        runBlocking {
-            val (conn, _) = openEmptyConn()
-            val trx1 = conn.trx()
-            val trx2 = conn.trx()
-
-            trx2.persist(extId)
-            trx2.commit()
-
-            try {
-                trx1.persist(name)
-                trx1.commit()
-                fail()
-            } catch (e: ConcurrentModificationException) {
-                // expected
-            }
-            conn.db {
-                assertNotNull(it.query<Attr<Any>>(attrIs(Attrs.name, extId.name)).firstOrNull())
-                assertNull(it.query<Attr<Any>>(attrIs(Attrs.name, name.name)).firstOrNull())
-            }
-        }
-    }
-
     @JsName("Qbit_should_ignore_persistence_of_not_changed_entity")
     @Test
     fun `Qbit should ignore persistence of not changed entity`() {
