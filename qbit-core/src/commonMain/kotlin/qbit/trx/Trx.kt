@@ -17,7 +17,7 @@ internal class QTrx(
     private val commitHandler: CommitHandler, private val factor: Factor,
 ) : Trx() {
 
-    private var curDb: InternalDb? = null
+    private var curDb: InternalDb = base
 
     private val factsBuffer = ArrayList<Eav>()
 
@@ -26,17 +26,14 @@ internal class QTrx(
     private var rollbacked = false
 
     override fun db() =
-        (this.curDb ?: this.base)
-
-    private val db: InternalDb
-        get() = db()
+        this.curDb
 
     override fun <R : Any> persist(entityGraphRoot: R): WriteResult<R?> {
         ensureReady()
-        val facts = factor(entityGraphRoot, db::attr, gids)
+        val facts = factor(entityGraphRoot, curDb::attr, gids)
         val entities = facts.map { it.gid }
             .distinct()
-            .mapNotNull { db.pullEntity(it)?.toFacts()?.toList() }
+            .mapNotNull { curDb.pullEntity(it)?.toFacts()?.toList() }
             .map { it[0].gid to it }
             .toMap()
         val updatedFacts = facts.groupBy { it.gid }
@@ -46,18 +43,18 @@ internal class QTrx(
             .values
             .flatten()
         if (updatedFacts.isEmpty()) {
-            return QbitWriteResult(entityGraphRoot, db)
+            return QbitWriteResult(entityGraphRoot, curDb)
         }
-        validate(db, updatedFacts)
+        validate(curDb, updatedFacts)
         factsBuffer.addAll(updatedFacts)
-        curDb = db.with(updatedFacts)
+        curDb = curDb.with(updatedFacts)
 
         val res = if (facts.entityFacts[entityGraphRoot]!!.firstOrNull()?.gid in entities) {
             entityGraphRoot
         } else {
-            facts.entityFacts[entityGraphRoot]?.get(0)?.gid?.let { db.pull(it, entityGraphRoot::class) }
+            facts.entityFacts[entityGraphRoot]?.get(0)?.gid?.let { curDb.pull(it, entityGraphRoot::class) }
         }
-        return QbitWriteResult(res, curDb!!)
+        return QbitWriteResult(res, curDb)
     }
 
     override suspend fun commit() {
@@ -66,10 +63,10 @@ internal class QTrx(
             return
         }
 
-        val instance = factor(inst.copy(nextEid = gids.next().eid), curDb!!::attr, EmptyIterator)
+        val instance = factor(inst.copy(nextEid = gids.next().eid), curDb::attr, EmptyIterator)
         val newLog = trxLog.append(factsBuffer + instance)
         try {
-            base = curDb!!.with(instance)
+            base = curDb.with(instance)
             commitHandler.update(trxLog, newLog, base)
             factsBuffer.clear()
         } catch (e: Throwable) {
@@ -81,7 +78,7 @@ internal class QTrx(
     override fun rollback() {
         rollbacked = true
         factsBuffer.clear()
-        curDb = null
+        curDb = base
     }
 
     private fun ensureReady() {
