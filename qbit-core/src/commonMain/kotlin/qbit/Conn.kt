@@ -137,18 +137,19 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        val logsDifference = logsDiff(trxLog ,this.trxLog, newLog, resolveNode)
+        val logsDifference = logsDiff(trxLog, this.trxLog, newLog, resolveNode)
         var mergeDb : InternalDb? = null
         if (logsDifference != LogsDiff.noChanges) {
-            val entities = logsDifference.merge(lastWriterWinsResolve())
-            val eavs = entities.values.map { it.second }.flatten()
-            mergeDb = newDb.with(eavs)
-            newLog.mergeWith(this.trxLog,
-                eavs, resolveNode)
+            val mergeResult = logsDifference.merge(lastWriterWinsResolve())
+            val logAEavsOnly = mergeResult.first.values.map { it.second }.flatten()
+            val reconciliationEntities = mergeResult.second
+            val reconciliationEavs = reconciliationEntities.values.map { it.second }.flatten()
+            mergeDb = newDb.with(logAEavsOnly).with(reconciliationEavs)
+            this.trxLog = newLog.mergeWith(this.trxLog, trxLog.hash, reconciliationEavs)
         }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
-        this.trxLog = newLog
         if (logsDifference == LogsDiff.noChanges) {
+            this.trxLog = newLog
             this.db = newDb
         } else {
             this.db = mergeDb!!

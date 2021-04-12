@@ -310,14 +310,17 @@ class FunTest {
     fun `Reopening existing storage should preserve state`() {
         runBlocking {
             val storage = MemStorage()
-            setupTestSchema(storage)
+            setupTestData(storage)
 
             val conn1 = qbit(storage, testsSerialModule)
             assertNotNull((conn1.db() as InternalDb).attr(Scientists.name.name))
             conn1.persist(IntEntity(null, 2))
 
             val conn2 = qbit(storage, testsSerialModule)
-            assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
+//            assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
+            conn2.db {
+                assertNotNull(it.pull<Scientist>(eCodd.id!!)!!.name)
+            }
         }
     }
 
@@ -456,15 +459,42 @@ class FunTest {
             val trx1 = conn.trx()
             trx1.persist(eCodd.copy(name = "Im change 1"))
             trx1.persist(eBrewer.copy(name = "Im different change"))
+            trx1.commit()
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
             trx2.persist(pChen.copy(name = "Im different change"))
-            trx1.commit()
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
                 assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
                 assertEquals("Im different change", it.pull<Scientist>(eBrewer.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_merge_node_creating")
+    @Test
+    fun `Test merge node creating`() {
+        runBlocking {
+            val storage = MemStorage()
+            val conn1 = setupTestData(storage)
+            val trx1 = conn1.trx()
+            val trx2 = conn1.trx()
+            trx1.persist(eCodd.copy(name = "Im change 1"))
+            trx1.persist(eBrewer.copy(name = "Im different change"))
+            trx2.persist(eCodd.copy(name = "Im change 2"))
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            trx2.commit()
+            val trx3 = conn1.trx()
+            trx3.persist(mStonebreaker.copy(name = "Im change 3"))
+            trx3.commit()
+            val conn2 = qbit(storage, testsSerialModule)
+            conn2.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(eBrewer.id!!)!!.name)
+                assertEquals("Im change 3", it.pull<Scientist>(mStonebreaker.id!!)!!.name)
             }
         }
     }

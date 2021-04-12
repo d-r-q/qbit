@@ -14,22 +14,24 @@ object SimpleSerialization : Serialization {
 
     override fun serializeNode(n: NodeVal<Hash?>): ByteArray {
         return when (n) {
-            is Root -> serializeNode(nullNode, nullNode, n.source, n.timestamp, n.data)
-            is Leaf -> serializeNode(nullNode, n.parent, n.source, n.timestamp, n.data)
-            is Merge -> serializeNode(n.parent1, n.parent2, n.source, n.timestamp, n.data)
+            is Root -> serializeNode(nullNode, nullNode, nullNode, n.source, n.timestamp, n.data)
+            is Leaf -> serializeNode(nullNode, nullNode, n.parent, n.source, n.timestamp, n.data)
+            is Merge -> serializeNode(n.base, n.parent1, n.parent2, n.source, n.timestamp, n.data)
         }
     }
 
     override fun serializeNode(
+        base: Node<Hash>,
         parent1: Node<Hash>,
         parent2: Node<Hash>,
         source: DbUuid,
         timestamp: Long,
         data: NodeData
     ) =
-        serialize(parent1, parent2, source, timestamp, data)
+        serialize(base, parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
+        val base = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
         val iid = deserialize(ins, QLong) as Long
@@ -57,8 +59,9 @@ object SimpleSerialization : Serialization {
                 timestamp,
                 nodeData
             )
-            parent1 != nullHash && parent2 != nullHash -> Merge(
+            base != nullHash && parent1 != nullHash && parent2 != nullHash -> Merge(
                 null,
+                NodeRef(base),
                 NodeRef(parent1),
                 NodeRef(parent2),
                 DbUuid(Iid(iid.toInt(), instanceBits.toByte())),

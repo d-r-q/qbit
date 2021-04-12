@@ -56,12 +56,10 @@ class ResolveConflictsTest {
         runBlocking {
             val res = createLogsForResolveTest()
             val eavA = res.second[0]
-            val eavB = res.second[1]
             val logs = res.first
             val diff = logsDiff(logs[0], logs[1], logs[2]) { it as NodeVal<Hash> }
             val result = diff.merge(lastWriterWinsResolve())
-            assertEquals(eavA.value, result[eavA.gid]!!.second[0].value)
-            assertEquals(eavB.value, result[eavB.gid]!!.second[0].value)
+            assertEquals(eavA.value, result.second[eavA.gid]!!.second[0].value)
         }
     }
 }

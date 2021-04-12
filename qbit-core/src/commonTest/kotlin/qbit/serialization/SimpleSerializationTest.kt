@@ -162,14 +162,8 @@ class SimpleSerializationTest {
         val iid = Iid(0, 4)
         val root = Merge(
             null,
-            NodeRef(
-                Hash(
-                    randomBytes(
-                        HASH_LEN,
-                        random
-                    )
-                )
-            ),
+            NodeRef(Hash(randomBytes(HASH_LEN,random))),
+            NodeRef(Hash(randomBytes(HASH_LEN, random))),
             NodeRef(Hash(randomBytes(HASH_LEN, random))),
             DbUuid(iid),
             currentTimeMillis(),

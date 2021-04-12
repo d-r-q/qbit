@@ -21,6 +21,7 @@ class Leaf<out H : Hash?>(hash: H, val parent: Node<Hash>, source: DbUuid, times
 
 class Merge<out H : Hash?>(
         hash: H,
+        val base: Node<Hash>,
         val parent1: Node<Hash>,
         val parent2: Node<Hash>,
         source: DbUuid,

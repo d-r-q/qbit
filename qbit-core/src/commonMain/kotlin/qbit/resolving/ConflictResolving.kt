@@ -22,7 +22,7 @@ fun logsDiff(
     val nodesB = logB.nodesSince(baseLog.hash, resolveNode)
     val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
     val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
-    return LogsDiff(writesFromA.keys + writesFromB.keys, writesFromA, writesFromB)
+    return LogsDiff (writesFromA, writesFromB)
 }
 
 private fun writtenEntityAttrs(nodes: List<NodeVal<Hash>>) =
@@ -30,35 +30,24 @@ private fun writtenEntityAttrs(nodes: List<NodeVal<Hash>>) =
         .groupBy { GidAttr(it.eav.gid, it.eav.attr) }
 
 data class LogsDiff(
-    val allWrites: Set<GidAttr>,
     val writesFromA: Map<GidAttr, List<PersistedEav>>,
     val writesFromB: Map<GidAttr, List<PersistedEav>>
 ) {
 
     companion object {
-        val noChanges = LogsDiff(emptySet(), emptyMap(), emptyMap())
+        val noChanges = LogsDiff(emptyMap(), emptyMap())
     }
 
-    fun merge(resolve: (List<PersistedEav>, List<PersistedEav>) -> Eav): Map<Gid, RawEntity> {
-        val gidAttrsGroupByGid = (writesFromA.keys + writesFromB.keys).groupBy { it.gid }
+    fun merge(resolve: (List<PersistedEav>, List<PersistedEav>) -> Eav): Pair<Map<Gid, RawEntity>, Map<Gid, RawEntity>> {
+        val gidAttrsGroupByGid = writesFromA.keys.intersect(writesFromB.keys).groupBy { it.gid }
         val resolvingEavByGid = gidAttrsGroupByGid.mapValues { entry ->
             entry.value.map {
-                resolve(writesFromA.getOrElse(it, { emptyList() }), writesFromB.getOrElse(it, { emptyList() }))
-//              Second variant (этот вариант, по идее, правильнее, т.к. не зависит от реализации resolve()
-//                when {
-//                    writesFromA.containsKey(it) && writesFromA.containsKey(it) -> resolve(
-//                        writesFromA[it]!!,
-//                        writesFromB[it]!!
-//                    )
-//                    else -> when {
-//                        writesFromA.containsKey(it) -> writesFromA[it]!!.maxByOrNull { eav -> eav.timestamp }!!.eav
-//                        writesFromB.containsKey(it) -> writesFromB[it]!!.maxByOrNull { eav -> eav.timestamp }!!.eav
-//                        else -> throw AssertionError("Should never happen")
-//                    }
-//                }
+                resolve(writesFromA[it]!!, writesFromB[it]!!)
             }
         }
-        return resolvingEavByGid.mapValues { entry -> RawEntity(entry.key, entry.value) }
+        return Pair( writesFromA.keys.groupBy { it.gid }
+            .mapValues { entry -> RawEntity(entry.key, entry.value.map { writesFromA[it]!!.maxByOrNull { persistedEav ->  persistedEav.timestamp }!!.eav }) },
+            resolvingEavByGid.mapValues { entry -> RawEntity(entry.key, entry.value) })
     }
 
 }
@@ -73,43 +62,19 @@ internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<
         node1 is Root -> node1
         node2 is Root -> node2
         nodesDepth.getValue(node1.hash) > nodesDepth.getValue(node2.hash) -> {
-            return when (node1) {
-                is Leaf -> {
-                    findBaseNode(node1.parent, node2, nodesDepth)
-                }
-                is Merge -> {
-                    val n1 = findBaseNode(node1.parent1, node2, nodesDepth)
-                    val n2 = findBaseNode(node1.parent2, node2, nodesDepth)
-                    maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
-                }
-                else -> throw AssertionError("Should never happen, between: $node1 and $node2")
-            }
+            return findBaseForNodesWithDifferentDepth(node1, node2, nodesDepth)
         }
         nodesDepth.getValue(node2.hash) > nodesDepth.getValue(node1.hash) -> {
-            return when (node2) {
-                is Leaf -> {
-                    findBaseNode(node1, node2.parent, nodesDepth)
-                }
-                is Merge -> {
-                    val n1 = findBaseNode(node1, node2.parent1, nodesDepth)
-                    val n2 = findBaseNode(node1, node2.parent2, nodesDepth)
-                    maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
-                }
-                else -> throw AssertionError("Should never happen, between: $node1 and $node2")
-            }
+            return findBaseForNodesWithDifferentDepth(node2, node1, nodesDepth)
         }
         nodesDepth.getValue(node1.hash) == nodesDepth.getValue(node2.hash) -> {
             return when {
                 node1 is Leaf && node2 is Leaf -> findBaseNode(node1.parent, node2.parent, nodesDepth)
                 node1 is Leaf && node2 is Merge -> {
-                    val n1 = findBaseNode(node1.parent, node2.parent1, nodesDepth)
-                    val n2 = findBaseNode(node1.parent, node2.parent2, nodesDepth)
-                    maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
+                    findBaseForDeepEqualsLeafAndMergeNodes(node1, node2, nodesDepth)
                 }
                 node1 is Merge && node2 is Leaf -> {
-                    val n1 = findBaseNode(node1.parent1, node2.parent, nodesDepth)
-                    val n2 = findBaseNode(node1.parent2, node2.parent, nodesDepth)
-                    maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
+                    findBaseForDeepEqualsLeafAndMergeNodes(node2, node1, nodesDepth)
                 }
                 node1 is Merge && node2 is Merge -> {
                     val listBases = ArrayList<Node<Hash>>()
@@ -123,5 +88,33 @@ internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<
             }
         }
         else -> throw AssertionError("Should never happen, between: $node1 and $node2")
+    }
+}
+
+private fun findBaseForDeepEqualsLeafAndMergeNodes(
+    leaf: Leaf<Hash>,
+    merge: Merge<Hash>,
+    nodesDepth: Map<Hash, Int>
+): Node<Hash> {
+    val n1 = findBaseNode(leaf.parent, merge.parent1, nodesDepth)
+    val n2 = findBaseNode(leaf.parent, merge.parent2, nodesDepth)
+    return maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
+}
+
+private fun findBaseForNodesWithDifferentDepth(
+    deepNode: Node<Hash>,
+    anotherNode: Node<Hash>,
+    nodesDepth: Map<Hash, Int>
+): Node<Hash> {
+    return when (deepNode) {
+        is Leaf -> {
+            findBaseNode(deepNode.parent, anotherNode, nodesDepth)
+        }
+        is Merge -> {
+            val n1 = findBaseNode(deepNode.parent1, anotherNode, nodesDepth)
+            val n2 = findBaseNode(deepNode.parent2, anotherNode, nodesDepth)
+            maxOf(n1, n2, compareBy { nodesDepth.getValue(it.hash) })
+        }
+        else -> throw AssertionError("Should never happen, between: $deepNode and $anotherNode")
     }
 }

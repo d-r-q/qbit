@@ -5,6 +5,7 @@ import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.platform.currentTimeMillis
+import qbit.resolving.findBaseNode
 import qbit.serialization.*
 import kotlin.math.max
 
@@ -15,15 +16,11 @@ interface TrxLog {
 
     suspend fun append(facts: Collection<Eav>): TrxLog
 
-    suspend fun mergeWith(
-        trxLog: TrxLog,
-        e: Collection<Eav>,
-        resolveNode: (Node<Hash>) -> NodeVal<Hash>?
-    ): TrxLog
+    suspend fun mergeWith(trxLog: TrxLog, mergeBase: Hash, eavs: Collection<Eav>): TrxLog
 
     fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>>
 
-    fun getNodeDepth(nodeHash: Hash): Int
+    fun getNodesDepth(): Map<Hash, Int>
 
 }
 
@@ -64,44 +61,77 @@ class QTrxLog(
 
     override suspend fun mergeWith(
         trxLog: TrxLog,
-        e: Collection<Eav>,
-        resolveNode: (Node<Hash>) -> NodeVal<Hash>?
+        mergeBase: Hash,
+        eavs: Collection<Eav>,
     ): TrxLog {
-        val anotherHead = resolveNode(NodeRef(trxLog.hash))
-            ?: throw QBitException("Corrupted transaction graph, could not load transaction ${trxLog.hash}")
         val newHead = store(
             Merge(
-                null, head, anotherHead,
-                dbUuid, currentTimeMillis(), NodeData(e.toTypedArray())
+                null, NodeRef(mergeBase), head, NodeRef(trxLog.hash),
+                dbUuid, currentTimeMillis(), NodeData(eavs.toTypedArray())
             )
         )
-        val newNodesDepth = updateMapOfNodesDepth(newHead, trxLog.getNodeDepth(anotherHead.hash))
+        val trxLogNodesDepth = trxLog.getNodesDepth().filter { !nodesDepth.keys.contains(it.key) }
+        val newNodesDepth = updateMapOfNodesDepth(newHead,
+            nodesDepth[trxLog.hash]?:trxLog.getNodesDepth()[trxLog.hash]?:throw AssertionError("Should never happen with depth for node: ${trxLog.hash}"))
+            .plus(trxLogNodesDepth)
         return QTrxLog(newHead, newNodesDepth, storage, dbUuid)
     }
 
     override fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
-        val fromNodes = arrayListOf(head)
+        return nodesBetween(head, to, resolveNode)
+    }
+
+    private fun nodesBetween(from: NodeVal<Hash>, to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>>{
+        val fromNodes = arrayListOf(from)
         val nodesBetween = mutableListOf<NodeVal<Hash>>()
         while (fromNodes.isNotEmpty()) {
             val fromNode = fromNodes.removeLast()
             when {
-                fromNode.hash == to -> continue
+                fromNode.hash == to -> break
                 fromNode is Root -> continue
                 fromNode is Leaf -> {
-                    nodesBetween.add(fromNode)
+                    nodesBetween.add(0, fromNode)
                     val fromVal = resolveNode(fromNode.parent)
                         ?: throw QBitException("Corrupted transaction graph, could not load transaction ${fromNode.hash}")
                     fromNodes.add(fromVal)
                 }
-                fromNode is Merge -> throw UnsupportedOperationException("Merges not yet supported")
+                fromNode is Merge -> {
+                    nodesBetween.add(0, fromNode)
+                    val parent1 = resolveNode(fromNode.parent1)
+                        ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
+                    val parent2 = resolveNode(fromNode.parent2)
+                        ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
+
+                    val parents1 = nodesBetween(parent1, fromNode.base.hash, resolveNode)
+                    val parents2 = nodesBetween(parent2, fromNode.base.hash, resolveNode)
+                    val index1 = parents1.indexOfLast { it.hash == to }
+                    val index2 = parents2.indexOfLast { it.hash == to }
+
+                    when {
+                        index1 > -1 -> {
+                            nodesBetween.addAll(0, parents1.subList(index1, parents1.size))
+                            break
+                        }
+                        index2 > -1 -> {
+                            nodesBetween.addAll(0, parents2.subList(index2, parents2.size))
+                            break
+                        }
+                        else -> {
+                            val fromVal = resolveNode(fromNode.base)
+                                ?: throw QBitException("Corrupted transaction graph, could not load transaction ${from.hash}")
+                            nodesBetween.addAll(parents1 + parents2)
+                            fromNodes.add(fromVal)
+                        }
+                    }
+                }
                 else -> throw AssertionError("Should never happen, from: $fromNode")
             }
         }
         return nodesBetween.toList()
     }
 
-    override fun getNodeDepth(nodeHash: Hash): Int {
-        return nodesDepth.getValue(nodeHash)
+    override fun getNodesDepth(): Map<Hash, Int> {
+        return nodesDepth
     }
 }
 

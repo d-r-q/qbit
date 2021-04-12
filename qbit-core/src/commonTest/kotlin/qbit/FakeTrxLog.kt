@@ -20,17 +20,17 @@ internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxL
 
     override suspend fun mergeWith(
         trxLog: TrxLog,
-        e: Collection<Eav>,
-        resolveNode: (Node<Hash>) -> NodeVal<Hash>?
+        mergeBase: Hash,
+        eavs: Collection<Eav>,
     ): TrxLog {
-        return append(e)
+        return append(eavs)
     }
 
     override fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
         TODO("Not yet implemented")
     }
 
-    override fun getNodeDepth(node: Hash): Int {
+    override fun getNodesDepth(): Map<Hash, Int> {
         TODO("Not yet implemented")
     }
 

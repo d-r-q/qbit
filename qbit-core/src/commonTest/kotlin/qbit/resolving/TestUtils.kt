@@ -4,6 +4,7 @@ import io.ktor.utils.io.core.*
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Eav
+import qbit.api.model.HASH_LEN
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
 import qbit.serialization.*
@@ -11,6 +12,8 @@ import qbit.storage.MemStorage
 import qbit.trx.QTrxLog
 import qbit.trx.TrxLog
 import kotlin.math.max
+
+private val nullNode = NodeRef(Hash(ByteArray(HASH_LEN)))
 
 private fun getNodeDepthByDepthMap(node: NodeVal<Hash>, nodesDepth: Map<Hash, Int>): Int{
     return when(node){
@@ -33,7 +36,7 @@ fun createNodesOver(): Pair<HashMap<Hash, Int>, List<Node<Hash>>> {
     nodesDepth[leaf2.hash] = getNodeDepthByDepthMap(leaf2, nodesDepth)
     val leaf3 = Leaf(Hash(nodesDepth.size.toString().toByteArray()), leaf1, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf3.hash] = getNodeDepthByDepthMap(leaf3, nodesDepth)
-    val merge1 = Merge(Hash(nodesDepth.size.toString().toByteArray()), leaf2, leaf3, testDbUuid, testTimestamp, testNodeData)
+    val merge1 = Merge(Hash(nodesDepth.size.toString().toByteArray()), nullNode, leaf2, leaf3, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge1.hash] = getNodeDepthByDepthMap(merge1, nodesDepth)
     val leaf4 = Leaf(Hash(nodesDepth.size.toString().toByteArray()), leaf2, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf4.hash] = getNodeDepthByDepthMap(leaf4, nodesDepth)
@@ -72,17 +75,17 @@ fun createNodesEqually(): Pair<HashMap<Hash, Int>, List<Node<Hash>>> {
     nodesDepth[leaf5.hash] = getNodeDepthByDepthMap(leaf5, nodesDepth)
     val leaf6 = Leaf(Hash(nodesDepth.size.toString().toByteArray()), root, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf6.hash] = getNodeDepthByDepthMap(leaf6, nodesDepth)
-    val merge1 = Merge(Hash(nodesDepth.size.toString().toByteArray()), leaf1, leaf2, testDbUuid, testTimestamp, testNodeData)
+    val merge1 = Merge(Hash(nodesDepth.size.toString().toByteArray()), nullNode, leaf1, leaf2, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge1.hash] = getNodeDepthByDepthMap(merge1, nodesDepth)
     val leaf7 = Leaf(Hash(nodesDepth.size.toString().toByteArray()), leaf3, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf7.hash] = getNodeDepthByDepthMap(leaf7, nodesDepth)
     val leaf8 = Leaf(Hash(nodesDepth.size.toString().toByteArray()), merge1, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[leaf8.hash] = getNodeDepthByDepthMap(leaf8, nodesDepth)
-    val merge2 = Merge(Hash(nodesDepth.size.toString().toByteArray()), leaf7, leaf4, testDbUuid, testTimestamp, testNodeData)
+    val merge2 = Merge(Hash(nodesDepth.size.toString().toByteArray()), nullNode, leaf7, leaf4, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge2.hash] = getNodeDepthByDepthMap(merge2, nodesDepth)
-    val merge3 = Merge(Hash(nodesDepth.size.toString().toByteArray()), leaf8, leaf6, testDbUuid, testTimestamp, testNodeData)
+    val merge3 = Merge(Hash(nodesDepth.size.toString().toByteArray()), nullNode, leaf8, leaf6, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge3.hash] = getNodeDepthByDepthMap(merge3, nodesDepth)
-    val merge4 = Merge(Hash(nodesDepth.size.toString().toByteArray()), leaf5, merge2, testDbUuid, testTimestamp, testNodeData)
+    val merge4 = Merge(Hash(nodesDepth.size.toString().toByteArray()), nullNode, leaf5, merge2, testDbUuid, testTimestamp, testNodeData)
     nodesDepth[merge4.hash] = getNodeDepthByDepthMap(merge4, nodesDepth)
     return Pair(nodesDepth ,listOf(merge3, merge4, root))
 }
