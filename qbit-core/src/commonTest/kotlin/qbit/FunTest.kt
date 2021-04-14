@@ -498,4 +498,26 @@ class FunTest {
             }
         }
     }
+
+    @JsName("qbit_should_successfully_persist_and_load_numeric_attributes")
+    @Test
+    fun `qbit should successfully persist and load numeric attributes`(): Unit = runBlocking {
+        // Given qbit and entity with numeric attribytes
+        val storage = MemStorage()
+        val conn1 = setupTestData(storage)
+        val entity = EntityWithNullableNumericAttrs(null, 1, 2, 3)
+
+        // When the entity is persisted
+        val stored = conn1.persist(entity)
+        // And storage is reopened
+        val conn2 = qbit(storage, testsSerialModule)
+        // And the entity is pulled
+        val loaded = conn2.db().pull<EntityWithNullableNumericAttrs>(Gid(stored.persisted!!.id!!))!!
+
+        // Then it should have persisted value attrs
+        assertEquals(entity.long, loaded.long)
+        assertEquals(entity.int, loaded.int)
+        assertEquals(entity.byte, loaded.byte)
+    }
+
 }

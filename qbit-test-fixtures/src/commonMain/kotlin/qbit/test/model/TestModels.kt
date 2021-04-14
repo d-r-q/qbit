@@ -137,6 +137,9 @@ data class EntityWithListOfString(val id: Long?, val strings: List<String>?)
 data class EntityWithListOfBytes(val id: Long?, val bytes: List<Byte>)
 
 @Serializable
+data class EntityWithNullableNumericAttrs(val id: Long?, val long: Long, val int: Int?, val byte: Byte)
+
+@Serializable
 data class Bomb(
     val id: Long?,
 
@@ -316,5 +319,6 @@ val testsSerialModule = SerializersModule {
     contextual(EntityWithListOfBytes::class, EntityWithListOfBytes.serializer())
     contextual(EntityWithListOfByteArray::class, EntityWithListOfByteArray.serializer())
     contextual(EntityWithListOfString::class, EntityWithListOfString.serializer())
+    contextual(EntityWithNullableNumericAttrs::class, EntityWithNullableNumericAttrs.serializer())
     contextual(MUser::class, MUser.serializer())
 }

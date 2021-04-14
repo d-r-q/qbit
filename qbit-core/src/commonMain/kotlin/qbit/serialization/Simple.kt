@@ -78,12 +78,14 @@ object SimpleSerialization : Serialization {
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         if (a as? Number != null) {
+            // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
             byteArray(QLong.code, serializeLong(a.toLong()))
         } else {
             when (a) {
                 is Node<*> -> serialize(a.hash!!.bytes)
                 is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
                 is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
+                // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
                 is Number -> byteArray(QLong.code, a)
                 is String -> byteArray(QString.code, byteArray(a))
                 is NodeData -> byteArray(serialize(a.trxes.size), *a.trxes.map { serialize(it) }.toTypedArray())
@@ -132,7 +134,7 @@ internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
     is Char -> charArrayOf(v).concatToString().encodeToUtf8().size
-    else -> throw AssertionError("Should never happen, v is $v")
+    else -> throw AssertionError("Should never happen, v is ${v::class}")
 }
 
 internal fun serializeInt(a: Int): ByteArray = byteArrayOf(byteOf(3, a), byteOf(2, a), byteOf(1, a), byteOf(0, a))
