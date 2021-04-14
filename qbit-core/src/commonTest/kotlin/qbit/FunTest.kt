@@ -310,17 +310,14 @@ class FunTest {
     fun `Reopening existing storage should preserve state`() {
         runBlocking {
             val storage = MemStorage()
-            setupTestData(storage)
+            setupTestSchema(storage)
 
             val conn1 = qbit(storage, testsSerialModule)
             assertNotNull((conn1.db() as InternalDb).attr(Scientists.name.name))
             conn1.persist(IntEntity(null, 2))
 
             val conn2 = qbit(storage, testsSerialModule)
-//            assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
-            conn2.db {
-                assertNotNull(it.pull<Scientist>(eCodd.id!!)!!.name)
-            }
+            assertNotNull(conn2.db().query<IntEntity>(attrIs(IntEntities.int, 2)).firstOrNull())
         }
     }
 
@@ -402,7 +399,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967377, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967380, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
