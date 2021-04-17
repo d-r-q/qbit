@@ -456,10 +456,10 @@ class FunTest {
             val trx1 = conn.trx()
             trx1.persist(eCodd.copy(name = "Im change 1"))
             trx1.persist(eBrewer.copy(name = "Im different change"))
-            trx1.commit()
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
             trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -517,4 +517,34 @@ class FunTest {
         assertEquals(entity.byte, loaded.byte)
     }
 
+    @JsName("Test_conflict_resolving_for_list_attr")
+    @Test
+    fun `Test conflict resolving for list attr`(){
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(
+                eCodd.copy(
+                    name = "Im change 1",
+                    nicks = listOf("mathematician", "tabulator", "test1")
+                )
+            )
+            val trx2 = conn.trx()
+            trx2.persist(
+                eCodd.copy(
+                    name = "Im change 2",
+                    nicks = listOf("mathematician", "tabulator", "test2")
+                )
+            )
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals(
+                    listOf("mathematician", "tabulator", "test1", "test2"),
+                    it.pull<Scientist>(eCodd.id!!)!!.nicks
+                )
+            }
+        }
+    }
 }

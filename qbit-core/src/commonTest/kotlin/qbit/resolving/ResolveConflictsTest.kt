@@ -1,5 +1,6 @@
 package qbit.resolving
 
+import qbit.Attr
 import qbit.api.model.Hash
 import qbit.platform.runBlocking
 import qbit.serialization.NodeVal
@@ -58,7 +59,7 @@ class ResolveConflictsTest {
             val eavA = res.second[0]
             val logs = res.first
             val diff = logsDiff(logs[0], logs[1], logs[2]) { it as NodeVal<Hash> }
-            val result = diff.merge(lastWriterWinsResolve())
+            val result = diff.merge(lastWriterWinsResolve { Attr(null,"") })
             assertEquals(eavA.value, result.second[eavA.gid]!!.second[0].value)
         }
     }

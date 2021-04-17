@@ -140,7 +140,7 @@ class QConn(
         val logsDifference = logsDiff(trxLog, this.trxLog, newLog, resolveNode)
         var mergeDb : InternalDb? = null
         if (logsDifference != LogsDiff.noChanges) {
-            val mergeResult = logsDifference.merge(lastWriterWinsResolve())
+            val mergeResult = logsDifference.merge(lastWriterWinsResolve { this.db.attr(it) })
             val logAEavsOnly = mergeResult.first.values.map { it.second }.flatten()
             val reconciliationEntities = mergeResult.second
             val reconciliationEavs = reconciliationEntities.values.map { it.second }.flatten()

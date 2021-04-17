@@ -1,6 +1,7 @@
 package qbit.resolving
 
 import qbit.api.gid.Gid
+import qbit.api.model.Attr
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.index.RawEntity
@@ -38,10 +39,10 @@ data class LogsDiff(
         val noChanges = LogsDiff(emptyMap(), emptyMap())
     }
 
-    fun merge(resolve: (List<PersistedEav>, List<PersistedEav>) -> Eav): Pair<Map<Gid, RawEntity>, Map<Gid, RawEntity>> {
+    fun merge(resolve: (List<PersistedEav>, List<PersistedEav>) -> List<Eav>): Pair<Map<Gid, RawEntity>, Map<Gid, RawEntity>> {
         val gidAttrsGroupByGid = writesFromA.keys.intersect(writesFromB.keys).groupBy { it.gid }
         val resolvingEavByGid = gidAttrsGroupByGid.mapValues { entry ->
-            entry.value.map {
+            entry.value.flatMap {
                 resolve(writesFromA[it]!!, writesFromB[it]!!)
             }
         }
@@ -52,8 +53,13 @@ data class LogsDiff(
 
 }
 
-internal fun lastWriterWinsResolve(): (List<PersistedEav>, List<PersistedEav>) -> Eav = { eavsFromA, eavsFromB ->
-    (eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav
+internal fun lastWriterWinsResolve(attrResolver: (String) -> Attr<Any>?): (List<PersistedEav>, List<PersistedEav>) -> List<Eav> = { eavsFromA, eavsFromB ->
+    val attr = attrResolver(eavsFromA[0].eav.attr)?: throw AssertionError("Attr ${eavsFromA[0].eav.attr} not exist, should never happen")
+    if (attr.list) {
+        (eavsFromA+eavsFromB).map { it.eav }.distinct()
+    } else {
+        listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
+    }
 }
 
 internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<Hash, Int>): Node<Hash> {
