@@ -16,14 +16,11 @@ fun logsDiff(
     baseLog: TrxLog, logA: TrxLog, logB: TrxLog,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>?
 ): LogsDiff {
-    if (baseLog == logA) {
-        return LogsDiff.noChanges
-    }
     val nodesA = logA.nodesSince(baseLog.hash, resolveNode)
     val nodesB = logB.nodesSince(baseLog.hash, resolveNode)
     val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
     val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
-    return LogsDiff (writesFromA, writesFromB)
+    return LogsDiff(writesFromA, writesFromB)
 }
 
 private fun writtenEntityAttrs(nodes: List<NodeVal<Hash>>) =
@@ -35,21 +32,26 @@ data class LogsDiff(
     val writesFromB: Map<GidAttr, List<PersistedEav>>
 ) {
 
-    companion object {
-        val noChanges = LogsDiff(emptyMap(), emptyMap())
-    }
-
-    fun merge(resolve: (List<PersistedEav>, List<PersistedEav>) -> List<Eav>): Pair<Map<Gid, RawEntity>, Map<Gid, RawEntity>> {
-        val gidAttrsGroupByGid = writesFromA.keys.intersect(writesFromB.keys).groupBy { it.gid }
-        val resolvingEavByGid = gidAttrsGroupByGid.mapValues { entry ->
+    fun reconciliationEntities(resolve: (List<PersistedEav>, List<PersistedEav>) -> List<Eav>): List<RawEntity> {
+        val conflictingEavsByGid = writesFromA.keys.intersect(writesFromB.keys).groupBy { it.gid }
+        val resolvingEavsByGid = conflictingEavsByGid.mapValues { entry ->
             entry.value.flatMap {
                 resolve(writesFromA[it]!!, writesFromB[it]!!)
             }
         }
-        return Pair( writesFromA.keys.groupBy { it.gid }
-            .mapValues { entry -> RawEntity(entry.key, entry.value.map { writesFromA[it]!!.maxByOrNull { persistedEav ->  persistedEav.timestamp }!!.eav }) },
-            resolvingEavByGid.mapValues { entry -> RawEntity(entry.key, entry.value) })
+        return resolvingEavsByGid.values.map { RawEntity(it.first().gid, it) }
     }
+
+    fun logAEntities(): List<RawEntity> {
+        val entities: Map<Gid, List<GidAttr>> = writesFromA.keys.groupBy { it.gid }
+        return entities.values
+            .map {
+                RawEntity(it.first().gid, it.map { writesFromA[it]!!.lastByTimestamp()!!.eav })
+            }
+    }
+
+    private fun List<PersistedEav>.lastByTimestamp() =
+        maxByOrNull { it.timestamp }
 
 }
 

@@ -59,8 +59,8 @@ class ResolveConflictsTest {
             val eavA = res.second[0]
             val logs = res.first
             val diff = logsDiff(logs[0], logs[1], logs[2]) { it as NodeVal<Hash> }
-            val result = diff.merge(lastWriterWinsResolve { Attr(null,"") })
-            assertEquals(eavA.value, result.second[eavA.gid]!!.second[0].value)
+            val result = diff.reconciliationEntities(lastWriterWinsResolve { Attr(null,"") })
+            assertEquals(eavA.value, result[0].second[0].value)
         }
     }
 }

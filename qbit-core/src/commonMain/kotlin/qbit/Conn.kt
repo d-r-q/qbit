@@ -19,6 +19,7 @@ import qbit.factoring.Factor
 import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
+import qbit.index.RawEntity
 import qbit.ns.Namespace
 import qbit.resolving.*
 import qbit.resolving.lastWriterWinsResolve
@@ -137,24 +138,45 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        val logsDifference = logsDiff(trxLog, this.trxLog, newLog, resolveNode)
-        var mergeDb : InternalDb? = null
-        if (logsDifference != LogsDiff.noChanges) {
-            val mergeResult = logsDifference.merge(lastWriterWinsResolve { this.db.attr(it) })
-            val logAEavsOnly = mergeResult.first.values.map { it.second }.flatten()
-            val reconciliationEntities = mergeResult.second
-            val reconciliationEavs = reconciliationEntities.values.map { it.second }.flatten()
-            mergeDb = newDb.with(logAEavsOnly).with(reconciliationEavs)
-            this.trxLog = newLog.mergeWith(this.trxLog, trxLog.hash, reconciliationEavs)
-        }
+        val (log, db) =
+            if (hasConcurrentTrx(trxLog)) {
+                mergeLogs(trxLog, this.trxLog, newLog, newDb)
+            } else {
+                newLog to newDb
+            }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
-        if (logsDifference == LogsDiff.noChanges) {
-            this.trxLog = newLog
-            this.db = newDb
-        } else {
-            this.db = mergeDb!!
-        }
+        this.trxLog = log
+        this.db = db
     }
+
+    private fun hasConcurrentTrx(trxLog: TrxLog) =
+        trxLog != this.trxLog
+
+    private suspend fun mergeLogs(
+        baseLog: TrxLog,
+        committedLog: TrxLog,
+        committingLog: TrxLog,
+        newDb: InternalDb
+    ): Pair<TrxLog, InternalDb> {
+        val logsDifference = logsDiff(baseLog, committedLog, committingLog, resolveNode)
+
+        val committedEavs = logsDifference
+            .logAEntities()
+            .toEavsList()
+        val reconciliationEavs = logsDifference
+            .reconciliationEntities(lastWriterWinsResolve { db.attr(it) })
+            .toEavsList()
+
+        val mergedDb = newDb
+            .with(committedEavs)
+            .with(reconciliationEavs)
+        val mergedLog = committingLog.mergeWith(committedLog, baseLog.hash, reconciliationEavs)
+
+        return mergedLog to mergedDb
+    }
+
+    private fun List<RawEntity>.toEavsList() =
+        flatMap { it.second }
 
 }
 
