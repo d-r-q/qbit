@@ -26,7 +26,7 @@ internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxL
         return append(eavs)
     }
 
-    override fun nodesSince(to: Hash, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
+    override fun nodesSince(to: Hash): List<Node<Hash>> {
         TODO("Not yet implemented")
     }
 

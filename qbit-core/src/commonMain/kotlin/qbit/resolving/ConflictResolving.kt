@@ -14,10 +14,10 @@ data class GidAttr(val gid: Gid, val attr: String)
 
 fun logsDiff(
     baseLog: TrxLog, logA: TrxLog, logB: TrxLog,
-    resolveNode: (Node<Hash>) -> NodeVal<Hash>?
+    resolveNode: (Node<Hash>) -> NodeVal<Hash>
 ): LogsDiff {
-    val nodesA = logA.nodesSince(baseLog.hash, resolveNode)
-    val nodesB = logB.nodesSince(baseLog.hash, resolveNode)
+    val nodesA = logA.nodesSince(baseLog.hash).map(resolveNode)
+    val nodesB = logB.nodesSince(baseLog.hash).map(resolveNode)
     val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
     val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
     return LogsDiff(writesFromA, writesFromB)
@@ -70,10 +70,10 @@ internal fun findBaseNode(node1: Node<Hash>, node2: Node<Hash>, nodesDepth: Map<
         node1 is Root -> node1
         node2 is Root -> node2
         nodesDepth.getValue(node1.hash) > nodesDepth.getValue(node2.hash) -> {
-            return findBaseForNodesWithDifferentDepth(node1, node2, nodesDepth)
+            findBaseForNodesWithDifferentDepth(node1, node2, nodesDepth)
         }
         nodesDepth.getValue(node2.hash) > nodesDepth.getValue(node1.hash) -> {
-            return findBaseForNodesWithDifferentDepth(node2, node1, nodesDepth)
+            findBaseForNodesWithDifferentDepth(node2, node1, nodesDepth)
         }
         nodesDepth.getValue(node1.hash) == nodesDepth.getValue(node2.hash) -> {
             return when {

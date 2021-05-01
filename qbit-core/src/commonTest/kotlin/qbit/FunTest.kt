@@ -519,7 +519,7 @@ class FunTest {
 
     @JsName("Test_conflict_resolving_for_list_attr")
     @Test
-    fun `Test conflict resolving for list attr`(){
+    fun `Test conflict resolving for list attr`() {
         runBlocking {
             val conn = setupTestData()
             val trx1 = conn.trx()
@@ -545,6 +545,31 @@ class FunTest {
                     it.pull<Scientist>(eCodd.id!!)!!.nicks
                 )
             }
+        }
+    }
+
+    @Ignore
+    @JsName("Test_creating_entities_without_eid_in_parallel_transactions")
+    @Test
+    fun `Test creating entities without eid in parallel transactions`() {
+        runBlocking {
+            val storage = MemStorage()
+            val conn = setupTestData(storage)
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(Paper(null, "trx1", eCodd))
+            trx2.persist(City(null,"trx2", nsk))
+            trx1.commit()
+            trx2.commit()
+            val db = conn.db() as InternalDb
+            val trx1EntityAttrValues = db.pullEntity(Gid(4294967379))!!.entries
+            assertEquals(2, trx1EntityAttrValues.size)
+            assertEquals("trx1", trx1EntityAttrValues.first { it.attr.name == "Paper/name" }.value)
+            assertEquals(Gid(eCodd.id!!), trx1EntityAttrValues.first { it.attr.name == "Paper/editor" }.value)
+            val trx2EntityAttrValues = db.pullEntity(Gid(4294967380))!!.entries
+            assertEquals(2, trx2EntityAttrValues.size)
+            assertEquals("trx2", trx2EntityAttrValues.first { it.attr.name == "City/name" }.value)
+            assertEquals(Gid(nsk.id!!), trx2EntityAttrValues.first { it.attr.name == "City/region" }.value)
         }
     }
 }
