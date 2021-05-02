@@ -9,6 +9,6 @@ interface NodesStorage {
 
     fun hasNode(head: Node<Hash>): Boolean
 
-    fun load(n: NodeRef): NodeVal<Hash>?
+    fun load(n: Node<Hash>): NodeVal<Hash>?
 
 }

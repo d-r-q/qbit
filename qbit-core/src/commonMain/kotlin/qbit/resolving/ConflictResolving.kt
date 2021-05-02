@@ -16,8 +16,8 @@ fun logsDiff(
     baseLog: TrxLog, logA: TrxLog, logB: TrxLog,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>
 ): LogsDiff {
-    val nodesA = logA.nodesSince(baseLog.hash).map(resolveNode)
-    val nodesB = logB.nodesSince(baseLog.hash).map(resolveNode)
+    val nodesA = logA.nodesAfter(baseLog.head).map(resolveNode)
+    val nodesB = logB.nodesAfter(baseLog.head).map(resolveNode)
     val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
     val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
     return LogsDiff(writesFromA, writesFromB)

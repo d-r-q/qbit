@@ -12,20 +12,22 @@ import kotlin.math.max
 interface TrxLog {
 
     val hash: Hash
+    
+    val head: Node<Hash>
 
     suspend fun append(facts: Collection<Eav>): TrxLog
 
     suspend fun mergeWith(trxLog: TrxLog, mergeBase: Hash, eavs: Collection<Eav>): TrxLog
 
-    fun nodesSince(to: Hash): List<Node<Hash>>
+    fun nodesAfter(base: Node<Hash>): List<Node<Hash>>
 
     fun getNodesDepth(): Map<Hash, Int>
 
 }
 
 class QTrxLog(
-    internal val head: NodeVal<Hash>,
-    internal val nodesDepth: Map<Hash, Int>,
+    override val head: Node<Hash>,
+    private val nodesDepth: Map<Hash, Int>,
     private val storage: NodesStorage,
     private val dbUuid: DbUuid
 ) : TrxLog {
@@ -75,30 +77,28 @@ class QTrxLog(
         return QTrxLog(newHead, newNodesDepth, storage, dbUuid)
     }
 
-    override fun nodesSince(to: Hash): List<Node<Hash>> {
-        return nodesBetween(head, to)
+    override fun nodesAfter(base: Node<Hash>): List<Node<Hash>> {
+        return nodesBetween(base, head)
     }
 
-    private fun nodesBetween(from: Node<Hash>, to: Hash): List<Node<Hash>>{
-        return when {
-            from.hash == to -> emptyList()
-            from is Root -> emptyList()
-            from is Leaf -> {
-                nodesBetween(from.parent,to) + from
-            }
-            from is Merge -> {
-                val parents1 = nodesBetween(from.parent1, from.base.hash)
-                val parents2 = nodesBetween(from.parent2, from.base.hash)
-                val index1 = parents1.indexOfLast { it.hash == to }
-                val index2 = parents2.indexOfLast { it.hash == to }
+    private fun nodesBetween(base: Node<Hash>, head: Node<Hash>): List<Node<Hash>>{
+        return when (head) {
+            base -> emptyList()
+            is Root -> emptyList()
+            is Leaf -> nodesBetween(base, head.parent) + head
+            is Merge -> {
+                val parents1 = nodesBetween(head.base, head.parent1)
+                val parents2 = nodesBetween(head.base, head.parent2)
+                val index1 = parents1.indexOfLast { it == base }
+                val index2 = parents2.indexOfLast { it == base }
 
                 return when {
                     index1 > -1 -> parents1.subList(index1,parents1.size)
                     index2 > -1 -> parents2.subList(index2,parents2.size)
-                    else -> nodesBetween(from.base,to) + parents1 + parents2 + from
+                    else -> nodesBetween(base, head.base) + parents1 + parents2 + head
                 }
             }
-            else -> throw AssertionError("Should never happen, from: $from")
+            is NodeRef -> nodesBetween(base, storage.load(head) ?: throw QBitException("Corrupted trx graph, cannot resolve $head"))
         }
     }
 

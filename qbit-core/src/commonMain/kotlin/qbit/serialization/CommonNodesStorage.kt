@@ -32,7 +32,7 @@ class CommonNodesStorage(private val storage: Storage) :
         }
     }
 
-    override fun load(n: NodeRef): NodeVal<Hash>? {
+    override fun load(n: Node<Hash>): NodeVal<Hash>? {
         try {
             val value = storage.load(n.key()) ?: return null
             val hash = hash(value)

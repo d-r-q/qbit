@@ -3,10 +3,12 @@ package qbit
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.serialization.Node
-import qbit.serialization.NodeVal
+import qbit.serialization.NodeRef
 import qbit.trx.TrxLog
 
 internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxLog {
+
+    override val head: Node<Hash> = NodeRef(hash)
 
     var appendsCalls = 0
 
@@ -26,7 +28,7 @@ internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxL
         return append(eavs)
     }
 
-    override fun nodesSince(to: Hash): List<Node<Hash>> {
+    override fun nodesAfter(base: Node<Hash>): List<Node<Hash>> {
         TODO("Not yet implemented")
     }
 
