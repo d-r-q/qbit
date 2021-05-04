@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.atomicfu.atomic
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -14,6 +15,7 @@ import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
+import qbit.api.system.Instance
 import qbit.api.theInstanceEid
 import qbit.factoring.Factor
 import qbit.factoring.serializatoin.KSFactorizer
@@ -116,6 +118,8 @@ class QConn(
 
     private var db: InternalDb = Indexer(serialModule, null, null, resolveNode).index(head)
 
+    private val gidSequence: GidSequence = GidSequence(db.pull(Gid(dbUuid.iid, theInstanceEid))!!)
+
     override val head
         get() = trxLog.hash
 
@@ -126,7 +130,7 @@ class QConn(
     }
 
     override fun trx(): Trx {
-        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor)
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor, gidSequence)
     }
 
     override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
@@ -187,3 +191,12 @@ private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Ha
     }
 }
 
+class GidSequence(private val inst: Instance): Iterator<Gid>{
+    private val atomicEid = atomic(inst.nextEid)
+
+    override fun next(): Gid {
+        return Gid(inst.iid,atomicEid.incrementAndGet())
+    }
+
+    override fun hasNext() = true
+}

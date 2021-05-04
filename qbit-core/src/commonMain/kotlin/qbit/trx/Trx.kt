@@ -1,5 +1,6 @@
 package qbit.trx
 
+import qbit.GidSequence
 import qbit.api.QBitException
 import qbit.api.db.Trx
 import qbit.api.db.WriteResult
@@ -15,13 +16,14 @@ import qbit.platform.collections.EmptyIterator
 internal class QTrx(
     private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
     private val commitHandler: CommitHandler, private val factor: Factor,
+    private val gids: GidSequence
 ) : Trx() {
 
     private var curDb: InternalDb = base
 
     private val factsBuffer = ArrayList<Eav>()
 
-    private val gids = Gid(inst.iid, inst.nextEid).nextGids()
+//    private val gids = Gid(inst.iid, inst.nextEid).nextGids()
 
     private var rollbacked = false
 

@@ -1,10 +1,15 @@
 package qbit
 
+import kotlinx.serialization.modules.plus
+import qbit.api.Attrs
+import qbit.api.Instances
 import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Eav
+import qbit.api.protoInstance
 import qbit.api.system.DbUuid
 import qbit.ns.Namespace
+import qbit.platform.collections.EmptyIterator
 import qbit.platform.currentTimeMillis
 import qbit.platform.runBlocking
 import qbit.serialization.CommonNodesStorage
@@ -25,18 +30,30 @@ class ConnTest {
     fun `Test head ref in storage is updated after updating connection head`() {
         runBlocking {
             val storage = MemStorage()
-            val dbUuid = DbUuid(Iid(0, 4))
+            val dbUuid = DbUuid(Iid(1, 4))
             val nodesStorage = CommonNodesStorage(storage)
+            val trx = listOf(
+                Attrs.name,
+                Attrs.type,
+                Attrs.unique,
+                Attrs.list,
+                Instances.iid,
+                Instances.forks,
+                Instances.nextEid,
+                qbit.api.tombstone
+            )
+                .flatMap { it.toFacts() }
+                .plus(testSchemaFactorizer.factor(protoInstance, bootstrapSchema::get, EmptyIterator))
 
-            val root = Root(null, dbUuid, currentTimeMillis(), NodeData(emptyArray()))
+            val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
             val storedRoot = nodesStorage.store(root)
             val leaf =
-                Leaf(null, storedRoot, dbUuid, currentTimeMillis(), NodeData(arrayOf(Eav(Gid(0, 0), "any", "any"))))
+                Leaf(null, storedRoot, dbUuid, currentTimeMillis(), NodeData(arrayOf(Eav(Gid(1, 10), "any", "any"))))
             val storedLeaf = nodesStorage.store(leaf)
-            storage.add(Namespace("refs")["head"], storedLeaf.hash.bytes)
+            storage.overwrite(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
             val conn = QConn(
-                testsSerialModule,
+                testsSerialModule + qbitSerialModule,
                 dbUuid,
                 storage,
                 storedRoot,

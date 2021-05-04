@@ -1,5 +1,6 @@
 package qbit.resolving
 
+import qbit.api.Instances
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.Eav
@@ -57,6 +58,9 @@ data class LogsDiff(
 
 internal fun lastWriterWinsResolve(attrResolver: (String) -> Attr<Any>?): (List<PersistedEav>, List<PersistedEav>) -> List<Eav> = { eavsFromA, eavsFromB ->
     val attr = attrResolver(eavsFromA[0].eav.attr)?: throw AssertionError("Attr ${eavsFromA[0].eav.attr} not exist, should never happen")
+    if (attr == Instances.nextEid) {
+        (eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav
+    }
     if (attr.list) {
         (eavsFromA+eavsFromB).map { it.eav }.distinct()
     } else {

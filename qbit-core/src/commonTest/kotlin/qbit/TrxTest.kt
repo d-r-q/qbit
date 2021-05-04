@@ -110,7 +110,8 @@ class TrxTest {
             Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(
                 Gid(0, 0).nextGids(),
                 *entities
-            ), conn, testSchemaFactorizer::factor
+            ), conn, testSchemaFactorizer::factor,
+            GidSequence(Instance(Gid(0, 1), 0, 0, 2))
         )
 
     @Ignore

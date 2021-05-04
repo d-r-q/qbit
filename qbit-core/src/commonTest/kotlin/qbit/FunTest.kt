@@ -399,7 +399,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967380, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967461, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -548,7 +548,6 @@ class FunTest {
         }
     }
 
-    @Ignore
     @JsName("Test_creating_entities_without_eid_in_parallel_transactions")
     @Test
     fun `Test creating entities without eid in parallel transactions`() {
@@ -557,16 +556,16 @@ class FunTest {
             val conn = setupTestData(storage)
             val trx1 = conn.trx()
             val trx2 = conn.trx()
-            trx1.persist(Paper(null, "trx1", eCodd))
-            trx2.persist(City(null,"trx2", nsk))
+            val storedPaper = trx1.persist(Paper(null, "trx1", eCodd)).persisted
+            val storedCity = trx2.persist(City(null,"trx2", nsk)).persisted
             trx1.commit()
             trx2.commit()
             val db = conn.db() as InternalDb
-            val trx1EntityAttrValues = db.pullEntity(Gid(4294967379))!!.entries
+            val trx1EntityAttrValues = db.pullEntity(Gid(storedPaper!!.id!!))!!.entries
             assertEquals(2, trx1EntityAttrValues.size)
             assertEquals("trx1", trx1EntityAttrValues.first { it.attr.name == "Paper/name" }.value)
             assertEquals(Gid(eCodd.id!!), trx1EntityAttrValues.first { it.attr.name == "Paper/editor" }.value)
-            val trx2EntityAttrValues = db.pullEntity(Gid(4294967380))!!.entries
+            val trx2EntityAttrValues = db.pullEntity(Gid(storedCity!!.id!!))!!.entries
             assertEquals(2, trx2EntityAttrValues.size)
             assertEquals("trx2", trx2EntityAttrValues.first { it.attr.name == "City/name" }.value)
             assertEquals(Gid(nsk.id!!), trx2EntityAttrValues.first { it.attr.name == "City/region" }.value)
