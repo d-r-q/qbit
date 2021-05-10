@@ -1,11 +1,9 @@
 package qbit.trx
 
-import qbit.GidSequence
 import qbit.api.QBitException
 import qbit.api.db.Trx
 import qbit.api.db.WriteResult
 import qbit.api.gid.Gid
-import qbit.api.gid.nextGids
 import qbit.api.model.*
 import qbit.api.system.Instance
 import qbit.factoring.Factor
@@ -22,8 +20,6 @@ internal class QTrx(
     private var curDb: InternalDb = base
 
     private val factsBuffer = ArrayList<Eav>()
-
-//    private val gids = Gid(inst.iid, inst.nextEid).nextGids()
 
     private var rollbacked = false
 

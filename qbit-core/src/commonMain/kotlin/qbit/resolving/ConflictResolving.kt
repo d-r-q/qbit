@@ -46,8 +46,8 @@ data class LogsDiff(
     fun logAEntities(): List<RawEntity> {
         val entities: Map<Gid, List<GidAttr>> = writesFromA.keys.groupBy { it.gid }
         return entities.values
-            .map {
-                RawEntity(it.first().gid, it.map { writesFromA[it]!!.lastByTimestamp()!!.eav })
+            .map { gidAttrs ->
+                RawEntity(gidAttrs.first().gid, gidAttrs.map { writesFromA[it]!!.lastByTimestamp()!!.eav })
             }
     }
 
@@ -56,15 +56,18 @@ data class LogsDiff(
 
 }
 
-internal fun lastWriterWinsResolve(attrResolver: (String) -> Attr<Any>?): (List<PersistedEav>, List<PersistedEav>) -> List<Eav> = { eavsFromA, eavsFromB ->
-    val attr = attrResolver(eavsFromA[0].eav.attr)?: throw AssertionError("Attr ${eavsFromA[0].eav.attr} not exist, should never happen")
-    if (attr == Instances.nextEid) {
-        (eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav
-    }
-    if (attr.list) {
-        (eavsFromA+eavsFromB).map { it.eav }.distinct()
-    } else {
-        listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
+internal fun lastWriterWinsResolve(resolveAttrName: (String) -> Attr<Any>?): (List<PersistedEav>, List<PersistedEav>) -> List<Eav> = { eavsFromA, eavsFromB ->
+    require(eavsFromA.isNotEmpty()) { "eavsFromA should be not empty" }
+    require(eavsFromB.isNotEmpty()) { "eavsFromB should be not empty" }
+
+    val attr = resolveAttrName(eavsFromA[0].eav.attr)
+        ?: throw IllegalArgumentException("Cannot resolve ${eavsFromA[0].eav.attr}")
+
+    when {
+        // temporary dirty hack until crdt counter or custom resolution strategy support is implemented
+        attr == Instances.nextEid -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav)
+        attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
+        else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
     }
 }
 

@@ -21,6 +21,7 @@ import qbit.storage.MemStorage
 import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.test.model.testsSerialModule
+import qbit.trx.GidSequence
 import qbit.trx.QTrx
 import kotlin.js.JsName
 import kotlin.test.*
@@ -111,7 +112,7 @@ class TrxTest {
                 Gid(0, 0).nextGids(),
                 *entities
             ), conn, testSchemaFactorizer::factor,
-            GidSequence(Instance(Gid(0, 1), 0, 0, 2))
+            GidSequence(0, 1)
         )
 
     @Ignore

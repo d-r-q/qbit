@@ -1,6 +1,5 @@
 package qbit
 
-import kotlinx.atomicfu.atomic
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -23,15 +22,12 @@ import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.index.RawEntity
 import qbit.ns.Namespace
-import qbit.resolving.*
 import qbit.resolving.lastWriterWinsResolve
+import qbit.resolving.logsDiff
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
-import qbit.trx.CommitHandler
-import qbit.trx.QTrx
-import qbit.trx.QTrxLog
-import qbit.trx.TrxLog
+import qbit.trx.*
 import kotlin.reflect.KClass
 
 @Suppress("EXPERIMENTAL_API_USAGE")
@@ -118,7 +114,12 @@ class QConn(
 
     private var db: InternalDb = Indexer(serialModule, null, null, resolveNode).index(head)
 
-    private val gidSequence: GidSequence = GidSequence(db.pull(Gid(dbUuid.iid, theInstanceEid))!!)
+    private val gidSequence: GidSequence = with(db.pull<Instance>(Gid(dbUuid.iid, theInstanceEid))) {
+        if (this == null) {
+            throw QBitException("Corrupted DB - the instance entity not found")
+        }
+        GidSequence(this.iid, this.nextEid)
+    }
 
     override val head
         get() = trxLog.hash
@@ -189,14 +190,4 @@ private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Ha
         is NodeVal<Hash> -> n
         is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
-}
-
-class GidSequence(private val inst: Instance): Iterator<Gid>{
-    private val atomicEid = atomic(inst.nextEid)
-
-    override fun next(): Gid {
-        return Gid(inst.iid,atomicEid.incrementAndGet())
-    }
-
-    override fun hasNext() = true
 }
