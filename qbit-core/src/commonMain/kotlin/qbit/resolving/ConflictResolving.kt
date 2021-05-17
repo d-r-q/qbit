@@ -13,12 +13,12 @@ data class PersistedEav(val eav: Eav, val timestamp: Long, val node: Hash)
 
 data class GidAttr(val gid: Gid, val attr: String)
 
-fun logsDiff(
+suspend fun logsDiff(
     baseLog: TrxLog, logA: TrxLog, logB: TrxLog,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>
 ): LogsDiff {
-    val nodesA = logA.nodesAfter(baseLog.head).map(resolveNode)
-    val nodesB = logB.nodesAfter(baseLog.head).map(resolveNode)
+    val nodesA = logA.nodesAfter(baseLog.head, resolveNode)
+    val nodesB = logB.nodesAfter(baseLog.head, resolveNode)
     val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
     val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
     return LogsDiff(writesFromA, writesFromB)
