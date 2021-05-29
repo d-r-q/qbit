@@ -17,7 +17,9 @@ import qbit.index.IndexDb
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.serialization.Node
+import qbit.serialization.NodeRef
 import qbit.serialization.NodeVal
+import qbit.serialization.NodesStorage
 import qbit.spi.Storage
 import qbit.storage.MemStorage
 import qbit.test.model.testsSerialModule
@@ -153,5 +155,12 @@ suspend fun setupTestData(storage: Storage = MemStorage()): Conn {
             persist(it)
         }
         this
+    }
+}
+
+fun testNodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Hash> = { n ->
+    when (n) {
+        is NodeVal<Hash> -> n
+        is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 }

@@ -8,6 +8,7 @@ import qbit.api.gid.Iid
 import qbit.api.model.Eav
 import qbit.api.protoInstance
 import qbit.api.system.DbUuid
+import qbit.index.Indexer
 import qbit.ns.Namespace
 import qbit.platform.collections.EmptyIterator
 import qbit.platform.currentTimeMillis
@@ -53,11 +54,12 @@ class ConnTest {
             storage.overwrite(Namespace("refs")["head"], storedLeaf.hash.bytes)
 
             val conn = QConn(
-                testsSerialModule + qbitSerialModule,
                 dbUuid,
                 storage,
                 storedRoot,
-                testSchemaFactorizer::factor
+                testSchemaFactorizer::factor,
+                nodesStorage,
+                Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage)).index(storedRoot)
             )
 
             val newLog = FakeTrxLog(storedLeaf.hash)

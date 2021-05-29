@@ -1,9 +1,8 @@
 package qbit
 
-import kotlinx.serialization.modules.SerializersModule
 import qbit.api.Attrs
 import qbit.api.Instances
-import qbit.api.db.Conn
+import qbit.api.model.Hash
 import qbit.api.protoInstance
 import qbit.api.system.DbUuid
 import qbit.api.tombstone
@@ -13,10 +12,11 @@ import qbit.platform.collections.EmptyIterator
 import qbit.platform.currentTimeMillis
 import qbit.serialization.CommonNodesStorage
 import qbit.serialization.NodeData
+import qbit.serialization.NodeVal
 import qbit.serialization.Root
 import qbit.spi.Storage
 
-suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialModule: SerializersModule): Conn {
+suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor): NodeVal<Hash> {
     val trx = listOf(
         Attrs.name,
         Attrs.type,
@@ -33,6 +33,6 @@ suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor, serialMo
     val root = Root(null, dbUuid, currentTimeMillis(), NodeData(trx.toTypedArray()))
     val storedRoot = CommonNodesStorage(storage).store(root)
     storage.add(Namespace("refs")["head"], storedRoot.hash.bytes)
-    return QConn(serialModule, dbUuid, storage, storedRoot, factor)
+    return storedRoot
 }
 

@@ -14,6 +14,7 @@ import qbit.api.model.*
 import qbit.api.system.DbUuid
 import qbit.assertArrayEquals
 import qbit.platform.currentTimeMillis
+import qbit.platform.runBlocking
 import qbit.serialization.*
 import qbit.trx.toFacts
 import kotlin.js.JsName
@@ -99,92 +100,96 @@ class IndexTest {
 
     @Test
     fun testCreateIndex() {
-        val dbUuid = DbUuid(Iid(0, 1))
-        val time1 = currentTimeMillis()
-        val eid = Gid(0, 0)
+        runBlocking {
+            val dbUuid = DbUuid(Iid(0, 1))
+            val time1 = currentTimeMillis()
+            val eid = Gid(0, 0)
 
-        val _attr1 = "/attr1"
-        val _attr2 = "/attr2"
-        val _attr3 = "/attr3"
+            val _attr1 = "/attr1"
+            val _attr2 = "/attr2"
+            val _attr3 = "/attr3"
 
-        val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
-        val n2 = Leaf(
-            nullHash, toHashed(n1), dbUuid, time1 + 1,
-            NodeData(
-                arrayOf(
-                    Eav(eid, _attr1, 1),
-                    Eav(eid, _attr2, 0)
+            val n1 = Root(null, dbUuid, time1, NodeData(arrayOf(Eav(eid, _attr1, 0))))
+            val n2 = Leaf(
+                nullHash, toHashed(n1), dbUuid, time1 + 1,
+                NodeData(
+                    arrayOf(
+                        Eav(eid, _attr1, 1),
+                        Eav(eid, _attr2, 0)
+                    )
                 )
             )
-        )
-        val n3 = Leaf(
-            nullHash, toHashed(n2), dbUuid, time1 + 2,
-            NodeData(
-                arrayOf(
-                    Eav(eid, _attr1, 2),
-                    Eav(eid, _attr2, 1),
-                    Eav(eid, _attr3, 0)
+            val n3 = Leaf(
+                nullHash, toHashed(n2), dbUuid, time1 + 2,
+                NodeData(
+                    arrayOf(
+                        Eav(eid, _attr1, 2),
+                        Eav(eid, _attr2, 1),
+                        Eav(eid, _attr3, 0)
+                    )
                 )
             )
-        )
 
-        val index = TestIndexer().index(n3).index
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
-        assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
-        assertEquals(1, index.entities.size)
-        assertEquals(2, index.entityById(eid)!!.getValue("/attr1")[0])
-        assertEquals(1, index.entityById(eid)!!.getValue("/attr2")[0])
-        assertEquals(0, index.entityById(eid)!!.getValue("/attr3")[0])
+            val index = TestIndexer().index(n3).index
+            assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 0)).count())
+            assertEquals(0, index.eidsByPred(AttrValuePred("/attr1", 1)).count())
+            assertEquals(0, index.eidsByPred(AttrValuePred("/attr2", 0)).count())
+            assertEquals(1, index.entities.size)
+            assertEquals(2, index.entityById(eid)!!.getValue("/attr1")[0])
+            assertEquals(1, index.entityById(eid)!!.getValue("/attr2")[0])
+            assertEquals(0, index.entityById(eid)!!.getValue("/attr3")[0])
+        }
     }
 
     @Test
     fun testRangeSearch() {
-        val dbUuid = DbUuid(Iid(0, 1))
-        val time1 = currentTimeMillis()
-        val eid0 = Gid(0, 0)
-        val eid1 = Gid(0, 1)
-        val eid2 = Gid(0, 2)
-        val eid3 = Gid(0, 3)
+        runBlocking {
+            val dbUuid = DbUuid(Iid(0, 1))
+            val time1 = currentTimeMillis()
+            val eid0 = Gid(0, 0)
+            val eid1 = Gid(0, 1)
+            val eid2 = Gid(0, 2)
+            val eid3 = Gid(0, 3)
 
-        val _date = Attr<Long>("date")
+            val _date = Attr<Long>("date")
 
-        val e1 = Entity(eid0, _date eq 1L)
-        val e2 = Entity(eid1, _date eq 2L)
-        val e3 = Entity(eid2, _date eq 3L)
-        val e4 = Entity(eid3, _date eq 4L)
-        val root = Root(
-            Hash(ByteArray(20)),
-            dbUuid,
-            time1,
-            NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray())
-        )
-        val index = TestIndexer().index(root).index
+            val e1 = Entity(eid0, _date eq 1L)
+            val e2 = Entity(eid1, _date eq 2L)
+            val e3 = Entity(eid2, _date eq 3L)
+            val e4 = Entity(eid3, _date eq 4L)
+            val root = Root(
+                Hash(ByteArray(20)),
+                dbUuid,
+                time1,
+                NodeData((e1.toFacts() + e2.toFacts() + e3.toFacts() + e4.toFacts()).toTypedArray())
+            )
+            val index = TestIndexer().index(root).index
 
-        val vRes = index.eidsByPred(attrIs(_date, 2L))
-        assertEquals(1, vRes.count())
-        assertEquals(eid1, vRes.first())
+            val vRes = index.eidsByPred(attrIs(_date, 2L))
+            assertEquals(1, vRes.count())
+            assertEquals(eid1, vRes.first())
 
-        assertArrayEquals(
-            arrayOf(eid0, eid1, eid2),
-            index.eidsByPred(attrIn(_date, 1L, 3L)).toList().toTypedArray()
-        )
-        assertArrayEquals(
-            arrayOf(eid0, eid1, eid2, eid3),
-            index.eidsByPred(attrIn(_date, 0L, 5L)).toList().toTypedArray()
-        )
-        assertArrayEquals(
-            arrayOf(eid1, eid2),
-            index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
-        )
-        assertArrayEquals(
-            arrayOf(eid0, eid1),
-            index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray()
-        )
-        assertArrayEquals(
-            arrayOf(eid1, eid2),
-            index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
-        )
+            assertArrayEquals(
+                arrayOf(eid0, eid1, eid2),
+                index.eidsByPred(attrIn(_date, 1L, 3L)).toList().toTypedArray()
+            )
+            assertArrayEquals(
+                arrayOf(eid0, eid1, eid2, eid3),
+                index.eidsByPred(attrIn(_date, 0L, 5L)).toList().toTypedArray()
+            )
+            assertArrayEquals(
+                arrayOf(eid1, eid2),
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
+            )
+            assertArrayEquals(
+                arrayOf(eid0, eid1),
+                index.eidsByPred(attrIn(_date, 1L, 2L)).toList().toTypedArray()
+            )
+            assertArrayEquals(
+                arrayOf(eid1, eid2),
+                index.eidsByPred(attrIn(_date, 2L, 3L)).toList().toTypedArray()
+            )
+        }
     }
 
 /*

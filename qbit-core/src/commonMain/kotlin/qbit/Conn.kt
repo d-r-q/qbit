@@ -86,33 +86,41 @@ suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
         val head = CommonNodesStorage(storage).load(NodeRef(Hash(headHash)))
             ?: throw QBitException("Corrupted head: no such node")
         // TODO: fix dbUuid retrieving
+        val nodesStorage = CommonNodesStorage(serializedStorage)
         QConn(
-            systemSerialModule,
             dbUuid,
             serializedStorage,
             head,
-            KSFactorizer(systemSerialModule)::factor
+            KSFactorizer(systemSerialModule)::factor,
+            nodesStorage,
+            Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
         )
     } else {
-        bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
+        val head = bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor)
+        val nodesStorage = CommonNodesStorage(serializedStorage)
+        QConn(
+            dbUuid,
+            serializedStorage,
+            head,
+            KSFactorizer(systemSerialModule)::factor,
+            nodesStorage,
+            Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
+        )
     }
 }
 
 class QConn(
-    serialModule: SerializersModule,
     override val dbUuid: DbUuid,
     val storage: Storage,
     head: NodeVal<Hash>,
-    private val factor: Factor
+    private val factor: Factor,
+    nodesStorage: CommonNodesStorage,
+    private var db: InternalDb
 ) : Conn(), CommitHandler {
-
-    private val nodesStorage = CommonNodesStorage(storage)
 
     var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head.hash, 0)), nodesStorage, dbUuid)
 
     private val resolveNode = nodesResolver(nodesStorage)
-
-    private var db: InternalDb = Indexer(serialModule, null, null, resolveNode).index(head)
 
     private val gidSequence: GidSequence = with(db.pull<Instance>(Gid(dbUuid.iid, theInstanceEid))) {
         if (this == null) {

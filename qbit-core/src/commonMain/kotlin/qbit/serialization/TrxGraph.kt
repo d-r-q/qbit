@@ -32,13 +32,19 @@ class Merge<out H : Hash?>(
 ) :
     NodeVal<H>(hash, source, timestamp, data)
 
-internal suspend fun FlowCollector<NodeVal<Hash>>.impl(
+internal suspend fun FlowCollector<NodeVal<Hash>>. impl(
     base: Node<Hash>?, head: Node<Hash>,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>?
 ) {
     when (head) {
         base -> return
-        is Root -> return
+        is Root ->{
+            //if base = null, then a request to get the entire graph
+            if (base == null) {
+                emit(head)
+            }
+            return
+        }
         is Leaf -> {
             impl(base, head.parent, resolveNode)
             emit(head)
@@ -50,19 +56,22 @@ internal suspend fun FlowCollector<NodeVal<Hash>>.impl(
             val firstBranch = flow { impl(head.base, head.parent1, resolveNode) }
             val secondBranch = flow { impl(head.base, head.parent2, resolveNode) }
             val notFoundInFirstBranch = firstBranch.firstOrNull { it == base } == null
-            val notFoundInSecondBranch = !notFoundInFirstBranch &&
-                    secondBranch.firstOrNull { it == base } == null
+            val notFoundInSecondBranch = secondBranch.firstOrNull { it == base } == null
             if (notFoundInFirstBranch && notFoundInSecondBranch) {
                 // emit nodes before split, if branches do not contain base
                 impl(base, head.base, resolveNode)
-            }
-            if (notFoundInSecondBranch) {
                 // emit first branch, if head not in second branch (i.e. in first branch or before split)
                 emitAll(firstBranch)
-            }
-            if (notFoundInFirstBranch) {
                 // emit second branch, if head not in second branch (i.e. in first branch or before split)
                 emitAll(secondBranch)
+            }
+            if (!notFoundInSecondBranch) {
+                // emit nodes after split, if second branch contains base
+                emitAll(flow { impl(base, head.parent2, resolveNode) })
+            }
+            if (!notFoundInFirstBranch) {
+                // emit nodes after split, if first branch contains base
+                emitAll(flow { impl(base, head.parent1, resolveNode) })
             }
             // emit merge node always
             emit(head)

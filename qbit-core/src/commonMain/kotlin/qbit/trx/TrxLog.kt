@@ -85,7 +85,7 @@ class QTrxLog(
         base: Node<Hash>, head: Node<Hash>,
         resolveNode: (Node<Hash>) -> NodeVal<Hash>?
     ): List<NodeVal<Hash>> =
-        flow { impl(base, head, resolveNode) }.toList(mutableListOf())
+        flow { impl(base, head, resolveNode) }.toList()
 
 
 //    private fun nodesBetween(base: Node<Hash>, head: Node<Hash>): List<Node<Hash>>{
