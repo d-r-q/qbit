@@ -36,8 +36,10 @@ internal suspend fun FlowCollector<NodeVal<Hash>>. impl(
     base: Node<Hash>?, head: Node<Hash>,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>?
 ) {
+    if(base?.hash == head.hash) {
+        return
+    }
     when (head) {
-        base -> return
         is Root ->{
             //if base = null, then a request to get the entire graph
             if (base == null) {
@@ -55,8 +57,8 @@ internal suspend fun FlowCollector<NodeVal<Hash>>. impl(
             // therefore it's necessary to check is branches flows contains base before emitting them
             val firstBranch = flow { impl(head.base, head.parent1, resolveNode) }
             val secondBranch = flow { impl(head.base, head.parent2, resolveNode) }
-            val notFoundInFirstBranch = firstBranch.firstOrNull { it == base } == null
-            val notFoundInSecondBranch = secondBranch.firstOrNull { it == base } == null
+            val notFoundInFirstBranch = firstBranch.firstOrNull { it.hash == base?.hash } == null
+            val notFoundInSecondBranch = secondBranch.firstOrNull { it.hash == base?.hash } == null
             if (notFoundInFirstBranch && notFoundInSecondBranch) {
                 // emit nodes before split, if branches do not contain base
                 impl(base, head.base, resolveNode)

@@ -484,6 +484,7 @@ class FunTest {
             trx2.persist(eCodd.copy(name = "Im change 2"))
             trx2.persist(pChen.copy(name = "Im different change"))
             trx1.commit()
+            delay(1)
             trx2.commit()
             val trx3 = conn1.trx()
             trx3.persist(mStonebreaker.copy(name = "Im change 3"))
