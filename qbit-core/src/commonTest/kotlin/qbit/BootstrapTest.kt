@@ -30,7 +30,7 @@ class BootstrapTest {
 
     private suspend fun newDb(): Conn {
         val dbUuid = DbUuid(Iid(1, 4))
-        val head = bootstrap(
+        val head = bootstrapStorage(
             storage,
             dbUuid,
             testSchemaFactorizer::factor,

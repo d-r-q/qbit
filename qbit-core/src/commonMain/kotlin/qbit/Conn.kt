@@ -76,37 +76,41 @@ class SchemaValidator : SerializersModuleCollector {
 }
 
 suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
-    val serializedStorage = SerializedStorage(storage)
     val iid = Iid(1, 4)
+    // TODO: fix dbUuid retrieving
     val dbUuid = DbUuid(iid)
+
+    val serializedStorage = SerializedStorage(storage)
+    val nodesStorage = CommonNodesStorage(serializedStorage)
+    val systemSerialModule = createSystemSerialModule(appSerialModule)
+    val factor = KSFactorizer(systemSerialModule)::factor
+    val head = loadOrInitHead(storage, nodesStorage, serializedStorage, dbUuid, factor)
+    val db = Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
+
+    return QConn(dbUuid, serializedStorage, head, factor, nodesStorage, db)
+}
+
+private suspend fun loadOrInitHead(
+    storage: Storage,
+    nodesStorage: CommonNodesStorage,
+    serializedStorage: SerializedStorage,
+    dbUuid: DbUuid,
+    factor: Factor
+): NodeVal<Hash> {
     val headHash = storage.load(Namespace("refs")["head"])
+    val head =
+        if (headHash != null) {
+            nodesStorage.load(NodeRef(Hash(headHash))) ?: throw QBitException("Corrupted head: no such node")
+        } else {
+            bootstrapStorage(serializedStorage, dbUuid, factor)
+        }
+    return head
+}
+
+private fun createSystemSerialModule(appSerialModule: SerializersModule): SerializersModule {
     val systemSerialModule = qbitSerialModule + appSerialModule
     systemSerialModule.dumpTo(SchemaValidator())
-    return if (headHash != null) {
-        val head = CommonNodesStorage(storage).load(NodeRef(Hash(headHash)))
-            ?: throw QBitException("Corrupted head: no such node")
-        // TODO: fix dbUuid retrieving
-        val nodesStorage = CommonNodesStorage(serializedStorage)
-        QConn(
-            dbUuid,
-            serializedStorage,
-            head,
-            KSFactorizer(systemSerialModule)::factor,
-            nodesStorage,
-            Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
-        )
-    } else {
-        val head = bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor)
-        val nodesStorage = CommonNodesStorage(serializedStorage)
-        QConn(
-            dbUuid,
-            serializedStorage,
-            head,
-            KSFactorizer(systemSerialModule)::factor,
-            nodesStorage,
-            Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
-        )
-    }
+    return systemSerialModule
 }
 
 class QConn(

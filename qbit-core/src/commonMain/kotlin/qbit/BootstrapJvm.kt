@@ -16,7 +16,7 @@ import qbit.serialization.NodeVal
 import qbit.serialization.Root
 import qbit.spi.Storage
 
-suspend fun bootstrap(storage: Storage, dbUuid: DbUuid, factor: Factor): NodeVal<Hash> {
+suspend fun bootstrapStorage(storage: Storage, dbUuid: DbUuid, factor: Factor): NodeVal<Hash> {
     val trx = listOf(
         Attrs.name,
         Attrs.type,

@@ -5,3 +5,9 @@ actual fun assert(condition: Boolean) {
         throw AssertionError()
     }
 }
+
+actual fun assert(condition: Boolean, lazyMessage: () -> String) {
+    if (!condition) {
+        throw AssertionError(lazyMessage())
+    }
+}

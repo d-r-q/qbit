@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.coroutines.delay
 import qbit.api.QBitException
 import qbit.api.db.*
 import qbit.api.gid.Gid
@@ -399,7 +400,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967461, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967383, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -458,6 +459,7 @@ class FunTest {
             trx1.persist(eBrewer.copy(name = "Im different change"))
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
+            delay(100)
             trx2.persist(pChen.copy(name = "Im different change"))
             trx1.commit()
             trx2.commit()

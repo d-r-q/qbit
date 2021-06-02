@@ -221,7 +221,8 @@ class IndexTest {
         )
         val filtered = idx.addFacts(listOf(Eav(deletedEntityGid, qbit.api.tombstone.name, true)))
         assertEquals(1, filtered.entities.size)
-        assertEquals(2, filtered.indices.size)
+        assertEquals(1, filtered.aveIndex.size)
+        assertNotNull(filtered.eidsByPred(AttrValuePred("to-keep", "any")).firstOrNull(), "Cannot find entity by to-keep=any")
     }
 
     @JsName("Test_putting_tombstone_into_index_should_remove_all_facts_of_corresponding_entity_even_if_facts_of_origin_entity_are_unsorted")
@@ -246,8 +247,10 @@ class IndexTest {
 
         // Then should contain only another entity and it's eavs
         assertEquals(1, filtered.entities.size)
-        assertEquals(2, filtered.indices.size)
+        assertEquals(2, filtered.aveIndex.size)
         assertNotNull(filtered.entityById(anotherGid))
+        assertNotNull(filtered.eidsByPred(AttrValuePred("attr2", "a")).firstOrNull(), "Cannot find another entity by attr2=a")
+        assertNotNull(filtered.eidsByPred(AttrValuePred("attr1", "b")).firstOrNull(), "Cannot find another entity by attr1=b")
     }
 
     private fun toHashed(n: NodeVal<Hash?>): Node<Hash> {
