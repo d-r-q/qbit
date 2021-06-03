@@ -100,45 +100,7 @@ class Index(
         val untouchedEavs = this.aveIndex - obsoleteEavs
         val newAveIndex = merge(untouchedEavs, newEavs, aveCmp)
 
-        return Index(
-            newEntities,
-            newAveIndex
-        )
-    }
-
-    /**
-     * Returns elements of `this`, that aren't exist in `another`.
-     * Requires lists to be sorted wtih `aveCmp` to execute filtration in linear time
-     */
-    private operator fun ArrayList<Eav>.minus(another: ArrayList<Eav>): ArrayList<Eav> {
-        assert("Left operand should be sorted with aveCmp") { sorted(this, aveCmp) }
-        assert("Right operand should be sorted with aveCmp") { sorted(another, aveCmp) }
-        val filteredIndex = ArrayList<Eav>(this.size)
-        var filterIdx = 0
-        aveIndex.forEach {
-            val cmp = if (filterIdx < another.size) {
-                aveCmp.compare(it, another[filterIdx])
-            } else {
-                // add all facts, that are greater, than last to remove fact
-                -1
-            }
-            when {
-                cmp < 0 -> filteredIndex.add(it)
-                cmp > 0 -> {
-                    filterIdx++
-                    while (filterIdx < another.size && aveCmp.compare(it, another[filterIdx]) >= 0) {
-                        filterIdx++
-                    }
-                    if (aveCmp.compare(it, another[filterIdx - 1]) != 0) {
-                        filteredIndex.add(it)
-                    }
-                }
-                cmp == 0 -> {
-                    // fiter out
-                }
-            }
-        }
-        return filteredIndex
+        return Index(newEntities, newAveIndex)
     }
 
     fun add(e: RawEntity): Index {
@@ -170,3 +132,39 @@ class Index(
     }
 
 }
+
+/**
+ * Returns elements of `this`, that aren't exist in `another`.
+ * Requires lists to be sorted wtih `aveCmp` to execute filtration in linear time
+ */
+private operator fun ArrayList<Eav>.minus(another: ArrayList<Eav>): ArrayList<Eav> {
+    assert("Left operand should be sorted with aveCmp") { sorted(this, aveCmp) }
+    assert("Right operand should be sorted with aveCmp") { sorted(another, aveCmp) }
+    val res = ArrayList<Eav>(this.size)
+    var filterIdx = 0
+    this.forEach {
+        val cmp = if (filterIdx < another.size) {
+            aveCmp.compare(it, another[filterIdx])
+        } else {
+            // add all facts, that are greater, than last to remove fact
+            -1
+        }
+        when {
+            cmp < 0 -> res.add(it)
+            cmp > 0 -> {
+                filterIdx++
+                while (filterIdx < another.size && aveCmp.compare(it, another[filterIdx]) >= 0) {
+                    filterIdx++
+                }
+                if (aveCmp.compare(it, another[filterIdx - 1]) != 0) {
+                    res.add(it)
+                }
+            }
+            cmp == 0 -> {
+                // filter out
+            }
+        }
+    }
+    return res
+}
+
