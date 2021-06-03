@@ -1,5 +1,6 @@
 package qbit.resolving
 
+import kotlinx.coroutines.flow.toList
 import qbit.api.Instances
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
@@ -19,8 +20,8 @@ suspend fun logsDiff(
 ): LogsDiff {
     val nodesA = logA.nodesAfter(baseLog.head, resolveNode)
     val nodesB = logB.nodesAfter(baseLog.head, resolveNode)
-    val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA)
-    val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB)
+    val writesFromA: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesA.toList())
+    val writesFromB: Map<GidAttr, List<PersistedEav>> = writtenEntityAttrs(nodesB.toList())
     return LogsDiff(writesFromA, writesFromB)
 }
 

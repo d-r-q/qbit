@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.coroutines.flow.Flow
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.serialization.Node
@@ -29,7 +30,7 @@ internal class FakeTrxLog(override val hash: Hash = Hash(byteArrayOf(1))) : TrxL
         return append(eavs)
     }
 
-    override suspend fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> {
+    override fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): Flow<NodeVal<Hash>> {
         TODO("Not yet implemented")
     }
 

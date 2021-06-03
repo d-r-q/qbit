@@ -20,7 +20,7 @@ interface TrxLog {
 
     suspend fun mergeWith(trxLog: TrxLog, mergeBase: Hash, eavs: Collection<Eav>): TrxLog
 
-    suspend fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>>
+    fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): Flow<NodeVal<Hash>>
 
     fun getNodesDepth(): Map<Hash, Int>
 
@@ -78,36 +78,8 @@ class QTrxLog(
         return QTrxLog(newHead, newNodesDepth, storage, dbUuid)
     }
 
-    override suspend fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): List<NodeVal<Hash>> =
+    override fun nodesAfter(base: Node<Hash>, resolveNode: (Node<Hash>) -> NodeVal<Hash>?): Flow<NodeVal<Hash>> =
         nodesBetween(base, head, resolveNode)
-
-    private suspend fun nodesBetween(
-        base: Node<Hash>, head: Node<Hash>,
-        resolveNode: (Node<Hash>) -> NodeVal<Hash>?
-    ): List<NodeVal<Hash>> =
-        flow { impl(base, head, resolveNode) }.toList()
-
-
-//    private fun nodesBetween(base: Node<Hash>, head: Node<Hash>): List<Node<Hash>>{
-//        return when (head) {
-//            base -> emptyList()
-//            is Root -> emptyList()
-//            is Leaf -> nodesBetween(base, head.parent) + head
-//            is Merge -> {
-//                val parents1 = nodesBetween(head.base, head.parent1)
-//                val parents2 = nodesBetween(head.base, head.parent2)
-//                val index1 = parents1.indexOfLast { it == base }
-//                val index2 = parents2.indexOfLast { it == base }
-//
-//                return when {
-//                    index1 > -1 -> parents1.subList(index1,parents1.size)
-//                    index2 > -1 -> parents2.subList(index2,parents2.size)
-//                    else -> nodesBetween(base, head.base) + parents1 + parents2 + head
-//                }
-//            }
-//            is NodeRef -> nodesBetween(base, storage.load(head) ?: throw QBitException("Corrupted trx graph, cannot resolve $head"))
-//        }
-//    }
 
     override fun getNodesDepth(): Map<Hash, Int> {
         return nodesDepth

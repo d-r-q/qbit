@@ -70,7 +70,7 @@ internal fun TestIndexer(
     baseHash: Hash? = null,
     nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver
 ) =
-    Indexer(serialModule, baseDb, baseHash, nodeResolver)
+    Indexer(serialModule, baseDb, baseHash?.let { NodeRef(it) }, nodeResolver)
 
 inline fun <reified E : Throwable> assertThrows(body: () -> Unit) {
     try {

@@ -22,25 +22,32 @@ class Leaf<out H : Hash?>(hash: H, val parent: Node<Hash>, source: DbUuid, times
     NodeVal<H>(hash, source, timestamp, data)
 
 class Merge<out H : Hash?>(
-        hash: H,
-        val base: Node<Hash>,
-        val parent1: Node<Hash>,
-        val parent2: Node<Hash>,
-        source: DbUuid,
-        timestamp: Long,
-        data: NodeData
+    hash: H,
+    val base: Node<Hash>,
+    val parent1: Node<Hash>,
+    val parent2: Node<Hash>,
+    source: DbUuid,
+    timestamp: Long,
+    data: NodeData
 ) :
     NodeVal<H>(hash, source, timestamp, data)
 
-internal suspend fun FlowCollector<NodeVal<Hash>>. impl(
+fun nodesBetween(
+    base: Node<Hash>?, head: Node<Hash>,
+    resolveNode: (Node<Hash>) -> NodeVal<Hash>?
+): Flow<NodeVal<Hash>> {
+    return flow { impl(base, head, resolveNode) }
+}
+
+private suspend fun FlowCollector<NodeVal<Hash>>.impl(
     base: Node<Hash>?, head: Node<Hash>,
     resolveNode: (Node<Hash>) -> NodeVal<Hash>?
 ) {
-    if(base?.hash == head.hash) {
+    if (base?.hash == head.hash) {
         return
     }
     when (head) {
-        is Root ->{
+        is Root -> {
             //if base = null, then a request to get the entire graph
             if (base == null) {
                 emit(head)
