@@ -143,22 +143,21 @@ inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: Strin
 
 suspend fun setupTestSchema(storage: Storage = MemStorage()): Conn {
     val conn = qbit(storage, testsSerialModule)
-    val trx = conn.trx()
-    testSchema.forEach {
-        trx.persist(it)
+    conn.trx {
+        testSchema.forEach {
+            persist(it)
+        }
     }
-    trx.commit()
     return conn
 }
 
 suspend fun setupTestData(storage: Storage = MemStorage()): Conn {
-    return with(setupTestSchema(storage)) {
-        val trx = this.trx()
-        listOf(eCodd, pChen, mStonebreaker, eBrewer, uk, tw, us, ru, nsk).forEach {
-            trx.persist(it)
+    return setupTestSchema(storage).apply {
+        trx {
+            listOf(eCodd, pChen, mStonebreaker, eBrewer, uk, tw, us, ru, nsk).forEach {
+                persist(it)
+            }
         }
-        trx.commit()
-        this
     }
 }
 

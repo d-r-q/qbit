@@ -13,6 +13,8 @@ abstract class Conn internal constructor() {
 
     abstract fun trx(): Trx
 
+    abstract suspend fun <T> trx(body: Trx.() -> T): T
+
     abstract suspend fun <R : Any> persist(e: R): WriteResult<R?>
 
     abstract val head: Hash

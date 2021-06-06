@@ -146,6 +146,18 @@ class QConn(
         return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor, gidSequence)
     }
 
+    override suspend fun <T> trx(body: Trx.() -> T): T {
+        val trx = trx()
+        try {
+            val res = trx.body()
+            trx.commit()
+            return res
+        } catch (e: Throwable) {
+            trx.rollback()
+            throw e
+        }
+    }
+
     override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
         return with(trx()) {
             val wr = persist(e)
