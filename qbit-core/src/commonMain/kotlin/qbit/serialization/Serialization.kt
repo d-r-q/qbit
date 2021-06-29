@@ -9,6 +9,7 @@ interface Serialization {
     fun serializeNode(n: NodeVal<Hash?>): ByteArray
 
     fun serializeNode(
+        base: Node<Hash>,
         parent1: Node<Hash>,
         parent2: Node<Hash>,
         source: DbUuid,

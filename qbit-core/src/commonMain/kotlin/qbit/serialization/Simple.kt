@@ -14,22 +14,24 @@ object SimpleSerialization : Serialization {
 
     override fun serializeNode(n: NodeVal<Hash?>): ByteArray {
         return when (n) {
-            is Root -> serializeNode(nullNode, nullNode, n.source, n.timestamp, n.data)
-            is Leaf -> serializeNode(nullNode, n.parent, n.source, n.timestamp, n.data)
-            is Merge -> serializeNode(n.parent1, n.parent2, n.source, n.timestamp, n.data)
+            is Root -> serializeNode(nullNode, nullNode, nullNode, n.source, n.timestamp, n.data)
+            is Leaf -> serializeNode(nullNode, nullNode, n.parent, n.source, n.timestamp, n.data)
+            is Merge -> serializeNode(n.base, n.parent1, n.parent2, n.source, n.timestamp, n.data)
         }
     }
 
     override fun serializeNode(
+        base: Node<Hash>,
         parent1: Node<Hash>,
         parent2: Node<Hash>,
         source: DbUuid,
         timestamp: Long,
         data: NodeData
     ) =
-        serialize(parent1, parent2, source, timestamp, data)
+        serialize(base, parent1, parent2, source, timestamp, data)
 
     override fun deserializeNode(ins: Input): NodeVal<Hash?> {
+        val base = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent1 = Hash(deserialize(ins, QBytes) as ByteArray)
         val parent2 = Hash(deserialize(ins, QBytes) as ByteArray)
         val iid = deserialize(ins, QLong) as Long
@@ -57,8 +59,9 @@ object SimpleSerialization : Serialization {
                 timestamp,
                 nodeData
             )
-            parent1 != nullHash && parent2 != nullHash -> Merge(
+            base != nullHash && parent1 != nullHash && parent2 != nullHash -> Merge(
                 null,
+                NodeRef(base),
                 NodeRef(parent1),
                 NodeRef(parent2),
                 DbUuid(Iid(iid.toInt(), instanceBits.toByte())),
@@ -75,12 +78,14 @@ object SimpleSerialization : Serialization {
 internal fun serialize(vararg anys: Any): ByteArray {
     val bytes = anys.map { a ->
         if (a as? Number != null) {
+            // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
             byteArray(QLong.code, serializeLong(a.toLong()))
         } else {
             when (a) {
                 is Node<*> -> serialize(a.hash!!.bytes)
                 is DbUuid -> byteArray(serialize(a.iid.value), serialize(a.iid.instanceBits))
                 is Boolean -> byteArray(QBoolean.code, if (a) 1.toByte() else 0.toByte())
+                // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
                 is Number -> byteArray(QLong.code, a)
                 is String -> byteArray(QString.code, byteArray(a))
                 is NodeData -> byteArray(serialize(a.trxes.size), *a.trxes.map { serialize(it) }.toTypedArray())
@@ -129,7 +134,7 @@ internal fun size(v: Any): Int = when (v) {
     is ByteArray -> v.size
     is Byte -> 1
     is Char -> charArrayOf(v).concatToString().encodeToUtf8().size
-    else -> throw AssertionError("Should never happen, v is $v")
+    else -> throw AssertionError("Should never happen, v is ${v::class}")
 }
 
 internal fun serializeInt(a: Int): ByteArray = byteArrayOf(byteOf(3, a), byteOf(2, a), byteOf(1, a), byteOf(0, a))

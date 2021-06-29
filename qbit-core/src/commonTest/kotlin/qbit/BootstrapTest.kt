@@ -10,8 +10,11 @@ import qbit.api.gid.Iid
 import qbit.api.model.Attr
 import qbit.api.system.DbUuid
 import qbit.api.system.Instance
+import qbit.factoring.serializatoin.KSFactorizer
+import qbit.index.Indexer
 import qbit.ns.Namespace
 import qbit.platform.runBlocking
+import qbit.serialization.CommonNodesStorage
 import qbit.storage.MemStorage
 import qbit.test.model.testsSerialModule
 import kotlin.js.JsName
@@ -25,13 +28,23 @@ class BootstrapTest {
 
     private val storage = MemStorage()
 
-    private suspend fun newDb(): Conn = bootstrap(
-        storage,
-        DbUuid(Iid(1, 4)),
-        testSchemaFactorizer::factor,
-        qbitSerialModule + testsSerialModule
-    )
-
+    private suspend fun newDb(): Conn {
+        val dbUuid = DbUuid(Iid(1, 4))
+        val head = bootstrapStorage(
+            storage,
+            dbUuid,
+            testSchemaFactorizer::factor,
+        )
+        val nodesStorage = CommonNodesStorage(storage)
+        return QConn(
+            dbUuid,
+            storage,
+            head,
+            KSFactorizer(qbitSerialModule + testsSerialModule)::factor,
+            nodesStorage,
+            Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage)).index(head)
+        )
+    }
     @Test
     fun testInit() {
         runBlocking {

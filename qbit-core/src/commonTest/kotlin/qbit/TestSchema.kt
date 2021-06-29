@@ -41,6 +41,7 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(EntityWithListOfBytes::class)
     entity(EntityWithListOfByteArray::class)
     entity(EntityWithListOfString::class)
+    entity(EntityWithNullableNumericAttrs::class)
     entity(MUser::class)
     entity(GidEntity::class)
     entity(ParentToChildrenTreeEntity::class)

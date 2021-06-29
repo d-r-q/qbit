@@ -11,10 +11,7 @@ import qbit.api.db.Fetch
 import qbit.api.db.QueryPred
 import qbit.api.db.hasAttr
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.Eav
-import qbit.api.model.Entity
-import qbit.api.model.StoredEntity
+import qbit.api.model.*
 import qbit.api.model.impl.AttachedEntity
 import qbit.collections.LimitedPersistentMap
 import qbit.typing.typify
@@ -54,12 +51,23 @@ class IndexDb(
             val attr = schema[it.key]
             require(attr != null) { "There is no attribute with name ${it.key}" }
             require(attr.list || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
-            attr to if (attr.list) it.value else it.value[0]
+            val value =
+                if (attr.list) it.value.map { e -> fixNumberType(attr, e) }
+                else fixNumberType(attr, it.value[0])
+            attr to value
         }
         val entity = AttachedEntity(gid, attrValues, this::pullEntity)
         entityCache.update { it.put(gid, entity) }
         return entity
     }
+
+    // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
+    private fun fixNumberType(attr: Attr<Any>, value: Any) =
+        when (attr.type) {
+            QByte.code -> (value as Number).toByte()
+            QInt.code -> (value as Number).toInt()
+            else -> value
+        }
 
     override fun <R : Any> pull(gid: Gid, type: KClass<R>, fetch: Fetch): R? {
         val entity = pullEntity(gid) ?: return null

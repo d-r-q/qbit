@@ -14,12 +14,16 @@ import qbit.api.gid.Gid
 import qbit.api.gid.Iid
 import qbit.api.model.Hash
 import qbit.api.system.DbUuid
+import qbit.api.system.Instance
 import qbit.api.theInstanceEid
 import qbit.factoring.Factor
 import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
+import qbit.index.RawEntity
 import qbit.ns.Namespace
+import qbit.resolving.lastWriterWinsResolve
+import qbit.resolving.logsDiff
 import qbit.serialization.*
 import qbit.spi.Storage
 import qbit.storage.SerializedStorage
@@ -72,43 +76,62 @@ class SchemaValidator : SerializersModuleCollector {
 }
 
 suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
-    val serializedStorage = SerializedStorage(storage)
     val iid = Iid(1, 4)
+    // TODO: fix dbUuid retrieving
     val dbUuid = DbUuid(iid)
+
+    val serializedStorage = SerializedStorage(storage)
+    val nodesStorage = CommonNodesStorage(serializedStorage)
+    val systemSerialModule = createSystemSerialModule(appSerialModule)
+    val factor = KSFactorizer(systemSerialModule)::factor
+    val head = loadOrInitHead(storage, nodesStorage, serializedStorage, dbUuid, factor)
+    val db = Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
+
+    return QConn(dbUuid, serializedStorage, head, factor, nodesStorage, db)
+}
+
+private suspend fun loadOrInitHead(
+    storage: Storage,
+    nodesStorage: CommonNodesStorage,
+    serializedStorage: SerializedStorage,
+    dbUuid: DbUuid,
+    factor: Factor
+): NodeVal<Hash> {
     val headHash = storage.load(Namespace("refs")["head"])
+    val head =
+        if (headHash != null) {
+            nodesStorage.load(NodeRef(Hash(headHash))) ?: throw QBitException("Corrupted head: no such node")
+        } else {
+            bootstrapStorage(serializedStorage, dbUuid, factor)
+        }
+    return head
+}
+
+private fun createSystemSerialModule(appSerialModule: SerializersModule): SerializersModule {
     val systemSerialModule = qbitSerialModule + appSerialModule
     systemSerialModule.dumpTo(SchemaValidator())
-    return if (headHash != null) {
-        val head = CommonNodesStorage(storage).load(NodeRef(Hash(headHash)))
-            ?: throw QBitException("Corrupted head: no such node")
-        // TODO: fix dbUuid retrieving
-        QConn(
-            systemSerialModule,
-            dbUuid,
-            serializedStorage,
-            head,
-            KSFactorizer(systemSerialModule)::factor
-        )
-    } else {
-        bootstrap(serializedStorage, dbUuid, KSFactorizer(systemSerialModule)::factor, systemSerialModule)
-    }
+    return systemSerialModule
 }
 
 class QConn(
-    serialModule: SerializersModule,
     override val dbUuid: DbUuid,
     val storage: Storage,
     head: NodeVal<Hash>,
-    private val factor: Factor
+    private val factor: Factor,
+    nodesStorage: CommonNodesStorage,
+    private var db: InternalDb
 ) : Conn(), CommitHandler {
 
-    private val nodesStorage = CommonNodesStorage(storage)
-
-    var trxLog: TrxLog = QTrxLog(head, Writer(nodesStorage, dbUuid))
+    var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head.hash, 0)), nodesStorage, dbUuid)
 
     private val resolveNode = nodesResolver(nodesStorage)
 
-    private var db: InternalDb = Indexer(serialModule, null, null, resolveNode).index(head)
+    private val gidSequence: GidSequence = with(db.pull<Instance>(Gid(dbUuid.iid, theInstanceEid))) {
+        if (this == null) {
+            throw QBitException("Corrupted DB - the instance entity not found")
+        }
+        GidSequence(this.iid, this.nextEid)
+    }
 
     override val head
         get() = trxLog.hash
@@ -120,7 +143,19 @@ class QConn(
     }
 
     override fun trx(): Trx {
-        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor)
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor, gidSequence)
+    }
+
+    override suspend fun <T> trx(body: Trx.() -> T): T {
+        val trx = trx()
+        try {
+            val res = trx.body()
+            trx.commit()
+            return res
+        } catch (e: Throwable) {
+            trx.rollback()
+            throw e
+        }
     }
 
     override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
@@ -132,13 +167,45 @@ class QConn(
     }
 
     override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
-        if (this.trxLog != trxLog) {
-            throw ConcurrentModificationException("Concurrent transactions isn't supported yet")
-        }
+        val (log, db) =
+            if (hasConcurrentTrx(trxLog)) {
+                mergeLogs(trxLog, this.trxLog, newLog, newDb)
+            } else {
+                newLog to newDb
+            }
         storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
-        this.trxLog = newLog
-        this.db = newDb
+        this.trxLog = log
+        this.db = db
     }
+
+    private fun hasConcurrentTrx(trxLog: TrxLog) =
+        trxLog != this.trxLog
+
+    private suspend fun mergeLogs(
+        baseLog: TrxLog,
+        committedLog: TrxLog,
+        committingLog: TrxLog,
+        newDb: InternalDb
+    ): Pair<TrxLog, InternalDb> {
+        val logsDifference = logsDiff(baseLog, committedLog, committingLog, resolveNode)
+
+        val committedEavs = logsDifference
+            .logAEntities()
+            .toEavsList()
+        val reconciliationEavs = logsDifference
+            .reconciliationEntities(lastWriterWinsResolve { db.attr(it) })
+            .toEavsList()
+
+        val mergedDb = newDb
+            .with(committedEavs)
+            .with(reconciliationEavs)
+        val mergedLog = committingLog.mergeWith(committedLog, baseLog.hash, reconciliationEavs)
+
+        return mergedLog to mergedDb
+    }
+
+    private fun List<RawEntity>.toEavsList() =
+        flatMap { it.second }
 
 }
 
@@ -148,4 +215,3 @@ private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Ha
         is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
 }
-

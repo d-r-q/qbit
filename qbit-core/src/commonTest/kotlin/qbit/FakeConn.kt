@@ -29,6 +29,10 @@ internal class FakeConn : Conn(), CommitHandler {
         TODO("not implemented")
     }
 
+    override suspend fun <T> trx(body: (Trx) -> T): T {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun <R : Any> persist(e: R): WriteResult<R?> {
         TODO("not implemented")
     }

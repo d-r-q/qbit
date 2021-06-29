@@ -4,8 +4,10 @@ import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
 import qbit.api.model.Eav
 import qbit.api.tombstone
+import qbit.platform.assert
 import qbit.platform.collections.firstMatchIdx
 import qbit.platform.collections.merge
+import qbit.platform.collections.sorted
 import qbit.platform.collections.subList
 
 typealias RawEntity = Pair<Gid, List<Eav>>
@@ -50,8 +52,14 @@ internal fun compareValues(v1: Any, v2: Any): Int {
 
 class Index(
     val entities: Map<Gid, RawEntity> = HashMap(),
-    val indices: List<Eav> = ArrayList()
+    val aveIndex: ArrayList<Eav> = ArrayList()
 ) {
+
+    init {
+        assert("ave-ndex should not contain tombstones") {
+            aveIndex.none { it.attr == tombstone.name }
+        }
+    }
 
     fun addFacts(facts: List<Eav>): Index =
         addFacts(facts as Iterable<Eav>)
@@ -65,53 +73,34 @@ class Index(
 
     fun add(entities: List<RawEntity>): Index {
         val newEntities = HashMap(this.entities)
-        val newIndex = ArrayList(indices)
 
-        val toRemove = ArrayList<Eav>()
-        val toAdd = ArrayList<Eav>()
+        // eavs of removed or updated entities
+        val obsoleteEavs = ArrayList<Eav>()
+        // eavs of added or updated entities
+        val newEavs = ArrayList<Eav>()
         for (e in entities) {
-            val prev = if (e.second[0].attr != tombstone.name) {
-                newEntities.put(e.first, e)
-            } else {
-                newEntities.remove(e.first)
-            }
-            if (prev != null) {
-                toRemove.addAll(prev.second)
-            }
-            toAdd.addAll(e.second.filter { it.value is Comparable<*> })
-        }
-        toRemove.sortWith(aveCmp)
-        toAdd.sortWith(aveCmp)
+            val (gid, eavs) = e
 
-        val filteredIndex = ArrayList<Eav>(toAdd.size)
-        var filterIdx = 0
-        newIndex.forEach {
-            val cmp = if (filterIdx < toRemove.size) {
-                aveCmp.compare(it, toRemove[filterIdx])
-            } else {
-                // add all facts, that are greater, than last to remove fact
-                -1
-            }
-            when {
-                cmp < 0 -> filteredIndex.add(it)
-                cmp > 0 -> {
-                    filterIdx++
-                    while (filterIdx < toRemove.size && aveCmp.compare(it, toRemove[filterIdx]) >= 0) {
-                        filterIdx++
-                    }
-                    if (filterIdx == toRemove.size && aveCmp.compare(it, toRemove[filterIdx - 1]) != 0) {
-                        filteredIndex.add(it)
-                    }
+            val isUpdate = eavs[0].attr != tombstone.name
+            val obsoleteEntity =
+                if (isUpdate) {
+                    newEntities.put(gid, e)
+                } else {
+                    newEntities.remove(gid)
                 }
-                cmp == 0 -> {
-                    // fiter out
-                }
+
+            if (obsoleteEntity != null) {
+                obsoleteEavs.addAll(obsoleteEntity.second)
             }
+            newEavs.addAll(eavs.filter { it.value is Comparable<*> && it.attr != tombstone.name })
         }
-        return Index(
-            newEntities,
-            merge(filteredIndex, toAdd, aveCmp)
-        )
+
+        obsoleteEavs.sortWith(aveCmp)
+        newEavs.sortWith(aveCmp)
+        val untouchedEavs = this.aveIndex - obsoleteEavs
+        val newAveIndex = merge(untouchedEavs, newEavs, aveCmp)
+
+        return Index(newEntities, newAveIndex)
     }
 
     fun add(e: RawEntity): Index {
@@ -126,20 +115,56 @@ class Index(
             }
 
     fun eidsByPred(pred: QueryPred): Sequence<Gid> {
-        val fromIdx = indices.firstMatchIdx {
+        val fromIdx = aveIndex.firstMatchIdx {
             if (it.attr == pred.attrName) {
                 pred.compareTo(it.value)
             } else {
                 it.attr.compareTo(pred.attrName)
             }
         }
-        if (fromIdx < 0 || fromIdx == indices.size) {
+        if (fromIdx < 0 || fromIdx == aveIndex.size) {
             return emptySequence()
         }
-        return indices.subList(fromIdx)
+        return aveIndex.subList(fromIdx)
             .asSequence()
             .takeWhile { it.attr == pred.attrName && pred.compareTo(it.value) == 0 }
             .map { it.gid }
     }
 
 }
+
+/**
+ * Returns elements of `this`, that aren't exist in `another`.
+ * Requires lists to be sorted wtih `aveCmp` to execute filtration in linear time
+ */
+private operator fun ArrayList<Eav>.minus(another: ArrayList<Eav>): ArrayList<Eav> {
+    assert("Left operand should be sorted with aveCmp") { sorted(this, aveCmp) }
+    assert("Right operand should be sorted with aveCmp") { sorted(another, aveCmp) }
+    val res = ArrayList<Eav>(this.size)
+    var filterIdx = 0
+    this.forEach {
+        val cmp = if (filterIdx < another.size) {
+            aveCmp.compare(it, another[filterIdx])
+        } else {
+            // add all facts, that are greater, than last to remove fact
+            -1
+        }
+        when {
+            cmp < 0 -> res.add(it)
+            cmp > 0 -> {
+                filterIdx++
+                while (filterIdx < another.size && aveCmp.compare(it, another[filterIdx]) >= 0) {
+                    filterIdx++
+                }
+                if (aveCmp.compare(it, another[filterIdx - 1]) != 0) {
+                    res.add(it)
+                }
+            }
+            cmp == 0 -> {
+                // filter out
+            }
+        }
+    }
+    return res
+}
+

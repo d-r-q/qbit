@@ -1,5 +1,6 @@
 package qbit
 
+import kotlinx.coroutines.delay
 import qbit.api.QBitException
 import qbit.api.db.*
 import qbit.api.gid.Gid
@@ -399,7 +400,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967377, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967383, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -413,4 +414,164 @@ class FunTest {
         }
     }
 
+    @JsName("Test_conflict_resolving_in_no_conflicts_case_with_same_changes")
+    @Test
+    fun `Test conflict resolving in no conflicts case with same changes`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im same change"))
+            val trx2 = conn.trx()
+            trx2.persist(eCodd.copy(name = "Im same change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im same change", it.pull<Scientist>(eCodd.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_conflict_resolving_in_no_conflicts_case_with_different_changes")
+    @Test
+    fun `Test conflict resolving in no conflicts case with different changes`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im different change"))
+            val trx2 = conn.trx()
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im different change", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_conflict_resolving_in_conflicts_case")
+    @Test
+    fun `Test conflict resolving in conflicts case`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(eCodd.copy(name = "Im change 1"))
+            trx1.persist(eBrewer.copy(name = "Im different change"))
+            val trx2 = conn.trx()
+            trx2.persist(eCodd.copy(name = "Im change 2"))
+            delay(100)
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(eBrewer.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("Test_merge_node_creating")
+    @Test
+    fun `Test merge node creating`() {
+        runBlocking {
+            val storage = MemStorage()
+            val conn1 = setupTestData(storage)
+            val trx1 = conn1.trx()
+            val trx2 = conn1.trx()
+            trx1.persist(eCodd.copy(name = "Im change 1"))
+            trx1.persist(eBrewer.copy(name = "Im different change"))
+            trx2.persist(eCodd.copy(name = "Im change 2"))
+            trx2.persist(pChen.copy(name = "Im different change"))
+            trx1.commit()
+            delay(1)
+            trx2.commit()
+            val trx3 = conn1.trx()
+            trx3.persist(mStonebreaker.copy(name = "Im change 3"))
+            trx3.commit()
+            val conn2 = qbit(storage, testsSerialModule)
+            conn2.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(pChen.id!!)!!.name)
+                assertEquals("Im different change", it.pull<Scientist>(eBrewer.id!!)!!.name)
+                assertEquals("Im change 3", it.pull<Scientist>(mStonebreaker.id!!)!!.name)
+            }
+        }
+    }
+
+    @JsName("qbit_should_successfully_persist_and_load_numeric_attributes")
+    @Test
+    fun `qbit should successfully persist and load numeric attributes`(): Unit = runBlocking {
+        // Given qbit and entity with numeric attribytes
+        val storage = MemStorage()
+        val conn1 = setupTestData(storage)
+        val entity = EntityWithNullableNumericAttrs(null, 1, 2, 3)
+
+        // When the entity is persisted
+        val stored = conn1.persist(entity)
+        // And storage is reopened
+        val conn2 = qbit(storage, testsSerialModule)
+        // And the entity is pulled
+        val loaded = conn2.db().pull<EntityWithNullableNumericAttrs>(Gid(stored.persisted!!.id!!))!!
+
+        // Then it should have persisted value attrs
+        assertEquals(entity.long, loaded.long)
+        assertEquals(entity.int, loaded.int)
+        assertEquals(entity.byte, loaded.byte)
+    }
+
+    @JsName("Test_conflict_resolving_for_list_attr")
+    @Test
+    fun `Test conflict resolving for list attr`() {
+        runBlocking {
+            val conn = setupTestData()
+            val trx1 = conn.trx()
+            trx1.persist(
+                eCodd.copy(
+                    name = "Im change 1",
+                    nicks = listOf("mathematician", "tabulator", "test1")
+                )
+            )
+            val trx2 = conn.trx()
+            trx2.persist(
+                eCodd.copy(
+                    name = "Im change 2",
+                    nicks = listOf("mathematician", "tabulator", "test2")
+                )
+            )
+            trx1.commit()
+            trx2.commit()
+            conn.db {
+                assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
+                assertEquals(
+                    listOf("mathematician", "tabulator", "test1", "test2"),
+                    it.pull<Scientist>(eCodd.id!!)!!.nicks
+                )
+            }
+        }
+    }
+
+    @JsName("Test_creating_entities_without_eid_in_parallel_transactions")
+    @Test
+    fun `Test creating entities without eid in parallel transactions`() {
+        runBlocking {
+            val storage = MemStorage()
+            val conn = setupTestData(storage)
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            val storedPaper = trx1.persist(Paper(null, "trx1", eCodd)).persisted
+            val storedCity = trx2.persist(City(null,"trx2", nsk)).persisted
+            trx1.commit()
+            trx2.commit()
+            val db = conn.db() as InternalDb
+            val trx1EntityAttrValues = db.pullEntity(Gid(storedPaper!!.id!!))!!.entries
+            assertEquals(2, trx1EntityAttrValues.size)
+            assertEquals("trx1", trx1EntityAttrValues.first { it.attr.name == "Paper/name" }.value)
+            assertEquals(Gid(eCodd.id!!), trx1EntityAttrValues.first { it.attr.name == "Paper/editor" }.value)
+            val trx2EntityAttrValues = db.pullEntity(Gid(storedCity!!.id!!))!!.entries
+            assertEquals(2, trx2EntityAttrValues.size)
+            assertEquals("trx2", trx2EntityAttrValues.first { it.attr.name == "City/name" }.value)
+            assertEquals(Gid(nsk.id!!), trx2EntityAttrValues.first { it.attr.name == "City/region" }.value)
+        }
+    }
 }

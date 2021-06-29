@@ -21,6 +21,7 @@ import qbit.storage.MemStorage
 import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.test.model.testsSerialModule
+import qbit.trx.GidSequence
 import qbit.trx.QTrx
 import kotlin.js.JsName
 import kotlin.test.*
@@ -37,31 +38,6 @@ class TrxTest {
             trx.persist(eCodd.copy(name = "Not A Codd"))
             trx.commit()
             assertEquals("Not A Codd", conn.db().pull<Scientist>(eCodd.id!!)!!.name)
-        }
-    }
-
-    @JsName("Qbit_should_detect_concurrent_transactions")
-    @Test
-    fun `Qbit should detect concurrent transactions`() {
-        runBlocking {
-            val (conn, _) = openEmptyConn()
-            val trx1 = conn.trx()
-            val trx2 = conn.trx()
-
-            trx2.persist(extId)
-            trx2.commit()
-
-            try {
-                trx1.persist(name)
-                trx1.commit()
-                fail()
-            } catch (e: ConcurrentModificationException) {
-                // expected
-            }
-            conn.db {
-                assertNotNull(it.query<Attr<Any>>(attrIs(Attrs.name, extId.name)).firstOrNull())
-                assertNull(it.query<Attr<Any>>(attrIs(Attrs.name, name.name)).firstOrNull())
-            }
         }
     }
 
@@ -135,7 +111,8 @@ class TrxTest {
             Instance(Gid(0, 1), 0, 0, 2), trxLog, dbOf(
                 Gid(0, 0).nextGids(),
                 *entities
-            ), conn, testSchemaFactorizer::factor
+            ), conn, testSchemaFactorizer::factor,
+            GidSequence(0, 1)
         )
 
     @Ignore
