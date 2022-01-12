@@ -1,7 +1,9 @@
 package qbit
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
@@ -32,6 +34,13 @@ import kotlin.reflect.KClass
 
 @Suppress("EXPERIMENTAL_API_USAGE")
 class SchemaValidator : SerializersModuleCollector {
+
+    override fun <T : Any> contextual(
+        kClass: KClass<T>,
+        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+    ) {
+        TODO("Not yet implemented")
+    }
 
     override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
         validateDescriptor(serializer.descriptor)
@@ -69,6 +78,22 @@ class SchemaValidator : SerializersModuleCollector {
     override fun <Base : Any> polymorphicDefault(
         baseClass: KClass<Base>,
         defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultDeserializer(
+        baseClass: KClass<Base>,
+        defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultSerializer(
+        baseClass: KClass<Base>,
+        defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?
     ) {
         TODO("Not yet implemented")
     }

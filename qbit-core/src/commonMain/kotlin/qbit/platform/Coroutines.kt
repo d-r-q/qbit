@@ -1,6 +1,7 @@
 package qbit.platform
 
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 
 
-expect fun createSingleThreadCoroutineDispatcher(name: String = ""): CoroutineDispatcher
+fun createSingleThreadCoroutineDispatcher(): CoroutineDispatcher = Dispatchers.Default

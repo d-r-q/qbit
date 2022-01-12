@@ -7,7 +7,7 @@ kotlin {
     jvm {
         compilations.all {
             kotlinOptions {
-                jvmTarget = '1.6'
+                jvmTarget = '1.8'
             }
         }
     }
@@ -19,7 +19,7 @@ kotlin {
         commonMain {
             dependencies {
                 api project(':qbit-core')
-                api 'io.ktor:ktor-io:$ktor_version'
+                api "io.ktor:ktor-io:$ktor_version"
             }
         }
         commonTest {

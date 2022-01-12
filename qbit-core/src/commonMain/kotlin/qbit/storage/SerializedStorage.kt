@@ -8,7 +8,7 @@ import qbit.spi.Storage
 
 class SerializedStorage(private val storage: Storage) : Storage by storage {
 
-    private val dispatcher = createSingleThreadCoroutineDispatcher("$storage writer")
+    private val dispatcher = createSingleThreadCoroutineDispatcher()
 
     override suspend fun add(key: Key, value: ByteArray) {
         withContext(dispatcher) {
