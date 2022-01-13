@@ -1,11 +1,13 @@
 package qbit.typing
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.CompositeDecoder.Companion.DECODE_DONE
+import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.gid.Gid
@@ -39,6 +41,16 @@ class EntityDecoder(
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         fields = descriptor.elementsCount
+        return this
+    }
+
+    @ExperimentalSerializationApi
+    override fun decodeInline(inlineDescriptor: SerialDescriptor): Decoder {
+        return this
+    }
+
+    @ExperimentalSerializationApi
+    override fun decodeInlineElement(descriptor: SerialDescriptor, index: Int): Decoder {
         return this
     }
 

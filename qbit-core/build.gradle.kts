@@ -1,4 +1,5 @@
 val kotlin_serialization_version: String by rootProject.extra
+val kotlin_coroutines_version: String by rootProject.extra
 val ktor_version: String by rootProject.extra
 
 kotlin {
@@ -6,7 +7,7 @@ kotlin {
     jvm {
         compilations.all {
             kotlinOptions {
-                jvmTarget = "1.6"
+                jvmTarget = "1.8"
                 freeCompilerArgs += listOf("-Xopt-in=kotlin.RequiresOptIn")
             }
         }
@@ -29,13 +30,14 @@ kotlin {
 
     sourceSets {
         all {
-            languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
-            languageSettings.useExperimentalAnnotation("io.ktor.utils.io.core.ExperimentalIoApi")
+            languageSettings.optIn("kotlinx.serialization.ExperimentalSerializationApi")
+            languageSettings.optIn("io.ktor.utils.io.core.ExperimentalIoApi")
         }
 
         val commonMain by getting {
             dependencies {
-                api("org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.1")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlin_serialization_version")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
                 api("io.ktor:ktor-io:$ktor_version")
             }
         }
@@ -44,7 +46,7 @@ kotlin {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
                 implementation(project(":qbit-test-fixtures")) {
-                    exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core:1.4.1")
+                    exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core:$kotlin_coroutines_version")
                 }
             }
         }

@@ -15,7 +15,7 @@ import kotlin.native.concurrent.SharedImmutable
 private val nodes = Namespace("nodes")
 
 class CommonNodesStorage(private val storage: Storage) :
-    CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher("Nodes writer")),
+    CoroutineScope by CoroutineScope(createSingleThreadCoroutineDispatcher()),
     NodesStorage {
 
     override suspend fun store(n: NodeVal<Hash?>): NodeVal<Hash> {

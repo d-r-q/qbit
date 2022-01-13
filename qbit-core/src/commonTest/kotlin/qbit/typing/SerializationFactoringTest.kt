@@ -1,7 +1,9 @@
 package qbit.typing
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleCollector
 import qbit.GidEntity
@@ -44,10 +46,33 @@ fun SerializersModule.serializers() =
                 this@apply[baseClass] = actualSerializer
             }
 
+            override fun <T : Any> contextual(
+                kClass: KClass<T>,
+                provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+            ) {
+                TODO("Not yet implemented")
+            }
+
             override fun <Base : Any> polymorphicDefault(
                 baseClass: KClass<Base>,
                 defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
             ) {
+            }
+
+            @ExperimentalSerializationApi
+            override fun <Base : Any> polymorphicDefaultDeserializer(
+                baseClass: KClass<Base>,
+                defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+            ) {
+                TODO("Not yet implemented")
+            }
+
+            @ExperimentalSerializationApi
+            override fun <Base : Any> polymorphicDefaultSerializer(
+                baseClass: KClass<Base>,
+                defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?
+            ) {
+                TODO("Not yet implemented")
             }
         })
     }

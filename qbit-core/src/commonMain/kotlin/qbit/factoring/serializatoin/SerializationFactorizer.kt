@@ -3,11 +3,13 @@
 package qbit.factoring.serializatoin
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleCollector
 import qbit.api.QBitException
@@ -104,6 +106,16 @@ internal class EntityEncoder(
             AttrName(descriptor, index)
         )
         entityGraph.setAttributeValue(fieldPointer, values)
+    }
+
+    @ExperimentalSerializationApi
+    override fun encodeInline(inlineDescriptor: SerialDescriptor): Encoder {
+        return this
+    }
+
+    @ExperimentalSerializationApi
+    override fun encodeInlineElement(descriptor: SerialDescriptor, index: Int): Encoder {
+        return this
     }
 
     private fun serializeRefList(values: Iterable<Any>): List<Ref> =
@@ -235,7 +247,6 @@ private fun SerializersModule.dump(): String {
 private class ToStringSerialModuleCollector : SerializersModuleCollector {
 
     val buffer = StringBuilder()
-
     override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
         buffer.append("$kClass\n")
     }
@@ -248,9 +259,32 @@ private class ToStringSerialModuleCollector : SerializersModuleCollector {
         buffer.append("$baseClass($actualClass)")
     }
 
+    override fun <T : Any> contextual(
+        kClass: KClass<T>,
+        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+    ) {
+        TODO("Not yet implemented")
+    }
+
     override fun <Base : Any> polymorphicDefault(
         baseClass: KClass<Base>,
         defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultDeserializer(
+        baseClass: KClass<Base>,
+        defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultSerializer(
+        baseClass: KClass<Base>,
+        defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?
     ) {
         TODO("Not yet implemented")
     }

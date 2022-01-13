@@ -23,7 +23,7 @@ kotlin {
                 implementation "io.ktor:ktor-client-core:$ktor_version"
                 implementation "io.ktor:ktor-client-json:$ktor_version"
                 implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1"
-                implementation "io.ktor:ktor-client-serialization:${ktor_version}"
+                implementation "io.ktor:ktor-client-serialization:$ktor_version"
             }
         }
         commonTest {
