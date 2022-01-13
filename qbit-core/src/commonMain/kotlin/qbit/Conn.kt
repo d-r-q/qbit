@@ -32,74 +32,6 @@ import qbit.storage.SerializedStorage
 import qbit.trx.*
 import kotlin.reflect.KClass
 
-@Suppress("EXPERIMENTAL_API_USAGE")
-class SchemaValidator : SerializersModuleCollector {
-
-    override fun <T : Any> contextual(
-        kClass: KClass<T>,
-        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
-    ) {
-        TODO("Not yet implemented")
-    }
-
-    override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
-        validateDescriptor(serializer.descriptor)
-    }
-
-    private fun validateDescriptor(desc: SerialDescriptor) {
-        val nullableListProps =
-            desc.elementDescriptors
-                .withIndex()
-                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
-                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
-                .map { it.second }
-        if (nullableListProps.isNotEmpty()) {
-            throw QBitException(
-                "List of nullable elements is not supported. Properties: ${desc.serialName}.${
-                    nullableListProps.joinToString(
-                        ",",
-                        "(",
-                        ")"
-                    ) { it }
-                }"
-            )
-        }
-    }
-
-
-    override fun <Base : Any, Sub : Base> polymorphic(
-        baseClass: KClass<Base>,
-        actualClass: KClass<Sub>,
-        actualSerializer: KSerializer<Sub>
-    ) {
-        TODO("Not yet implemented")
-    }
-
-    override fun <Base : Any> polymorphicDefault(
-        baseClass: KClass<Base>,
-        defaultSerializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
-    ) {
-        TODO("Not yet implemented")
-    }
-
-    @ExperimentalSerializationApi
-    override fun <Base : Any> polymorphicDefaultDeserializer(
-        baseClass: KClass<Base>,
-        defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
-    ) {
-        TODO("Not yet implemented")
-    }
-
-    @ExperimentalSerializationApi
-    override fun <Base : Any> polymorphicDefaultSerializer(
-        baseClass: KClass<Base>,
-        defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?
-    ) {
-        TODO("Not yet implemented")
-    }
-
-}
-
 suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
     val iid = Iid(1, 4)
     // TODO: fix dbUuid retrieving
@@ -146,7 +78,6 @@ class QConn(
     nodesStorage: CommonNodesStorage,
     private var db: InternalDb
 ) : Conn(), CommitHandler {
-
     var trxLog: TrxLog = QTrxLog(head, mapOf(Pair(head.hash, 0)), nodesStorage, dbUuid)
 
     private val resolveNode = nodesResolver(nodesStorage)
@@ -239,4 +170,65 @@ private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Ha
         is NodeVal<Hash> -> n
         is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
+}
+
+@Suppress("EXPERIMENTAL_API_USAGE")
+class SchemaValidator : SerializersModuleCollector {
+
+    override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
+        validateDescriptor(serializer.descriptor)
+    }
+
+    private fun validateDescriptor(desc: SerialDescriptor) {
+        val nullableListProps =
+            desc.elementDescriptors
+                .withIndex()
+                .map { (idx, eDescr) -> eDescr to desc.getElementName(idx) }
+                .filter { (eDescr, _) -> eDescr.kind == StructureKind.LIST && eDescr.getElementDescriptor(0).isNullable }
+                .map { it.second }
+        if (nullableListProps.isNotEmpty()) {
+            throw QBitException(
+                "List of nullable elements is not supported. Properties: ${desc.serialName}.${
+                    nullableListProps.joinToString(
+                        ",",
+                        "(",
+                        ")"
+                    ) { it }
+                }"
+            )
+        }
+    }
+
+    override fun <T : Any> contextual(
+        kClass: KClass<T>,
+        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+    ) {
+        TODO("Not yet implemented")
+    }
+
+
+    override fun <Base : Any, Sub : Base> polymorphic(
+        baseClass: KClass<Base>,
+        actualClass: KClass<Sub>,
+        actualSerializer: KSerializer<Sub>
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultDeserializer(
+        baseClass: KClass<Base>,
+        defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<out Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    @ExperimentalSerializationApi
+    override fun <Base : Any> polymorphicDefaultSerializer(
+        baseClass: KClass<Base>,
+        defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?
+    ) {
+        TODO("Not yet implemented")
+    }
+
 }

@@ -34,13 +34,6 @@ class SerializationFactoringTest :
 fun SerializersModule.serializers() =
     HashMap<KClass<*>, KSerializer<*>>().apply {
         this@serializers.dumpTo(object : SerializersModuleCollector {
-            override fun <T : Any> contextual(
-                kClass: KClass<T>,
-                provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
-            ) {
-                TODO("Not yet implemented")
-            }
-
             override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
                 this@apply[kClass] = serializer
             }
@@ -51,6 +44,13 @@ fun SerializersModule.serializers() =
                 actualSerializer: KSerializer<Sub>
             ) {
                 this@apply[baseClass] = actualSerializer
+            }
+
+            override fun <T : Any> contextual(
+                kClass: KClass<T>,
+                provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+            ) {
+                TODO("Not yet implemented")
             }
 
             override fun <Base : Any> polymorphicDefault(

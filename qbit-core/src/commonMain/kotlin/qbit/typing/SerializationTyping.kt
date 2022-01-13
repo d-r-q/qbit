@@ -46,12 +46,12 @@ class EntityDecoder(
 
     @ExperimentalSerializationApi
     override fun decodeInline(inlineDescriptor: SerialDescriptor): Decoder {
-        TODO("Not yet implemented")
+        return this
     }
 
     @ExperimentalSerializationApi
     override fun decodeInlineElement(descriptor: SerialDescriptor, index: Int): Decoder {
-        TODO("Not yet implemented")
+        return this
     }
 
     override fun <T : Any> decodeNullableSerializableElement(

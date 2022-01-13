@@ -110,12 +110,12 @@ internal class EntityEncoder(
 
     @ExperimentalSerializationApi
     override fun encodeInline(inlineDescriptor: SerialDescriptor): Encoder {
-        TODO("Not yet implemented")
+        return this
     }
 
     @ExperimentalSerializationApi
     override fun encodeInlineElement(descriptor: SerialDescriptor, index: Int): Encoder {
-        TODO("Not yet implemented")
+        return this
     }
 
     private fun serializeRefList(values: Iterable<Any>): List<Ref> =
@@ -247,13 +247,6 @@ private fun SerializersModule.dump(): String {
 private class ToStringSerialModuleCollector : SerializersModuleCollector {
 
     val buffer = StringBuilder()
-    override fun <T : Any> contextual(
-        kClass: KClass<T>,
-        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
-    ) {
-        TODO("Not yet implemented")
-    }
-
     override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
         buffer.append("$kClass\n")
     }
@@ -264,6 +257,13 @@ private class ToStringSerialModuleCollector : SerializersModuleCollector {
         actualSerializer: KSerializer<Sub>
     ) {
         buffer.append("$baseClass($actualClass)")
+    }
+
+    override fun <T : Any> contextual(
+        kClass: KClass<T>,
+        provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>
+    ) {
+        TODO("Not yet implemented")
     }
 
     override fun <Base : Any> polymorphicDefault(
