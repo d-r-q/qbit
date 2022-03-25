@@ -36,6 +36,9 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(NullableList::class)
     entity(NullableRef::class)
     entity(IntEntity::class)
+    entity(IntCounterEntity::class) {
+        counter(IntCounterEntity::counter)
+    }
     entity(ResearchGroup::class)
     entity(EntityWithByteArray::class)
     entity(EntityWithListOfBytes::class)

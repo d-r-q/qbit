@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.toList
 import qbit.api.Instances
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
+import qbit.api.model.DataType
 import qbit.api.model.Eav
 import qbit.api.model.Hash
 import qbit.index.RawEntity
@@ -41,7 +42,9 @@ data class LogsDiff(
                 resolve(writesFromA[it]!!, writesFromB[it]!!)
             }
         }
-        return resolvingEavsByGid.values.map { RawEntity(it.first().gid, it) }
+        return resolvingEavsByGid
+            .filter { !it.value.isEmpty() }
+            .values.map { RawEntity(it.first().gid, it) }
     }
 
     fun logAEntities(): List<RawEntity> {
@@ -49,6 +52,15 @@ data class LogsDiff(
         return entities.values
             .map { gidAttrs ->
                 RawEntity(gidAttrs.first().gid, gidAttrs.map { writesFromA[it]!!.lastByTimestamp()!!.eav })
+            }
+    }
+
+    // This snippet is probably useless and should be wiped out
+    fun logBOperations(resolveAttrName: (String) -> Attr<Any>?): List<RawEntity> {
+        return writesFromB.entries
+            .filter { DataType.ofCode(resolveAttrName(it.key.attr)!!.type)!!.isCounter() }
+            .flatMap { operationFromB ->
+                operationFromB.value.map { RawEntity(operationFromB.key.gid, listOf<Eav>(it.eav)) }
             }
     }
 
@@ -68,6 +80,7 @@ internal fun lastWriterWinsResolve(resolveAttrName: (String) -> Attr<Any>?): (Li
         // temporary dirty hack until crdt counter or custom resolution strategy support is implemented
         attr == Instances.nextEid -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav)
         attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
+        DataType.ofCode(attr.type)!!.isCounter() -> ArrayList()
         else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
     }
 }
