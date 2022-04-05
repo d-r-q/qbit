@@ -6,18 +6,16 @@ import qbit.api.Attrs
 import qbit.api.Instances
 import qbit.api.QBitException
 import qbit.api.db.Conn
-import qbit.api.db.attrIs
 import qbit.api.db.pull
-import qbit.api.db.query
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.Attr
 import qbit.api.system.Instance
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.platform.runBlocking
 import qbit.spi.Storage
 import qbit.storage.MemStorage
+import qbit.test.model.IntCounterEntity
 import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.test.model.testsSerialModule
@@ -173,6 +171,24 @@ class TrxTest {
                 trx.persist(Any())
             }
             assertEquals("Transaction already has been rollbacked", ex.message)
+        }
+    }
+
+    @JsName("Counter_test")
+    @Test
+    fun `Counter test`() {
+        runBlocking {
+            val conn = setupTestData()
+            val counterEntity = IntCounterEntity(1, 10)
+            val trx1 = conn.trx()
+            trx1.persist(counterEntity)
+            trx1.commit()
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, counterEntity.counter)
+            counterEntity.counter = 90
+            val trx2 = conn.trx()
+            trx2.persist(counterEntity)
+            trx2.commit()
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, counterEntity.counter)
         }
     }
 

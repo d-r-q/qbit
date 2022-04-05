@@ -64,8 +64,7 @@ internal class QTrx(
         val instance = factor(inst.copy(nextEid = gids.next().eid), curDb::attr, EmptyIterator)
         val newLog = trxLog.append(factsBuffer + instance)
         try {
-            base = curDb.with(instance)
-            commitHandler.update(trxLog, newLog, base)
+            commitHandler.update(trxLog, base, newLog, curDb.with(instance))
             factsBuffer.clear()
         } catch (e: Throwable) {
             // todo clean up

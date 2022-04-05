@@ -400,7 +400,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967383, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967384, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -459,9 +459,9 @@ class FunTest {
             trx1.persist(eBrewer.copy(name = "Im different change"))
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
-            delay(100)
             trx2.persist(pChen.copy(name = "Im different change"))
             trx1.commit()
+            delay(100)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -540,6 +540,7 @@ class FunTest {
                 )
             )
             trx1.commit()
+            delay(100)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -572,6 +573,27 @@ class FunTest {
             assertEquals(2, trx2EntityAttrValues.size)
             assertEquals("trx2", trx2EntityAttrValues.first { it.attr.name == "City/name" }.value)
             assertEquals(Gid(nsk.id!!), trx2EntityAttrValues.first { it.attr.name == "City/region" }.value)
+        }
+    }
+
+    @JsName("Test_counter_resolving")
+    @Test
+    fun `Test counter resolving`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            val counter = IntCounterEntity(1, 10)
+            val trx = conn.trx()
+            trx.persist(counter)
+            trx.commit()
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(counter.copy(counter = 40))
+            trx2.persist(counter.copy(counter = 70))
+            trx1.commit()
+            trx2.commit()
+
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 100)
         }
     }
 }

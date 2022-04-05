@@ -24,7 +24,7 @@ class SchemaBuilder(private val serialModule: SerializersModule) {
                 ?: throw QBitException("Cannot find descriptor for $type")
         val eb = EntityBuilder<T>(descr)
         eb.body()
-        attrs.addAll(schemaFor(descr, eb.uniqueProps))
+        attrs.addAll(schemaFor(descr, eb.uniqueProps, eb.counters))
     }
 
 }
@@ -32,6 +32,8 @@ class SchemaBuilder(private val serialModule: SerializersModule) {
 class EntityBuilder<T : Any>(private val descr: SerialDescriptor) {
 
     internal val uniqueProps = HashSet<String>()
+
+    internal val counters = HashSet<String>()
 
     fun uniqueInt(prop: KProperty1<T, Int>) {
         uniqueAttr(prop)
@@ -48,15 +50,22 @@ class EntityBuilder<T : Any>(private val descr: SerialDescriptor) {
         uniqueProps.add(AttrName(descr, idx).asString())
     }
 
+    fun counter(prop: KProperty1<T, *>) {
+        val (idx, _) = descr.elementNames
+            .withIndex().firstOrNull { (_, name) -> name == prop.name }
+            ?: throw QBitException("Cannot find attr for ${prop.name} in $descr")
+        counters.add(AttrName(descr, idx).asString())
+    }
+
 }
 
-fun schemaFor(rootDesc: SerialDescriptor, unique: Set<String> = emptySet()): List<Attr<Any>> {
+fun schemaFor(rootDesc: SerialDescriptor, unique: Set<String> = emptySet(), counters: Set<String> = emptySet()): List<Attr<Any>> {
     return rootDesc.elementDescriptors
         .withIndex()
         .filter { rootDesc.getElementName(it.index) !in setOf("id", "gid") }
         .map { (idx, desc) ->
-            val dataType = DataType.of(desc)
             val attr = AttrName(rootDesc, idx).asString()
+            val dataType = if (attr in counters) DataType.of(desc).counter() else DataType.of(desc)
             Attr<Any>(null, attr, dataType.code, attr in unique, dataType.isList())
         }
 }
