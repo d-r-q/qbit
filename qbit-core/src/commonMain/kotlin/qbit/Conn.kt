@@ -24,7 +24,7 @@ import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.index.RawEntity
 import qbit.ns.Namespace
-import qbit.resolving.lastWriterWinsResolve
+import qbit.resolving.crdtResolve
 import qbit.resolving.logsDiff
 import qbit.serialization.*
 import qbit.spi.Storage
@@ -122,14 +122,14 @@ class QConn(
         }
     }
 
-    override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
+    override suspend fun update(trxLog: TrxLog, baseDb: InternalDb, newLog: TrxLog, newDb: InternalDb) {
         val (log, db) =
             if (hasConcurrentTrx(trxLog)) {
-                mergeLogs(trxLog, this.trxLog, newLog, newDb)
+                mergeLogs(trxLog, this.trxLog, newLog, baseDb, newDb)
             } else {
                 newLog to newDb
             }
-        storage.overwrite(Namespace("refs")["head"], newLog.hash.bytes)
+        storage.overwrite(Namespace("refs")["head"], log.hash.bytes)
         this.trxLog = log
         this.db = db
     }
@@ -141,6 +141,7 @@ class QConn(
         baseLog: TrxLog,
         committedLog: TrxLog,
         committingLog: TrxLog,
+        baseDb: InternalDb,
         newDb: InternalDb
     ): Pair<TrxLog, InternalDb> {
         val logsDifference = logsDiff(baseLog, committedLog, committingLog, resolveNode)
@@ -149,7 +150,7 @@ class QConn(
             .logAEntities()
             .toEavsList()
         val reconciliationEavs = logsDifference
-            .reconciliationEntities(lastWriterWinsResolve { db.attr(it) })
+            .reconciliationEntities(crdtResolve(baseDb::pullEntity, db::attr))
             .toEavsList()
 
         val mergedDb = newDb
