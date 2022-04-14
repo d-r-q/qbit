@@ -10,7 +10,7 @@ data class TheSimplestEntity(val id: Long?, val scalar: String)
 data class IntEntity(val id: Long?, val int: Int)
 
 @Serializable
-data class IntCounterEntity(val id: Long?, var counter: Int)
+data class IntCounterEntity(val id: Long?, val counter: Int)
 
 @Serializable
 data class NullableIntEntity(val id: Long?, val int: Int?)
