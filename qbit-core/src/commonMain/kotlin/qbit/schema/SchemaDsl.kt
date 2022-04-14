@@ -44,17 +44,30 @@ class EntityBuilder<T : Any>(private val descr: SerialDescriptor) {
     }
 
     private fun uniqueAttr(prop: KProperty1<T, *>) {
-        val (idx, _) = descr.elementNames
-            .withIndex().firstOrNull { (_, name) -> name == prop.name }
-            ?: throw QBitException("Cannot find attr for ${prop.name} in $descr")
-        uniqueProps.add(AttrName(descr, idx).asString())
+        uniqueProps.add(getAttrName(prop))
     }
 
-    fun counter(prop: KProperty1<T, *>) {
+    fun byteCounter(prop: KProperty1<T, Byte>) {
+        counter(prop)
+    }
+
+    fun intCounter(prop: KProperty1<T, Int>) {
+        counter(prop)
+    }
+
+    fun longCounter(prop: KProperty1<T, Long>) {
+        counter(prop)
+    }
+
+    private fun counter(prop: KProperty1<T, *>) {
+        counters.add(getAttrName(prop))
+    }
+
+    private fun getAttrName(prop: KProperty1<T, *>): String {
         val (idx, _) = descr.elementNames
             .withIndex().firstOrNull { (_, name) -> name == prop.name }
             ?: throw QBitException("Cannot find attr for ${prop.name} in $descr")
-        counters.add(AttrName(descr, idx).asString())
+        return AttrName(descr, idx).asString()
     }
 
 }
