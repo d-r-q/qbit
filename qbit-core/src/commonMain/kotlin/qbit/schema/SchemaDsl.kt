@@ -85,7 +85,12 @@ fun schemaFor(rootDesc: SerialDescriptor, unique: Set<String> = emptySet(), coun
 
 private fun DataType.Companion.of(desc: SerialDescriptor): DataType<*> =
     when (desc.kind) {
-        StructureKind.CLASS -> QRef
+        StructureKind.CLASS -> {
+            when (desc.serialName) {
+                "qbit.api.model.Register" -> DataType.of(desc.getElementDescriptor(0).getElementDescriptor(0)).register()
+                else -> QRef
+            }
+        }
         StructureKind.LIST -> {
             val listElementDesc = desc.getElementDescriptor(0)
             when (listElementDesc.kind) {

@@ -24,6 +24,7 @@ import kotlin.reflect.KClass
 val scalarRange = 0..31
 val listRange = 32..63
 val pnCounterRange = 64..95
+val registerRange = 96..127
 
 @Suppress("UNCHECKED_CAST")
 sealed class DataType<out T : Any> {
@@ -37,12 +38,13 @@ sealed class DataType<out T : Any> {
 
         fun ofCode(code: Byte): DataType<*>? = when(code) {
             in scalarRange -> values.firstOrNull { it.code == code }
-            in listRange -> values.map { it.list() }.firstOrNull { it.code == code }
-            in pnCounterRange -> ofCode((code - 64).toByte())?.counter()
+            in listRange -> ofCode((code - listRange.first).toByte())?.list()
+            in pnCounterRange -> ofCode((code - pnCounterRange.first).toByte())?.counter()
+            in registerRange -> ofCode((code - registerRange.first).toByte())?.register()
             else -> null
         }
 
-        fun <T : Any> ofValue(value: T?): DataType<T>? = when (value) {
+        fun <T : Any> ofValue(value: T?): DataType<T>? = when (value) { // TODO REFACTOR
             is Boolean -> QBoolean as DataType<T>
             is Byte -> QByte as DataType<T>
             is Int -> QInt as DataType<T>
@@ -70,7 +72,16 @@ sealed class DataType<out T : Any> {
 
     fun isCounter(): Boolean = code in pnCounterRange
 
-    fun ref(): Boolean = this == QRef || this is QList<*> && this.itemsType == QRef
+    fun register(): QRegister<T> {
+        require(!(this is QList<*> || this is QCounter || this is QRegister)) { "Nested wrappers is not allowed" }
+        return QRegister(this)
+    }
+
+    fun isRegister(): Boolean = code in registerRange
+
+    fun ref(): Boolean = this == QRef ||
+            this is QList<*> && this.itemsType == QRef ||
+            this is QRegister<*> && this.itemsType == QRef
 
     fun value(): Boolean = !ref()
 
@@ -85,21 +96,27 @@ sealed class DataType<out T : Any> {
             is QGid -> Gid::class
             is QList<*> -> this.itemsType.typeClass()
             is QCounter<*> -> this.primitiveType.typeClass()
+            is QRegister<*> -> this.itemsType.typeClass()
             QRef -> Any::class
         }
     }
-
 }
 
 data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
-    override val code = (32 + itemsType.code).toByte()
+    override val code = (listRange.first + itemsType.code).toByte()
 
 }
 
 data class QCounter<out I : Any>(val primitiveType: DataType<I>) : DataType<I>() {
 
-    override val code = (64 + primitiveType.code).toByte()
+    override val code = (pnCounterRange.first + primitiveType.code).toByte()
+
+}
+
+data class QRegister<out I : Any>(val itemsType: DataType<I>) : DataType<I>() {
+
+    override val code = (registerRange.first + itemsType.code).toByte()
 
 }
 
@@ -152,4 +169,4 @@ object QGid : DataType<Gid>() {
 }
 
 fun isListOfVals(list: List<Any>?) =
-    list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value() } ?: true
+    list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value() } ?: true // TODO REFACTOR

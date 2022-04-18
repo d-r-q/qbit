@@ -187,7 +187,7 @@ private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
         }
         QGid -> Gid(readLong(ins)) as T
         QRef -> throw AssertionError("Should never happen")
-        is QList<*> -> throw AssertionError("Should never happen")
+        is QList<*>, is QRegister<*> -> throw AssertionError("Should never happen")
     }
 }
 
