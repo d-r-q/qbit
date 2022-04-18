@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import qbit.api.QBitException
 import qbit.api.db.*
 import qbit.api.gid.Gid
+import qbit.api.model.Register
 import qbit.index.InternalDb
 import qbit.platform.runBlocking
 import qbit.serialization.CommonNodesStorage
@@ -400,7 +401,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967383, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967386, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -459,9 +460,9 @@ class FunTest {
             trx1.persist(eBrewer.copy(name = "Im different change"))
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
-            delay(100)
             trx2.persist(pChen.copy(name = "Im different change"))
             trx1.commit()
+            delay(1)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -540,6 +541,7 @@ class FunTest {
                 )
             )
             trx1.commit()
+            delay(1)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -572,6 +574,82 @@ class FunTest {
             assertEquals(2, trx2EntityAttrValues.size)
             assertEquals("trx2", trx2EntityAttrValues.first { it.attr.name == "City/name" }.value)
             assertEquals(Gid(nsk.id!!), trx2EntityAttrValues.first { it.attr.name == "City/region" }.value)
+        }
+    }
+
+    @JsName("qbit_should_accumulate_concurrent_increments_of_counter")
+    @Test
+    fun `qbit should accumulate concurrent increments of counter`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            val counter = IntCounterEntity(1, 10)
+            val trx = conn.trx()
+            trx.persist(counter)
+            trx.commit()
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(counter.copy(counter = 40))
+            trx2.persist(counter.copy(counter = 70))
+            trx1.commit()
+            trx2.commit()
+
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 100)
+        }
+    }
+
+    @JsName("qbit_should_keep_both_concurrent_writes_to_a_value_register")
+    @Test
+    fun `qbit should keep both concurrent writes to a value register`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            conn.trx {
+                persist(IntRegisterEntity(1, Register(listOf(1))))
+            }
+            assertEquals(conn.db().pull<IntRegisterEntity>(1)?.register?.getValues(), listOf(1))
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(IntRegisterEntity(1, Register(listOf(2))))
+            trx2.persist(IntRegisterEntity(1, Register(listOf(3))))
+            trx1.commit()
+            trx2.commit()
+            assertEquals(conn.db().pull<IntRegisterEntity>(1)?.register?.getValues()?.sorted(), listOf(2, 3))
+
+            conn.trx {
+                persist(IntRegisterEntity(1, Register(listOf(4))))
+            }
+            assertEquals(conn.db().pull<IntRegisterEntity>(1)?.register?.getValues()?.sorted(), listOf(4))
+        }
+    }
+
+    @JsName("qbit_should_keep_both_concurrent_writes_to_a_ref_register")
+    @Test
+    fun `qbit should keep both concurrent writes to a ref register`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            val sweden = Country(null, "Sweden", 10350000)
+            val norway = Country(null, "Norway", 5379000)
+            val denmark = Country(null, "Denmark", 5831000)
+            val finland = Country(null, "Finland", 5531000)
+
+            conn.trx {
+                persist(CountryRegisterEntity(1, Register(listOf(sweden))))
+            }
+            assertEquals(conn.db().pull<CountryRegisterEntity>(1)?.register?.getValues()?.map { it.copy(id = null) }, listOf(sweden))
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(CountryRegisterEntity(1, Register(listOf(norway))))
+            trx2.persist(CountryRegisterEntity(1, Register(listOf(denmark))))
+            trx1.commit()
+            trx2.commit()
+            assertEquals(conn.db().pull<CountryRegisterEntity>(1)?.register?.getValues()?.map { it.copy(id = null) }?.sortedBy { it.name }, listOf(denmark, norway))
+
+            conn.trx {
+                persist(CountryRegisterEntity(1, Register(listOf(finland))))
+            }
+            assertEquals(conn.db().pull<CountryRegisterEntity>(1)?.register?.getValues()?.map { it.copy(id = null) }, listOf(finland))
         }
     }
 }

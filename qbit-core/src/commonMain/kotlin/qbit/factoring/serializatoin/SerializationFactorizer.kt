@@ -14,10 +14,7 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleCollector
 import qbit.api.QBitException
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.Eav
-import qbit.api.model.Entity
-import qbit.api.model.Tombstone
+import qbit.api.model.*
 import qbit.api.tombstone
 import qbit.collections.IdentityMap
 import qbit.factoring.*
@@ -98,6 +95,12 @@ internal class EntityEncoder(
             }
             ValueKind.REF_LIST -> {
                 serializeRefList(value as Iterable<Any>)
+            }
+            ValueKind.VALUE_REGISTER -> {
+                (value as Register<Any>).getValues()
+            }
+            ValueKind.REF_REGISTER -> {
+                serializeRefList((value as Register<Any>).getValues())
             }
         }
 
@@ -185,7 +188,7 @@ internal class EntityEncoder(
 
 enum class ValueKind {
 
-    SCALAR_VALUE, SCALAR_REF, VALUE_LIST, REF_LIST;
+    SCALAR_VALUE, SCALAR_REF, VALUE_LIST, REF_LIST, VALUE_REGISTER, REF_REGISTER;
 
     companion object {
         fun of(descriptor: SerialDescriptor, index: Int, value: Any): ValueKind {
@@ -194,7 +197,10 @@ enum class ValueKind {
                 isScalarValue(value) -> {
                     SCALAR_VALUE
                 }
-                isScalarRef(elementDescriptor) -> {
+                isScalarRef(
+                    elementDescriptor,
+                    value
+                ) -> {
                     SCALAR_REF
                 }
                 isValueList(
@@ -209,6 +215,18 @@ enum class ValueKind {
                 ) -> {
                     REF_LIST
                 }
+                isValueRegister(
+                    elementDescriptor,
+                    value
+                ) -> {
+                    VALUE_REGISTER
+                }
+                isRefRegister(
+                    elementDescriptor,
+                    value
+                ) -> {
+                    REF_REGISTER
+                }
                 else -> {
                     throw AssertionError("Writing primitive via encodeSerializableElement")
                 }
@@ -219,8 +237,8 @@ enum class ValueKind {
             // other primitive values are encoded directly via encodeXxxElement
             value is Gid || value is ByteArray
 
-        private fun isScalarRef(elementDescriptor: SerialDescriptor) =
-            elementDescriptor.kind == StructureKind.CLASS
+        private fun isScalarRef(elementDescriptor: SerialDescriptor, value: Any) =
+            elementDescriptor.kind == StructureKind.CLASS && value !is Register<*>
 
         private fun isValueList(elementDescriptor: SerialDescriptor, value: Any) =
             elementDescriptor.kind == StructureKind.LIST &&
@@ -231,6 +249,13 @@ enum class ValueKind {
         private fun isRefList(elementDescriptor: SerialDescriptor, value: Any) =
             elementDescriptor.kind == StructureKind.LIST && value is List<*>
 
+        private fun isValueRegister(elementDescriptor: SerialDescriptor, value: Any) =
+            value is Register<*> && //TODO DEDUPLICATE
+                    (elementDescriptor.getElementDescriptor(0).getElementDescriptor(0).kind is PrimitiveKind ||
+                    elementDescriptor.getElementDescriptor(0).getElementDescriptor(0).kind == StructureKind.LIST) // ByteArray
+
+        private fun isRefRegister(elementDescriptor: SerialDescriptor, value: Any) = // TODO REFACTOR
+            value is Register<*> && elementDescriptor.getElementDescriptor(0).getElementDescriptor(0).kind is StructureKind.CLASS
     }
 
 }

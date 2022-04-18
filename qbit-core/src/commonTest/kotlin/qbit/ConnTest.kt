@@ -63,7 +63,7 @@ class ConnTest {
             )
 
             val newLog = FakeTrxLog(storedLeaf.hash)
-            conn.update(conn.trxLog, newLog, EmptyDb)
+            conn.update(conn.trxLog, EmptyDb, newLog, EmptyDb)
 
             assertArrayEquals(newLog.hash.bytes, storage.load(Namespace("refs")["head"]))
         }

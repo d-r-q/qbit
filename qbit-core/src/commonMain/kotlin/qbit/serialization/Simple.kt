@@ -176,7 +176,7 @@ internal fun deserialize(ins: Input): Any {
 private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
     return when (expectedMark) {
         QBoolean -> (ins.readByte() == 1.toByte()) as T
-        QByte, QInt, QLong -> readLong(ins) as T
+        QByte, QInt, QLong, is QCounter<*> -> readLong(ins) as T
 
         QBytes -> readLong(ins).let { count ->
             readBytes(ins, count.toInt()) as T
@@ -187,7 +187,7 @@ private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
         }
         QGid -> Gid(readLong(ins)) as T
         QRef -> throw AssertionError("Should never happen")
-        is QList<*> -> throw AssertionError("Should never happen")
+        is QList<*>, is QRegister<*> -> throw AssertionError("Should never happen")
     }
 }
 

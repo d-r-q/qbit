@@ -2,9 +2,7 @@ package qbit.typing
 
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.CompositeDecoder.Companion.DECODE_DONE
 import kotlinx.serialization.encoding.Decoder
@@ -12,6 +10,8 @@ import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
+import qbit.api.model.DataType
+import qbit.api.model.Register
 import qbit.api.model.StoredEntity
 import qbit.factoring.serializatoin.AttrName
 import kotlin.reflect.KClass
@@ -71,7 +71,7 @@ class EntityDecoder(
             }
         }
 
-        if (descriptor.kind == StructureKind.LIST && elementKind == StructureKind.CLASS) {
+        if (descriptor.kind == StructureKind.LIST && elementKind == StructureKind.CLASS || descriptor.serialName == "qbit.api.model.Register") {
             val decoder = EntityDecoder(schema, entity, serializersModule)
             return deserializer.deserialize(decoder)
         }
@@ -81,7 +81,7 @@ class EntityDecoder(
             ?: throw QBitException("Corrupted entity $entity, there is no attr $attrName in schema")
 
         return when {
-            isValueAttr(elementDescriptor) -> entity.tryGet(attr)
+            isValueAttr(elementDescriptor) -> entity.tryGet(attr).let { if(DataType.ofCode(attr.type)!!.isRegister()) Register(it as List<*>) else it } as T?
             isRefAttr(elementDescriptor) -> decodeReferred(
                 elementDescriptor,
                 attrName,
@@ -116,14 +116,17 @@ class EntityDecoder(
             val res = cache.getOrPut(it, { deserializer.deserialize(decoder) })
             if (res is List<*>) {
                 res[0] as T
+            } else if (res is Register<*>) {
+                res.getValues()[0] as T
             } else {
                 res as T
             }
         }
 
-        return when (elementDescriptor.kind) {
-            is StructureKind.CLASS -> referreds[0]
-            is StructureKind.LIST -> referreds
+        return when {
+            elementDescriptor.serialName == "qbit.api.model.Register" -> Register(referreds)
+            elementDescriptor.kind is StructureKind.CLASS -> referreds[0]
+            elementDescriptor.kind is StructureKind.LIST -> referreds
             else -> throw AssertionError("Unexpected kind: ${elementDescriptor.kind}")
         }
     }
@@ -131,14 +134,18 @@ class EntityDecoder(
     private fun isValueAttr(elementDescriptor: SerialDescriptor): Boolean {
         val elementKind = elementDescriptor.kind
         val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
+        val registerElementsKind = elementDescriptor.takeIf { it.serialName == "qbit.api.model.Register" }?.getElementDescriptor(0)?.getElementDescriptor(0)?.kind
         return elementKind is PrimitiveKind || listElementsKind is PrimitiveKind ||
-                listElementsKind is StructureKind.LIST // List of ByteArrays
+                listElementsKind is StructureKind.LIST || // List of ByteArrays
+                registerElementsKind is PrimitiveKind ||
+                registerElementsKind is StructureKind.LIST // List of ByteArrays
     }
 
     private fun isRefAttr(elementDescriptor: SerialDescriptor): Boolean {
         val elementKind = elementDescriptor.kind
         val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
-        return elementKind is StructureKind.CLASS || listElementsKind is StructureKind.CLASS
+        val registerElementsKind = elementDescriptor.takeIf { it.serialName == "qbit.api.model.Register" }?.getElementDescriptor(0)?.getElementDescriptor(0)?.kind
+        return elementKind is StructureKind.CLASS || listElementsKind is StructureKind.CLASS || registerElementsKind is StructureKind.CLASS
     }
 
     override fun <T> decodeSerializableElement(

@@ -3,6 +3,7 @@ package qbit.trx
 import qbit.api.QBitException
 import qbit.api.db.attrIs
 import qbit.api.model.Attr
+import qbit.api.model.DataType
 import qbit.api.model.Eav
 import qbit.index.InternalDb
 
@@ -39,7 +40,7 @@ fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyLi
 
     // check that scalar attrs has single fact
     facts.groupBy { it.gid to it.attr }
-        .filter { !factAttrs.getValue(it.key.second)!!.list }
+        .filter { factAttrs.getValue(it.key.second)!!.let { attr -> !attr.list && !DataType.ofCode(attr.type)!!.isRegister() } }
         .forEach {
             if (it.value.size > 1) {
                 throw QBitException("Duplicate facts $it for scalar attribute: ${it.value}")
