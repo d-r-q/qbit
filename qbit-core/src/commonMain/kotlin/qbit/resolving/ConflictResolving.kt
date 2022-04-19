@@ -120,6 +120,14 @@ internal fun crdtResolve(
 
             latestFromA.map { it.eav } + latestFromB.map { it.eav }
         }
+        DataType.ofCode(attr.type)!!.isSet() -> {
+            val latestFromA =
+                eavsFromA.maxOf { it.timestamp }.let { timestamp -> eavsFromA.filter { it.timestamp == timestamp } }
+            val latestFromB =
+                eavsFromB.maxOf { it.timestamp }.let { timestamp -> eavsFromB.filter { it.timestamp == timestamp } }
+
+            (latestFromA.map { it.eav } + latestFromB.map { it.eav }).distinctBy { it.value }
+        }
         else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
     }
 }

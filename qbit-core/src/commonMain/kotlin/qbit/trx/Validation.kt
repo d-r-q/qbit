@@ -40,7 +40,7 @@ fun validate(db: InternalDb, facts: List<Eav>, newAttrs: List<Attr<*>> = emptyLi
 
     // check that scalar attrs has single fact
     facts.groupBy { it.gid to it.attr }
-        .filter { factAttrs.getValue(it.key.second)!!.let { attr -> !attr.list && !DataType.ofCode(attr.type)!!.isRegister() } }
+        .filter { factAttrs.getValue(it.key.second)!!.let { attr -> !attr.list && !DataType.ofCode(attr.type)!!.isRegister() && !DataType.ofCode(attr.type)!!.isSet() } }
         .forEach {
             if (it.value.size > 1) {
                 throw QBitException("Duplicate facts $it for scalar attribute: ${it.value}")

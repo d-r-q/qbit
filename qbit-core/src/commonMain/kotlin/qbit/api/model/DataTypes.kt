@@ -21,10 +21,11 @@ import kotlin.reflect.KClass
  * - List<Ref>
  */
 
-val scalarRange = 0..31
-val listRange = 32..63
-val pnCounterRange = 64..95
-val registerRange = 96..127
+val scalarRange = 0u..31u
+val listRange = 32u..63u
+val pnCounterRange = 64u..95u
+val registerRange = 96u..127u
+val setRange = 128u..159u
 
 @Suppress("UNCHECKED_CAST")
 sealed class DataType<out T : Any> {
@@ -36,11 +37,12 @@ sealed class DataType<out T : Any> {
         private val values: Array<DataType<*>>
             get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QRef)
 
-        fun ofCode(code: Byte): DataType<*>? = when(code) {
+        fun ofCode(code: Byte): DataType<*>? = when(code.toUByte()) {
             in scalarRange -> values.firstOrNull { it.code == code }
-            in listRange -> ofCode((code - listRange.first).toByte())?.list()
-            in pnCounterRange -> ofCode((code - pnCounterRange.first).toByte())?.counter()
-            in registerRange -> ofCode((code - registerRange.first).toByte())?.register()
+            in listRange -> ofCode((code.toUByte() - listRange.first).toByte())?.list()
+            in pnCounterRange -> ofCode((code.toUByte() - pnCounterRange.first).toByte())?.counter()
+            in registerRange -> ofCode((code.toUByte() - registerRange.first).toByte())?.register()
+            in setRange -> ofCode((code.toUByte() - setRange.first).toByte())?.set()
             else -> null
         }
 
@@ -57,31 +59,41 @@ sealed class DataType<out T : Any> {
         }
     }
 
+    fun isScalar(): Boolean = code.toUByte() in scalarRange
+
     fun list(): QList<T> {
         // TODO: make types hierarchy: Type -> List | (Scalar -> (Ref | Value))
-        require(!isList()) { "Nested lists is not allowed" }
+        require(this.isScalar()) { "Nested wrappers is not allowed" }
         return QList(this)
     }
 
-    fun isList(): Boolean = code in listRange
+    fun isList(): Boolean = code.toUByte() in listRange
 
     fun counter(): QCounter<T> {
         require(this is QByte || this is QInt || this is QLong) { "Only primitive number values are allowed in counters" }
         return QCounter(this)
     }
 
-    fun isCounter(): Boolean = code in pnCounterRange
+    fun isCounter(): Boolean = code.toUByte() in pnCounterRange
 
     fun register(): QRegister<T> {
-        require(!(this is QList<*> || this is QCounter || this is QRegister)) { "Nested wrappers is not allowed" }
+        require(this.isScalar()) { "Nested wrappers is not allowed" }
         return QRegister(this)
     }
 
-    fun isRegister(): Boolean = code in registerRange
+    fun isRegister(): Boolean = code.toUByte() in registerRange
+
+    fun set(): QSet<T> {
+        require(this.isScalar()) { "Nested wrappers is not allowed" }
+        return QSet(this)
+    }
+
+    fun isSet(): Boolean = code.toUByte() in setRange
 
     fun ref(): Boolean = this == QRef ||
             this is QList<*> && this.itemsType == QRef ||
-            this is QRegister<*> && this.itemsType == QRef
+            this is QRegister<*> && this.itemsType == QRef ||
+            this is QSet<*> && this.itemsType == QRef
 
     fun value(): Boolean = !ref()
 
@@ -97,6 +109,7 @@ sealed class DataType<out T : Any> {
             is QList<*> -> this.itemsType.typeClass()
             is QCounter<*> -> this.primitiveType.typeClass()
             is QRegister<*> -> this.itemsType.typeClass()
+            is QSet<*> -> this.itemsType.typeClass()
             QRef -> Any::class
         }
     }
@@ -104,19 +117,25 @@ sealed class DataType<out T : Any> {
 
 data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
-    override val code = (listRange.first + itemsType.code).toByte()
+    override val code = (listRange.first.toByte() + itemsType.code).toByte()
 
 }
 
 data class QCounter<out I : Any>(val primitiveType: DataType<I>) : DataType<I>() {
 
-    override val code = (pnCounterRange.first + primitiveType.code).toByte()
+    override val code = (pnCounterRange.first.toByte() + primitiveType.code).toByte()
 
 }
 
 data class QRegister<out I : Any>(val itemsType: DataType<I>) : DataType<I>() {
 
-    override val code = (registerRange.first + itemsType.code).toByte()
+    override val code = (registerRange.first.toByte() + itemsType.code).toByte()
+
+}
+
+data class QSet<out I : Any>(val itemsType: DataType<I>) : DataType<Set<I>>() {
+
+    override val code = (setRange.first.toByte() + itemsType.code).toByte()
 
 }
 

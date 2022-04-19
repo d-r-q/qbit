@@ -48,6 +48,8 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(IntCounterEntity::class) {
         intCounter(IntCounterEntity::counter)
     }
+    entity(IntSetEntity::class)
+    entity(CountrySetEntity::class)
     entity(IntRegisterEntity::class)
     entity(CountryRegisterEntity::class)
     entity(ResearchGroup::class)

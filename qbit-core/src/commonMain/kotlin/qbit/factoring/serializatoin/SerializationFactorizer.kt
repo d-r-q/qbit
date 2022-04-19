@@ -102,6 +102,12 @@ internal class EntityEncoder(
             ValueKind.REF_REGISTER -> {
                 serializeRefList((value as Register<Any>).getValues())
             }
+            ValueKind.VALUE_SET -> {
+                (value as Set<Any>).toList()
+            }
+            ValueKind.REF_SET -> {
+                serializeRefList(value as Set<Any>)
+            }
         }
 
         val fieldPointer = Pointer(
@@ -188,7 +194,7 @@ internal class EntityEncoder(
 
 enum class ValueKind {
 
-    SCALAR_VALUE, SCALAR_REF, VALUE_LIST, REF_LIST, VALUE_REGISTER, REF_REGISTER;
+    SCALAR_VALUE, SCALAR_REF, VALUE_LIST, REF_LIST, VALUE_REGISTER, REF_REGISTER, VALUE_SET, REF_SET;
 
     companion object {
         fun of(descriptor: SerialDescriptor, index: Int, value: Any): ValueKind {
@@ -227,6 +233,18 @@ enum class ValueKind {
                 ) -> {
                     REF_REGISTER
                 }
+                isValueSet(
+                    elementDescriptor,
+                    value
+                ) -> {
+                    VALUE_SET
+                }
+                isRefSet(
+                    elementDescriptor,
+                    value
+                ) -> {
+                    REF_SET
+                }
                 else -> {
                     throw AssertionError("Writing primitive via encodeSerializableElement")
                 }
@@ -256,6 +274,14 @@ enum class ValueKind {
 
         private fun isRefRegister(elementDescriptor: SerialDescriptor, value: Any) = // TODO REFACTOR
             value is Register<*> && elementDescriptor.getElementDescriptor(0).getElementDescriptor(0).kind is StructureKind.CLASS
+
+        private fun isValueSet(elementDescriptor: SerialDescriptor, value: Any) =
+            value is Set<*> &&
+                    (elementDescriptor.getElementDescriptor(0).kind is PrimitiveKind ||
+                            elementDescriptor.getElementDescriptor(0).kind == StructureKind.LIST) // ByteArray
+
+        private fun isRefSet(elementDescriptor: SerialDescriptor, value: Any) =
+            value is Set<*> && elementDescriptor.getElementDescriptor(0).kind is StructureKind.CLASS
     }
 
 }

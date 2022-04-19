@@ -401,7 +401,7 @@ class FunTest {
             assertEquals(bomb.country, storedBomb.country)
             assertEquals(bomb.optCountry, storedBomb.optCountry)
             assertEquals(
-                listOf(Country(12884901889, "Country1", 0), Country(4294967386, "Country3", 2)),
+                listOf(Country(12884901889, "Country1", 0), Country(4294967388, "Country3", 2)),
                 storedBomb.countiesList
             )
             // todo: assertEquals(bomb.countriesListOpt, storedBomb.countriesListOpt)
@@ -650,6 +650,51 @@ class FunTest {
                 persist(CountryRegisterEntity(1, Register(listOf(finland))))
             }
             assertEquals(conn.db().pull<CountryRegisterEntity>(1)?.register?.getValues()?.map { it.copy(id = null) }, listOf(finland))
+        }
+    }
+
+    @JsName("qbit_should_merge_concurrent_writes_to_value_set")
+    @Test
+    fun `qbit should merge concurrent writes to value set`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            conn.trx {
+                persist(IntSetEntity(1, setOf(1)))
+            }
+            assertEquals(conn.db().pull<IntSetEntity>(1)?.set, setOf(1))
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(IntSetEntity(1, setOf(1, 2)))
+            trx2.persist(IntSetEntity(1, setOf(1, 3)))
+            trx1.commit()
+            trx2.commit()
+            assertEquals(conn.db().pull<IntSetEntity>(1)?.set, setOf(1, 2, 3))
+        }
+    }
+
+    @JsName("qbit_should_merge_concurrent_writes_to_ref_set")
+    @Test
+    fun `qbit should merge concurrent writes to ref set`() {
+        runBlocking {
+            val conn = setupTestSchema()
+            val sweden = Country(null, "Sweden", 10350000)
+            val norway = Country(null, "Norway", 5379000)
+            val denmark = Country(null, "Denmark", 5831000)
+
+            conn.trx {
+                persist(CountrySetEntity(1, setOf(sweden)))
+            }
+            val persistedEntity = conn.db().pull<CountrySetEntity>(1)
+            assertEquals(persistedEntity?.set?.map { it.copy(id = null) }, listOf(sweden))
+
+            val trx1 = conn.trx()
+            val trx2 = conn.trx()
+            trx1.persist(CountrySetEntity(1, persistedEntity!!.set + norway))
+            trx2.persist(CountrySetEntity(1, persistedEntity.set + denmark))
+            trx1.commit()
+            trx2.commit()
+            assertEquals(conn.db().pull<CountrySetEntity>(1)?.set?.map { it.copy(id = null) }?.sortedBy { it.name }, listOf(denmark, norway, sweden))
         }
     }
 }

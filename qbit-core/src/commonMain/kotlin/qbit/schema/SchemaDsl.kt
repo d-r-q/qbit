@@ -93,16 +93,20 @@ private fun DataType.Companion.of(desc: SerialDescriptor): DataType<*> =
         }
         StructureKind.LIST -> {
             val listElementDesc = desc.getElementDescriptor(0)
-            when (listElementDesc.kind) {
-                PrimitiveKind.BYTE -> {
-                    when (desc.serialName) {
-                        "kotlin.ByteArray", "kotlin.ByteArray?" -> QBytes
-                        "kotlin.collections.ArrayList", "kotlin.collections.ArrayList?" -> QByte.list()
-                        else -> throw AssertionError("Unexpected descriptor: ${desc.serialName}")
+            if(desc.serialName == "kotlin.collections.LinkedHashSet" || desc.serialName == "kotlin.collections.LinkedHashSet?") {
+                DataType.of(listElementDesc).set()
+            } else {
+                when (listElementDesc.kind) {
+                    PrimitiveKind.BYTE -> {
+                        when (desc.serialName) {
+                            "kotlin.ByteArray", "kotlin.ByteArray?" -> QBytes
+                            "kotlin.collections.ArrayList", "kotlin.collections.ArrayList?" -> QByte.list()
+                            else -> throw AssertionError("Unexpected descriptor: ${desc.serialName}")
+                        }
                     }
+                    StructureKind.LIST -> QBytes.list()
+                    else -> DataType.of(listElementDesc).list()
                 }
-                StructureKind.LIST -> QBytes.list()
-                else -> DataType.of(listElementDesc).list()
             }
         }
         PrimitiveKind.STRING -> QString

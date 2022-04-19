@@ -50,9 +50,9 @@ class IndexDb(
         val attrValues = rawEntity.entries.map {
             val attr = schema[it.key]
             require(attr != null) { "There is no attribute with name ${it.key}" }
-            require(attr.list || DataType.ofCode(attr.type)!!.isRegister() || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
+            require(attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet() || it.value.size == 1) { "Corrupted ${attr.name} of $gid - it is scalar, but multiple values has been found: ${it.value}" }
             val value =
-                if (attr.list || DataType.ofCode(attr.type)!!.isRegister()) it.value.map { e -> fixNumberType(attr, e) }
+                if (attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet()) it.value.map { e -> fixNumberType(attr, e) }
                 else fixNumberType(attr, it.value[0])
             attr to value
         }

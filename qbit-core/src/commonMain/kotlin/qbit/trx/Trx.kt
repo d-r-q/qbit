@@ -91,10 +91,10 @@ fun Entity.toFacts(): Collection<Eav> =
         val type = DataType.ofCode(attr.type)!!
         @Suppress("UNCHECKED_CAST")
         when {
-            type.value() && !(attr.list || DataType.ofCode(attr.type)!!.isRegister()) -> listOf(valToFacts(gid, attr, value))
-            type.value() && (attr.list || DataType.ofCode(attr.type)!!.isRegister()) -> listToFacts(gid, attr, value as List<Any>)
-            type.ref() && !(attr.list || DataType.ofCode(attr.type)!!.isRegister()) -> listOf(refToFacts(gid, attr, value))
-            type.ref() && (attr.list || DataType.ofCode(attr.type)!!.isRegister()) -> refListToFacts(gid, attr, value as List<Any>)
+            type.value() && !(attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet()) -> listOf(valToFacts(gid, attr, value))
+            type.value() && (attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet()) -> listToFacts(gid, attr, value as List<Any>)
+            type.ref() && !(attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet()) -> listOf(refToFacts(gid, attr, value))
+            type.ref() && (attr.list || DataType.ofCode(attr.type)!!.isRegister() || DataType.ofCode(attr.type)!!.isSet()) -> refListToFacts(gid, attr, value as List<Any>)
             else -> throw AssertionError("Unexpected attr kind: $attr")
         }
     }
