@@ -142,7 +142,7 @@ inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: Strin
 }
 
 suspend fun setupTestSchema(storage: Storage = MemStorage()): Conn {
-    val conn = qbit(storage, testsSerialModule)
+    val conn = qbit(storage, internalTestsSerialModule)
     conn.trx {
         testSchema.forEach {
             persist(it)

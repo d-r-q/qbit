@@ -32,11 +32,11 @@ internal data class EntityBuilder(
         return DetachedEntity(gid!!, attrValues)
     }
 
-    private fun resolveRefs(attrVallue: Any, resolve: (Any) -> Gid): Any {
+    private fun resolveRefs(attrValue: Any, resolve: (Any) -> Gid): Any {
         return when {
-            attrVallue is Ref -> resolve(attrVallue.obj)
-            attrVallue is List<*> && attrVallue.firstOrNull() is Ref -> (attrVallue as List<Ref>).map { resolve(it.obj) }
-            else -> attrVallue
+            attrValue is Ref -> resolve(attrValue.obj)
+            attrValue is List<*> && attrValue.firstOrNull() is Ref -> (attrValue as List<Ref>).map { resolve(it.obj) }
+            else -> attrValue
         }
     }
 

@@ -40,7 +40,7 @@ internal class FakeConn : Conn(), CommitHandler {
     override val head: Hash
         get() = TODO("not implemented")
 
-    override suspend fun update(trxLog: TrxLog, newLog: TrxLog, newDb: InternalDb) {
+    override suspend fun update(trxLog: TrxLog, baseDb: InternalDb, newLog: TrxLog, newDb: InternalDb) {
         updatesCalls++
     }
 

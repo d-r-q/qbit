@@ -2,10 +2,9 @@ package qbit.resolving
 
 import kotlinx.coroutines.flow.toList
 import qbit.api.Instances
+import qbit.api.QBitException
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.Eav
-import qbit.api.model.Hash
+import qbit.api.model.*
 import qbit.index.RawEntity
 import qbit.serialization.*
 import qbit.trx.TrxLog
@@ -68,6 +67,67 @@ internal fun lastWriterWinsResolve(resolveAttrName: (String) -> Attr<Any>?): (Li
         // temporary dirty hack until crdt counter or custom resolution strategy support is implemented
         attr == Instances.nextEid -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav)
         attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
+        else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
+    }
+}
+
+internal fun crdtResolve(
+    resolveEntity: (Gid) -> StoredEntity?,
+    resolveAttrName: (String) -> Attr<Any>?
+): (List<PersistedEav>, List<PersistedEav>) -> List<Eav> = { eavsFromA, eavsFromB ->
+    require(eavsFromA.isNotEmpty()) { "eavsFromA should be not empty" }
+    require(eavsFromB.isNotEmpty()) { "eavsFromB should be not empty" }
+
+    val gid = eavsFromA[0].eav.gid
+    val attr = resolveAttrName(eavsFromA[0].eav.attr)
+        ?: throw IllegalArgumentException("Cannot resolve ${eavsFromA[0].eav.attr}")
+
+    when {
+        // temporary dirty hack until crdt counter or custom resolution strategy support is implemented
+        attr == Instances.nextEid -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav)
+        attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
+        DataType.ofCode(attr.type)!!.isCounter() -> {
+            val latestFromA = eavsFromA.maxByOrNull { it.timestamp }!!.eav.value
+            val latestFromB = eavsFromB.maxByOrNull { it.timestamp }!!.eav.value
+            val previous = resolveEntity(gid)?.tryGet(attr)
+
+            listOf(
+                if (previous != null)
+                    Eav(
+                        eavsFromA[0].eav.gid,
+                        eavsFromA[0].eav.attr,
+                        if (previous is Byte && latestFromA is Byte && latestFromB is Byte) latestFromA + latestFromB - previous
+                        else if (previous is Int && latestFromA is Int && latestFromB is Int) latestFromA + latestFromB - previous
+                        else if (previous is Long && latestFromA is Long && latestFromB is Long) latestFromA + latestFromB - previous
+                        else throw QBitException("Unexpected counter value type for eav with gid=$gid, attr=$attr")
+                    )
+                else
+                    Eav(
+                        eavsFromA[0].eav.gid,
+                        eavsFromA[0].eav.attr,
+                        if (latestFromA is Byte && latestFromB is Byte) latestFromA + latestFromB
+                        else if (latestFromA is Int && latestFromB is Int) latestFromA + latestFromB
+                        else if (latestFromA is Long && latestFromB is Long) latestFromA + latestFromB
+                        else throw QBitException("Unexpected counter value type for eav with gid=$gid, attr=$attr")
+                    )
+            )
+        }
+        DataType.ofCode(attr.type)!!.isRegister() -> {
+            val latestFromA =
+                eavsFromA.maxOf { it.timestamp }.let { timestamp -> eavsFromA.filter { it.timestamp == timestamp } }
+            val latestFromB =
+                eavsFromB.maxOf { it.timestamp }.let { timestamp -> eavsFromB.filter { it.timestamp == timestamp } }
+
+            latestFromA.map { it.eav } + latestFromB.map { it.eav }
+        }
+        DataType.ofCode(attr.type)!!.isSet() -> {
+            val latestFromA =
+                eavsFromA.maxOf { it.timestamp }.let { timestamp -> eavsFromA.filter { it.timestamp == timestamp } }
+            val latestFromB =
+                eavsFromB.maxOf { it.timestamp }.let { timestamp -> eavsFromB.filter { it.timestamp == timestamp } }
+
+            (latestFromA.map { it.eav } + latestFromB.map { it.eav }).distinctBy { it.value }
+        }
         else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
     }
 }

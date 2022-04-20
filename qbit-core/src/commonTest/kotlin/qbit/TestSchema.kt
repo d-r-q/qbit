@@ -6,6 +6,7 @@ import kotlinx.serialization.modules.plus
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
 import qbit.api.model.Attr
+import qbit.api.model.Register
 import qbit.factoring.AttrName
 import qbit.platform.collections.EmptyIterator
 import qbit.schema.schema
@@ -19,8 +20,16 @@ import kotlin.reflect.KProperty1
 @Serializable
 data class GidEntity(val id: Gid?, val bool: Boolean)
 
+@Serializable
+data class IntRegisterEntity(val id: Long?, val register: Register<Int>)
+
+@Serializable
+data class CountryRegisterEntity(val id: Long?, val register: Register<Country>)
+
 val internalTestsSerialModule = testsSerialModule + SerializersModule {
     contextual(GidEntity::class, GidEntity.serializer())
+    contextual(IntRegisterEntity::class, IntRegisterEntity.serializer())
+    contextual(CountryRegisterEntity::class, CountryRegisterEntity.serializer())
 }
 
 val testSchema = schema(internalTestsSerialModule) {
@@ -36,6 +45,13 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(NullableList::class)
     entity(NullableRef::class)
     entity(IntEntity::class)
+    entity(IntCounterEntity::class) {
+        intCounter(IntCounterEntity::counter)
+    }
+    entity(IntSetEntity::class)
+    entity(CountrySetEntity::class)
+    entity(IntRegisterEntity::class)
+    entity(CountryRegisterEntity::class)
     entity(ResearchGroup::class)
     entity(EntityWithByteArray::class)
     entity(EntityWithListOfBytes::class)
