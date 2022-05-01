@@ -2,6 +2,8 @@ package qbit.index
 
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.DataType
 import qbit.api.model.Eav
 import qbit.api.tombstone
 import qbit.platform.assert
@@ -61,17 +63,17 @@ class Index(
         }
     }
 
-    fun addFacts(facts: List<Eav>): Index =
-        addFacts(facts as Iterable<Eav>)
+    fun addFacts(facts: List<Eav>, resolveAttr: (String) -> Attr<*>? = { null }): Index =
+        addFacts(facts as Iterable<Eav>, resolveAttr)
 
-    fun addFacts(facts: Iterable<Eav>): Index {
+    fun addFacts(facts: Iterable<Eav>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val entities = facts
             .groupBy { it.gid }
             .map { it.key to it.value }
-        return add(entities)
+        return add(entities, resolveAttr)
     }
 
-    fun add(entities: List<RawEntity>): Index {
+    fun add(entities: List<RawEntity>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val newEntities = HashMap(this.entities)
 
         // eavs of removed or updated entities
@@ -82,12 +84,27 @@ class Index(
             val (gid, eavs) = e
 
             val isUpdate = eavs[0].attr != tombstone.name
-            val obsoleteEntity =
-                if (isUpdate) {
-                    newEntities.put(gid, e)
-                } else {
-                    newEntities.remove(gid)
-                }
+            val obsoleteEntity = newEntities.get(gid)
+
+            if (isUpdate) {
+                val crdts = obsoleteEntity?.second
+                    ?.filter {
+                        val attr = resolveAttr(it.attr)
+                        if (attr == null) {
+                            false
+                        } else {
+                            DataType.ofCode(attr.type)!!.isCounter()
+                        }
+                    }
+                    ?.filter {
+                            crdtEav -> eavs.none { it.attr == crdtEav.attr }
+                    }
+                    ?: emptyList()
+                obsoleteEavs.removeAll(crdts)
+                newEntities.put(gid, RawEntity(gid, eavs + crdts))
+            } else {
+                newEntities.remove(gid)
+            }
 
             if (obsoleteEntity != null) {
                 obsoleteEavs.addAll(obsoleteEntity.second)
@@ -103,8 +120,8 @@ class Index(
         return Index(newEntities, newAveIndex)
     }
 
-    fun add(e: RawEntity): Index {
-        return add(listOf(e))
+    fun add(e: RawEntity, resolveAttr: (String) -> Attr<*>? = { null }): Index {
+        return add(listOf(e), resolveAttr)
     }
 
     fun entityById(eid: Gid): Map<String, List<Any>>? =

@@ -32,7 +32,7 @@ class IndexDb(
     private val dataClassesCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
 
     override fun with(facts: Iterable<Eav>): IndexDb {
-        return IndexDb(index.addFacts(deoperationalize(this, facts.toList())), serialModule)
+        return IndexDb(index.addFacts(deoperationalize(this, facts.toList()), this::attr), serialModule)
     }
 
     override fun pullEntity(gid: Gid): StoredEntity? {

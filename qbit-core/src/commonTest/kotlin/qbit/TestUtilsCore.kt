@@ -55,7 +55,7 @@ internal object EmptyDb : InternalDb() {
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
     override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(Index().addFacts(facts), testsSerialModule)
+        return IndexDb(Index().addFacts(facts, this::attr), testsSerialModule)
     }
 
 }

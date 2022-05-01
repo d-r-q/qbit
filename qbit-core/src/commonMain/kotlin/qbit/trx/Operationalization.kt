@@ -39,9 +39,9 @@ private fun deoperationalizeCounter(db: InternalDb, fact: Eav): Eav {
             Eav(
                 fact.gid,
                 fact.attr,
-                if (previous is Byte && fact.value is Byte) previous + fact.value
-                else if (previous is Int && fact.value is Int) previous + fact.value
-                else if (previous is Long && fact.value is Long) previous + fact.value
+                if (fact.value is Byte) (previous as Number).toByte() + fact.value
+                else if (fact.value is Int) (previous as Number).toInt() + fact.value
+                else if (fact.value is Long) (previous as Number).toLong() + fact.value
                 else throw QBitException("Unexpected counter value type for $fact")
             )
         } else fact
