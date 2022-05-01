@@ -31,10 +31,9 @@ class OperationalizationTest {
     @Test
     fun `Persisted counter should turn into difference`() {
         val counterEntity = IntCounterEntity(1, 10)
-        val updatedDb = emptyDb.with(factor(counterEntity, emptyDb::attr, gids))
+        val updatedDb = emptyDb.with(factor(IntCounterEntity(1, 10), emptyDb::attr, gids))
 
-        counterEntity.counter = 100
-        val facts = operationalize(updatedDb, factor(counterEntity, updatedDb::attr, gids).entityFacts.values.first())
+        val facts = operationalize(updatedDb, factor(counterEntity.copy(counter = 100), updatedDb::attr, gids).entityFacts.values.first())
         assertEquals(1, facts.size, "Factoring of single entity with single attr should produce single fact")
         assertEquals("IntCounterEntity/counter", facts[0].attr)
         assertEquals(90, facts[0].value)

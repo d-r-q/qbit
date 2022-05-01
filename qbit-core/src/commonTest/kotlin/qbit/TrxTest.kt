@@ -176,19 +176,20 @@ class TrxTest {
 
     @JsName("Counter_test")
     @Test
-    fun `Counter test`() {
+    fun `Counter test`() { // TODO: find an appropriate place for this test
         runBlocking {
             val conn = setupTestData()
             val counterEntity = IntCounterEntity(1, 10)
-            val trx1 = conn.trx()
-            trx1.persist(counterEntity)
-            trx1.commit()
-            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, counterEntity.counter)
-            counterEntity.counter = 90
-            val trx2 = conn.trx()
-            trx2.persist(counterEntity)
-            trx2.commit()
-            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, counterEntity.counter)
+
+            conn.trx {
+                persist(counterEntity)
+            }
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 10)
+
+            conn.trx {
+                persist(counterEntity.copy(counter = 90))
+            }
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 90)
         }
     }
 

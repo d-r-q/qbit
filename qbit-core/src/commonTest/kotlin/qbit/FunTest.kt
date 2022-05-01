@@ -459,9 +459,9 @@ class FunTest {
             trx1.persist(eBrewer.copy(name = "Im different change"))
             val trx2 = conn.trx()
             trx2.persist(eCodd.copy(name = "Im change 2"))
-            delay(100)
             trx2.persist(pChen.copy(name = "Im different change"))
             trx1.commit()
+            delay(1)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -540,6 +540,7 @@ class FunTest {
                 )
             )
             trx1.commit()
+            delay(1)
             trx2.commit()
             conn.db {
                 assertEquals("Im change 2", it.pull<Scientist>(eCodd.id!!)!!.name)
@@ -575,9 +576,9 @@ class FunTest {
         }
     }
 
-    @JsName("Test_counter_resolving")
+    @JsName("qbit_should_accumulate_concurrent_increments_of_counter")
     @Test
-    fun `Test counter resolving`() {
+    fun `qbit should accumulate concurrent increments of counter`() {
         runBlocking {
             val conn = setupTestSchema()
             val counter = IntCounterEntity(1, 10)
@@ -588,7 +589,6 @@ class FunTest {
             val trx1 = conn.trx()
             val trx2 = conn.trx()
             trx1.persist(counter.copy(counter = 40))
-            delay(100)
             trx2.persist(counter.copy(counter = 70))
             trx1.commit()
             trx2.commit()

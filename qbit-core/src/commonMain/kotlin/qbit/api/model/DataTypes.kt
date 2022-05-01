@@ -21,6 +21,10 @@ import kotlin.reflect.KClass
  * - List<Ref>
  */
 
+val scalarRange = 0..31
+val listRange = 32..63
+val counterRange = 64..95
+
 @Suppress("UNCHECKED_CAST")
 sealed class DataType<out T : Any> {
 
@@ -32,13 +36,13 @@ sealed class DataType<out T : Any> {
             get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QRef)
 
         fun ofCode(code: Byte): DataType<*>? = when(code) {
-            in 0..31 -> values.firstOrNull { it.code == code }
-            in 32..63 -> values.map { it.list() }.firstOrNull { it.code == code }
-            in 63..95 -> ofCode((code - 64).toByte())?.counter()
+            in scalarRange -> values.firstOrNull { it.code == code }
+            in listRange -> values.map { it.list() }.firstOrNull { it.code == code }
+            in counterRange -> ofCode((code - 64).toByte())?.counter()
             else -> null
         }
 
-        fun <T : Any> ofValue(value: T?): DataType<T> = when (value) {
+        fun <T : Any> ofValue(value: T?): DataType<T>? = when (value) {
             is Boolean -> QBoolean as DataType<T>
             is Byte -> QByte as DataType<T>
             is Int -> QInt as DataType<T>
@@ -46,7 +50,7 @@ sealed class DataType<out T : Any> {
             is String -> QString as DataType<T>
             is ByteArray -> QBytes as DataType<T>
             is Gid -> QGid as DataType<T>
-            is List<*> -> value.firstOrNull()?.let { ofValue(it).list() } as DataType<T>
+            is List<*> -> value.firstOrNull()?.let { ofValue(it)?.list() } as DataType<T>?
             else -> QRef as DataType<T>
         }
     }
@@ -57,14 +61,14 @@ sealed class DataType<out T : Any> {
         return QList(this)
     }
 
-    fun isList(): Boolean = code in 32..63
+    fun isList(): Boolean = code in listRange
 
     fun counter(): QCounter<T> {
         require(this is QByte || this is QInt || this is QLong) { "Only primitive number values are allowed in counters" }
         return QCounter(this)
     }
 
-    fun isCounter(): Boolean = code in 64..95
+    fun isCounter(): Boolean = code in counterRange
 
     fun ref(): Boolean = this == QRef || this is QList<*> && this.itemsType == QRef
 
@@ -148,4 +152,4 @@ object QGid : DataType<Gid>() {
 }
 
 fun isListOfVals(list: List<Any>?) =
-    list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it).value() } ?: true
+    list == null || list.isEmpty() || list.firstOrNull()?.let { DataType.ofValue(it)?.value() } ?: true
