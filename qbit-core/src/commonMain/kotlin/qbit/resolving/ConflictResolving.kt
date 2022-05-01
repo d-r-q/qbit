@@ -55,15 +55,6 @@ data class LogsDiff(
             }
     }
 
-    // This snippet is probably useless and should be wiped out
-    fun logBOperations(resolveAttrName: (String) -> Attr<Any>?): List<RawEntity> {
-        return writesFromB.entries
-            .filter { DataType.ofCode(resolveAttrName(it.key.attr)!!.type)!!.isCounter() }
-            .flatMap { operationFromB ->
-                operationFromB.value.map { RawEntity(operationFromB.key.gid, listOf<Eav>(it.eav)) }
-            }
-    }
-
     private fun List<PersistedEav>.lastByTimestamp() =
         maxByOrNull { it.timestamp }
 

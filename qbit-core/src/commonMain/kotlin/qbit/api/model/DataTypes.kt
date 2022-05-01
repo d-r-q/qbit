@@ -37,8 +37,8 @@ sealed class DataType<out T : Any> {
 
         fun ofCode(code: Byte): DataType<*>? = when(code) {
             in scalarRange -> values.firstOrNull { it.code == code }
-            in listRange -> values.map { it.list() }.firstOrNull { it.code == code }
-            in counterRange -> ofCode((code - 64).toByte())?.counter()
+            in listRange -> ofCode((code - listRange.first).toByte())?.list()
+            in counterRange -> ofCode((code - counterRange.first).toByte())?.counter()
             else -> null
         }
 
@@ -93,13 +93,13 @@ sealed class DataType<out T : Any> {
 
 data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
-    override val code = (32 + itemsType.code).toByte()
+    override val code = (listRange.first + itemsType.code).toByte()
 
 }
 
 data class QCounter<out I : Any>(val primitiveType: DataType<I>) : DataType<I>() {
 
-    override val code = (64 + primitiveType.code).toByte()
+    override val code = (counterRange.first + primitiveType.code).toByte()
 
 }
 
