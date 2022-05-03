@@ -1,7 +1,6 @@
 package qbit.resolving
 
 import kotlinx.coroutines.flow.toList
-import qbit.api.Instances
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.DataType
@@ -43,7 +42,10 @@ data class LogsDiff(
             }
         }
         return resolvingEavsByGid
-            .filter { !it.value.isEmpty() }
+            .filter { it.value.isNotEmpty() }   // CRDT values in eavs are operations.
+                                                // Operations should not be created during merge
+                                                // So, it is possible to have "empty" entities there
+                                                // They should be filtered out
             .values.map { RawEntity(it.first().gid, it) }
     }
 
@@ -68,8 +70,6 @@ internal fun lastWriterWinsResolve(resolveAttrName: (String) -> Attr<Any>?): (Li
         ?: throw IllegalArgumentException("Cannot resolve ${eavsFromA[0].eav.attr}")
 
     when {
-        // temporary dirty hack until crdt counter or custom resolution strategy support is implemented
-        attr == Instances.nextEid -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.eav.value as Int }!!.eav)
         attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
         DataType.ofCode(attr.type)!!.isCounter() -> ArrayList()
         else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
