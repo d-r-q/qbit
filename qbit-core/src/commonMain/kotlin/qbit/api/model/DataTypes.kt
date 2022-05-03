@@ -21,6 +21,10 @@ import kotlin.reflect.KClass
  * - List<Ref>
  */
 
+val scalarRange = 0..31
+val listRange = 32..63
+val counterRange = 64..95
+
 @Suppress("UNCHECKED_CAST")
 sealed class DataType<out T : Any> {
 
@@ -31,12 +35,12 @@ sealed class DataType<out T : Any> {
         private val values: Array<DataType<*>>
             get() = arrayOf(QBoolean, QByte, QInt, QLong, QString, QBytes, QGid, QRef)
 
-        fun ofCode(code: Byte): DataType<*>? =
-            if (code <= 19) {
-                values.firstOrNull { it.code == code }
-            } else {
-                values.map { it.list() }.firstOrNull { it.code == code }
-            }
+        fun ofCode(code: Byte): DataType<*>? = when(code) {
+            in scalarRange -> values.firstOrNull { it.code == code }
+            in listRange -> ofCode((code - listRange.first).toByte())?.list()
+            in counterRange -> ofCode((code - counterRange.first).toByte())?.counter()
+            else -> null
+        }
 
         fun <T : Any> ofValue(value: T?): DataType<T>? = when (value) {
             is Boolean -> QBoolean as DataType<T>
@@ -46,7 +50,7 @@ sealed class DataType<out T : Any> {
             is String -> QString as DataType<T>
             is ByteArray -> QBytes as DataType<T>
             is Gid -> QGid as DataType<T>
-            is List<*> -> value.firstOrNull()?.let { ofValue(it)?.list() } as DataType<T>
+            is List<*> -> value.firstOrNull()?.let { ofValue(it)?.list() } as DataType<T>?
             else -> QRef as DataType<T>
         }
     }
@@ -57,7 +61,14 @@ sealed class DataType<out T : Any> {
         return QList(this)
     }
 
-    fun isList(): Boolean = (code.toInt().and(32)) > 0
+    fun isList(): Boolean = code in listRange
+
+    fun counter(): QCounter<T> {
+        require(this is QByte || this is QInt || this is QLong) { "Only primitive number values are allowed in counters" }
+        return QCounter(this)
+    }
+
+    fun isCounter(): Boolean = code in counterRange
 
     fun ref(): Boolean = this == QRef || this is QList<*> && this.itemsType == QRef
 
@@ -73,6 +84,7 @@ sealed class DataType<out T : Any> {
             is QBytes -> ByteArray::class
             is QGid -> Gid::class
             is QList<*> -> this.itemsType.typeClass()
+            is QCounter<*> -> this.primitiveType.typeClass()
             QRef -> Any::class
         }
     }
@@ -81,7 +93,13 @@ sealed class DataType<out T : Any> {
 
 data class QList<out I : Any>(val itemsType: DataType<I>) : DataType<List<I>>() {
 
-    override val code = (32 + itemsType.code).toByte()
+    override val code = (listRange.first + itemsType.code).toByte()
+
+}
+
+data class QCounter<out I : Any>(val primitiveType: DataType<I>) : DataType<I>() {
+
+    override val code = (counterRange.first + primitiveType.code).toByte()
 
 }
 

@@ -44,8 +44,9 @@ internal class QTrx(
             return QbitWriteResult(entityGraphRoot, curDb)
         }
         validate(curDb, updatedFacts)
-        factsBuffer.addAll(updatedFacts)
-        curDb = curDb.with(updatedFacts)
+        val operationalizedFacts = operationalize(curDb, updatedFacts)
+        factsBuffer.addAll(operationalizedFacts)
+        curDb = curDb.with(operationalizedFacts)
 
         val res = if (facts.entityFacts[entityGraphRoot]!!.firstOrNull()?.gid in entities) {
             entityGraphRoot

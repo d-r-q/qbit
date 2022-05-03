@@ -1,11 +1,7 @@
 package qbit.resolving
 
 import qbit.Attr
-import qbit.api.Instances
-import qbit.api.gid.Gid
-import qbit.api.model.Eav
 import qbit.api.model.Hash
-import qbit.api.model.nullHash
 import qbit.platform.runBlocking
 import qbit.serialization.NodeVal
 import kotlin.js.JsName
@@ -65,21 +61,6 @@ class ResolveConflictsTest {
             val diff = logsDiff(logs[0], logs[1], logs[2]) { it as NodeVal<Hash> }
             val result = diff.reconciliationEntities(lastWriterWinsResolve { Attr(null,"") })
             assertEquals(eavA.value, result[0].second[0].value)
-        }
-    }
-
-    @JsName("Test_last_writer_wins_resolving_for_nextEid_attribute")
-    @Test
-    fun `Test last writer wins resolving for nextEid attribute`(){
-        runBlocking {
-            val resolveConflictForNextEidAttr = lastWriterWinsResolve { Instances.nextEid }
-            val eav1 = Eav(Gid(1,8), Instances.nextEid.name, 10)
-            val eav2 = Eav(Gid(1,8), Instances.nextEid.name, 11)
-            val result = resolveConflictForNextEidAttr(
-                listOf(PersistedEav(eav1, 11, nullHash)),
-                listOf(PersistedEav(eav2, 10, nullHash))
-            )
-            assertEquals(listOf(eav2), result)
         }
     }
 }

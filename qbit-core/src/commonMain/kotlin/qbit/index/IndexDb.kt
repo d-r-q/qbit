@@ -14,6 +14,7 @@ import qbit.api.gid.Gid
 import qbit.api.model.*
 import qbit.api.model.impl.AttachedEntity
 import qbit.collections.LimitedPersistentMap
+import qbit.trx.deoperationalize
 import qbit.typing.typify
 import kotlin.reflect.KClass
 
@@ -30,8 +31,8 @@ class IndexDb(
 
     private val dataClassesCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
 
-    override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(index.addFacts(facts), serialModule)
+    override fun with(facts: Iterable<Eav>): IndexDb {
+        return IndexDb(index.addFacts(deoperationalize(this, facts.toList()), this::attr), serialModule)
     }
 
     override fun pullEntity(gid: Gid): StoredEntity? {

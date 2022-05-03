@@ -41,7 +41,7 @@ class MappingTest {
 
         val db = createTestDb()
         val facts = factor(user, db::attr, gids)
-        val db2 = IndexDb(db.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(db.index.addFacts(facts, db::attr), testsSerialModule)
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
 
         val fullUser = typify(db::attr, se, MUser::class, testsSerialModule)
@@ -65,7 +65,7 @@ class MappingTest {
         )
         val db = createTestDb()
         val facts = factor(user, db::attr, gids)
-        val db2 = IndexDb(db.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(db.index.addFacts(facts, db::attr), testsSerialModule)
 
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
         val fullUser = typify(db::attr, se, MUser::class, testsSerialModule)
@@ -331,7 +331,7 @@ class MappingTest {
         // When it's factorized, stored, pulled and typed
         val testDb = createTestDb()
         val facts = factor(bomb, testDb::attr, gids)
-        val db2 = IndexDb(testDb.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(testDb.index.addFacts(facts, testDb::attr), testsSerialModule)
         val se = db2.pullEntity(facts.entityFacts[bomb]!!.first().gid)!!
         val typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule)
 
@@ -356,7 +356,7 @@ class MappingTest {
         // When it's factorized, stored, pulled and typed
         val testDb = createTestDb()
         val facts = factor(bomb, testDb::attr, gids)
-        val db2 = IndexDb(testDb.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(testDb.index.addFacts(facts, testDb::attr), testsSerialModule)
         val se = db2.pullEntity(facts.entityFacts[bomb]!!.first().gid)!!
         var typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule)
 

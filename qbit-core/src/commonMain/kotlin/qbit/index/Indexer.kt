@@ -17,7 +17,7 @@ class Indexer(
             .toList()
             .map { it.entities() }
             .fold(base ?: IndexDb(Index(), serialModule)) { db, n ->
-                IndexDb(db.index.add(n), serialModule)
+                db.with(n.flatMap { it.second })
             }
     }
 
