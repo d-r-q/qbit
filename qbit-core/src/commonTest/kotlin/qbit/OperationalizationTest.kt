@@ -15,7 +15,7 @@ class OperationalizationTest {
 
     val factor = KSFactorizer(qbitCoreTestsSerialModule)::factor
 
-    val emptyDb = dbOf(gids, *(bootstrapSchema.values + testSchema).toTypedArray())
+    val emptyDb = dbOf(gids, *(bootstrapSchema.values + testSchema.first).toTypedArray())
 
     @JsName("Counter_not_persisted_in_db_should_pass_as_is")
     @Test

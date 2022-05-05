@@ -30,7 +30,7 @@ class ValidationTest {
     fun `Subsequent storing of unique value for the same entity should not be treated as uniqueness violation`() {
         val db = dbOf(
             Gid(0, firstInstanceEid).nextGids(),
-            *(bootstrapSchema.values + testSchema).toTypedArray()
+            *(bootstrapSchema.values + testSchema.first).toTypedArray()
         ).with(eCodd.toFacts())
         validate(db, listOf(Eav(Gid(eCodd.id!!), extId, eCodd.externalId)))
     }

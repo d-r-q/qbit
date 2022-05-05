@@ -25,7 +25,7 @@ class SerializationTypingTest {
         val map = HashMap<Gid, StoredEntity>()
         val theSimplestEntity =
             AttachedEntity(gids.next(), listOf(TheSimplestEntities.scalar to "Aleksey Lyapunov"), map::get)
-        val typedEntity = typify(schemaMap::get, theSimplestEntity, TheSimplestEntity::class, testsSerialModule)
+        val typedEntity = typify(schemaMap::get, theSimplestEntity, TheSimplestEntity::class, testsSerialModule, testSchema.second)
         assertEquals(typedEntity.scalar, "Aleksey Lyapunov")
     }
 
@@ -37,7 +37,7 @@ class SerializationTypingTest {
             listOf(Countries.name to "Russia", Countries.population to 146_000_000),
             nullGidResolver
         )
-        val typedRu = typify(schemaMap::get, ru, Country::class, testsSerialModule)
+        val typedRu = typify(schemaMap::get, ru, Country::class, testsSerialModule, testSchema.second)
         assertEquals("Russia", typedRu.name)
         assertEquals(146_000_000, typedRu.population)
     }
@@ -58,7 +58,7 @@ class SerializationTypingTest {
             map::get
         )
         map[ru.gid] = ru
-        val typedNsk = typify(schemaMap::get, nsk, Region::class, testsSerialModule)
+        val typedNsk = typify(schemaMap::get, nsk, Region::class, testsSerialModule, testSchema.second)
         assertEquals("Novosibirskaya obl.", typedNsk.name)
         assertEquals("Russia", typedNsk.country.name)
     }
@@ -72,7 +72,7 @@ class SerializationTypingTest {
             listOf(Countries.name to "Russia", Countries.population to 146_000_000),
             nullGidResolver
         )
-        val typedRu = typify(schemaMap::get, ru, Country::class, testsSerialModule)
+        val typedRu = typify(schemaMap::get, ru, Country::class, testsSerialModule, testSchema.second)
         assertEquals(146_000_000, typedRu.population)
     }
 
@@ -85,7 +85,7 @@ class SerializationTypingTest {
             listOf(Papers.name to "ER-Model"),
             nullGidResolver
         )
-        val typedEr = typify(schemaMap::get, er, Paper::class, testsSerialModule)
+        val typedEr = typify(schemaMap::get, er, Paper::class, testsSerialModule, testSchema.second)
         assertEquals("ER-Model", typedEr.name)
         assertNull(typedEr.editor)
     }
@@ -123,7 +123,7 @@ class SerializationTypingTest {
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov
         map[ru.gid] = ru
-        val typedErshov = typify(schemaMap::get, aErshov, Scientist::class, testsSerialModule)
+        val typedErshov = typify(schemaMap::get, aErshov, Scientist::class, testsSerialModule, testSchema.second)
         @Suppress("UNCHECKED_CAST")
         assertEquals(aLaypunov[Scientists.name as Attr<String>], typedErshov.reviewer?.name)
     }
@@ -137,7 +137,7 @@ class SerializationTypingTest {
         val e = AttachedEntity(gids.next(), listOf(NullableScalars.placeholder to 0), map::get)
 
         map[e.gid] = e
-        val ns = typify(schemaMap::get, e, NullableScalar::class, testsSerialModule)
+        val ns = typify(schemaMap::get, e, NullableScalar::class, testsSerialModule, testSchema.second)
         // Workaround for strange failure in case of longs comparison on js platform:
         // qbit.typing
         //       SerializationTypingTest
@@ -159,7 +159,7 @@ class SerializationTypingTest {
         )
 
         map[e.gid] = e
-        val ns = typify(schemaMap::get, e, NullableScalar::class, testsSerialModule)
+        val ns = typify(schemaMap::get, e, NullableScalar::class, testsSerialModule, testSchema.second)
         assertEquals(1L, ns.placeholder)
         assertEquals(1.toByte(), ns.scalar)
     }
@@ -177,7 +177,7 @@ class SerializationTypingTest {
         )
 
         map[e.gid] = e
-        val ns = typify(schemaMap::get, e, NullableList::class, testsSerialModule)
+        val ns = typify(schemaMap::get, e, NullableList::class, testsSerialModule, testSchema.second)
         assertEquals(listOf(1.toByte()), ns.lst)
     }
 
@@ -193,7 +193,7 @@ class SerializationTypingTest {
 
         map[r.gid] = r
         map[e.gid] = e
-        val ns = typify(schemaMap::get, e, NullableRef::class, testsSerialModule)
+        val ns = typify(schemaMap::get, e, NullableRef::class, testsSerialModule, testSchema.second)
         assertEquals(1, ns.ref?.int)
     }
 
@@ -221,7 +221,7 @@ class SerializationTypingTest {
         map[aLaypunov.gid] = aLaypunov
         map[aErshov.gid] = aErshov
         map[ru.gid] = ru
-        val typedErshov = typify(schemaMap::get, aErshov, Scientist::class, testsSerialModule)
+        val typedErshov = typify(schemaMap::get, aErshov, Scientist::class, testsSerialModule, testSchema.second)
         assertEquals("Andrey Ershov", typedErshov.name)
         assertEquals("Aleksey Lyapunov", typedErshov.reviewer?.name)
     }
@@ -254,7 +254,7 @@ class SerializationTypingTest {
         map[researchGroup.gid] = researchGroup
         map[ru.gid] = ru
 
-        val typedGroup = typify(schemaMap::get, researchGroup, ResearchGroup::class, testsSerialModule)
+        val typedGroup = typify(schemaMap::get, researchGroup, ResearchGroup::class, testsSerialModule, testSchema.second)
         assertEquals(2, typedGroup.members.size)
         assertEquals("Aleksey Lyapunov", typedGroup.members[0].name)
         assertEquals("Andrey Ershov", typedGroup.members[1].name)
@@ -273,7 +273,7 @@ class SerializationTypingTest {
         map[nsk.gid] = nsk
         map[nskCity.gid] = nskCity
 
-        val typedNsk = typify(schemaMap::get, nskCity, City::class, testsSerialModule)
+        val typedNsk = typify(schemaMap::get, nskCity, City::class, testsSerialModule, testSchema.second)
         assertEquals("Russia", typedNsk.region.country.name)
     }
 
@@ -285,7 +285,7 @@ class SerializationTypingTest {
             AttachedEntity(gids.next(), listOf(EntityWithByteArrays.byteArray to byteArrayOf(1, 2, 3)), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertArrayEquals(byteArrayOf(1, 2, 3), typed.byteArray)
@@ -299,7 +299,7 @@ class SerializationTypingTest {
             AttachedEntity(gids.next(), listOf(EntityWithByteArrays.byteArray to byteArrayOf()), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertArrayEquals(byteArrayOf(), typed.byteArray)
@@ -312,7 +312,7 @@ class SerializationTypingTest {
         val entity = AttachedEntity(gids.next(), listOf(), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithByteArray::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertNull(typed.byteArray)
@@ -326,7 +326,7 @@ class SerializationTypingTest {
             AttachedEntity(gids.next(), listOf(EntityWithListOfBytess.bytes to listOf<Byte>(1, 2, 3)), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithListOfBytes::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithListOfBytes::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertEquals(listOf<Byte>(1, 2, 3), typed.bytes)
@@ -343,7 +343,7 @@ class SerializationTypingTest {
         )
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithListOfByteArray::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithListOfByteArray::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertArrayEquals(byteArrayOf(1), typed.byteArrays[0])
@@ -358,7 +358,7 @@ class SerializationTypingTest {
             AttachedEntity(gids.next(), listOf(EntityWithListOfStringss.strings to listOf("1")), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertEquals(listOf("1"), typed.strings)
@@ -372,7 +372,7 @@ class SerializationTypingTest {
             AttachedEntity(gids.next(), listOf(EntityWithListOfStringss.strings to listOf<String>()), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertEquals(listOf(), typed.strings)
@@ -385,7 +385,7 @@ class SerializationTypingTest {
         val entity = AttachedEntity(gids.next(), listOf(), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule)
+        val typed = typify(schemaMap::get, entity, EntityWithListOfString::class, testsSerialModule, testSchema.second)
 
         // Then it contains
         assertNull(typed.strings)
@@ -399,7 +399,7 @@ class SerializationTypingTest {
         val entity = AttachedEntity(gid, listOf(GidEntities.bool to true), nullGidResolver)
 
         // When it typed
-        val typed = typify(schemaMap::get, entity, GidEntity::class, internalTestsSerialModule)
+        val typed = typify(schemaMap::get, entity, GidEntity::class, internalTestsSerialModule, testSchema.second)
 
         // Then it has correct gid
         assertEquals(gid, typed.id)
@@ -522,7 +522,7 @@ class SerializationTypingTest {
         )
 
         // When it typed
-        val typed = typify(schemaMap::get, root, ParentToChildrenTreeEntity::class, internalTestsSerialModule)
+        val typed = typify(schemaMap::get, root, ParentToChildrenTreeEntity::class, internalTestsSerialModule, testSchema.second)
 
         // Then root has correct name and children count
         assertEquals("root", typed.name)

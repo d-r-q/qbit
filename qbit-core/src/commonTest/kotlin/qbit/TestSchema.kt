@@ -39,6 +39,18 @@ val testSchema = schema(internalTestsSerialModule) {
     entity(IntCounterEntity::class) {
         intCounter(IntCounterEntity::counter)
     }
+    entity(StringRegisterEntity::class) {
+        register(StringRegisterEntity::register) { l, r -> "$l, $r" }
+    }
+    entity(CountryRegisterEntity::class) {
+        register(CountryRegisterEntity::register) { l, r ->
+            Country(
+                null,
+                "${l.name}-${r.name}",
+                if (l.population == null || r.population == null) null else l.population!! + r.population!!
+            )
+        }
+    }
     entity(ResearchGroup::class)
     entity(EntityWithByteArray::class)
     entity(EntityWithListOfBytes::class)
@@ -52,7 +64,7 @@ val testSchema = schema(internalTestsSerialModule) {
 }
 
 private val gids = Gid(2, 0).nextGids()
-val schemaMap: Map<String, Attr<Any>> = testSchema
+val schemaMap: Map<String, Attr<Any>> = testSchema.first
     .map { it.name to it.id(gids.next()) }
     .toMap()
 

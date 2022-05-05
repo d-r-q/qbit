@@ -72,6 +72,7 @@ internal fun lastWriterWinsResolve(resolveAttrName: (String) -> Attr<Any>?): (Li
     when {
         attr.list -> (eavsFromA + eavsFromB).map { it.eav }.distinct()
         DataType.ofCode(attr.type)!!.isCounter() -> ArrayList()
+        DataType.ofCode(attr.type)!!.isRegister() -> ArrayList()
         else -> listOf((eavsFromA + eavsFromB).maxByOrNull { it.timestamp }!!.eav)
     }
 }

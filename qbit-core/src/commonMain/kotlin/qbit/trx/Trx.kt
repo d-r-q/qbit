@@ -14,7 +14,8 @@ import qbit.platform.collections.EmptyIterator
 internal class QTrx(
     private val inst: Instance, private val trxLog: TrxLog, private var base: InternalDb,
     private val commitHandler: CommitHandler, private val factor: Factor,
-    private val gids: GidSequence
+    private val gids: GidSequence,
+    private val causalHashesResolver: suspend (Hash) -> List<Hash>
 ) : Trx() {
 
     private var curDb: InternalDb = base
@@ -44,9 +45,9 @@ internal class QTrx(
             return QbitWriteResult(entityGraphRoot, curDb)
         }
         validate(curDb, updatedFacts)
-        val operationalizedFacts = operationalize(curDb, updatedFacts)
+        val operationalizedFacts = operationalize(base, updatedFacts)
         factsBuffer.addAll(operationalizedFacts)
-        curDb = curDb.with(operationalizedFacts)
+        curDb = curDb.with(operationalizedFacts) //?
 
         val res = if (facts.entityFacts[entityGraphRoot]!!.firstOrNull()?.gid in entities) {
             entityGraphRoot
@@ -63,9 +64,11 @@ internal class QTrx(
         }
 
         val instance = factor(inst.copy(nextEid = gids.next().eid), curDb::attr, EmptyIterator)
-        val newLog = trxLog.append(factsBuffer + instance)
+        val operationalizedInstance = operationalize(curDb, instance.toList())
+        val newFacts = factsBuffer + operationalizedInstance
+        val newLog = trxLog.append(newFacts)
         try {
-            base = curDb.with(instance)
+            base = base.with(newFacts, newLog.hash, causalHashesResolver(newLog.hash))
             commitHandler.update(trxLog, newLog, base)
             factsBuffer.clear()
         } catch (e: Throwable) {
@@ -93,7 +96,7 @@ fun Entity.toFacts(): Collection<Eav> =
         val type = DataType.ofCode(attr.type)!!
         @Suppress("UNCHECKED_CAST")
         when {
-            type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
+            type.isRegister() || type.value() && !attr.list -> listOf(valToFacts(gid, attr, value))
             type.value() && attr.list -> listToFacts(gid, attr, value as List<Any>)
             type.ref() && !attr.list -> listOf(refToFacts(gid, attr, value))
             type.ref() && attr.list -> refListToFacts(gid, attr, value as List<Any>)

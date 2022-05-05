@@ -1,5 +1,8 @@
 package qbit
 
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -23,6 +26,7 @@ import qbit.factoring.serializatoin.KSFactorizer
 import qbit.index.Indexer
 import qbit.index.InternalDb
 import qbit.index.RawEntity
+import qbit.index.entities
 import qbit.ns.Namespace
 import qbit.resolving.lastWriterWinsResolve
 import qbit.resolving.logsDiff
@@ -32,7 +36,7 @@ import qbit.storage.SerializedStorage
 import qbit.trx.*
 import kotlin.reflect.KClass
 
-suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
+suspend fun qbit(storage: Storage, appSerialModule: SerializersModule, registerFolders: Map<String, (Any, Any) -> Any>): Conn {
     val iid = Iid(1, 4)
     // TODO: fix dbUuid retrieving
     val dbUuid = DbUuid(iid)
@@ -42,7 +46,14 @@ suspend fun qbit(storage: Storage, appSerialModule: SerializersModule): Conn {
     val systemSerialModule = createSystemSerialModule(appSerialModule)
     val factor = KSFactorizer(systemSerialModule)::factor
     val head = loadOrInitHead(storage, nodesStorage, serializedStorage, dbUuid, factor)
-    val db = Indexer(systemSerialModule, null, null, nodesResolver(nodesStorage)).index(head)
+    val db = Indexer(
+        systemSerialModule,
+        null,
+        null,
+        nodesResolver(nodesStorage),
+        causalHashesResolver(nodesStorage),
+        registerFolders
+    ).index(head)
 
     return QConn(dbUuid, serializedStorage, head, factor, nodesStorage, db)
 }
@@ -82,6 +93,8 @@ class QConn(
 
     private val resolveNode = nodesResolver(nodesStorage)
 
+    private val resolveCausality = causalHashesResolver(nodesStorage)
+
     private val gidSequence: GidSequence = with(db.pull<Instance>(Gid(dbUuid.iid, theInstanceEid))) {
         if (this == null) {
             throw QBitException("Corrupted DB - the instance entity not found")
@@ -99,7 +112,7 @@ class QConn(
     }
 
     override fun trx(): Trx {
-        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor, gidSequence)
+        return QTrx(db.pull(Gid(dbUuid.iid, theInstanceEid))!!, trxLog, db, this, factor, gidSequence, resolveCausality)
     }
 
     override suspend fun <T> trx(body: Trx.() -> T): T {
@@ -144,18 +157,17 @@ class QConn(
         newDb: InternalDb
     ): Pair<TrxLog, InternalDb> {
         val logsDifference = logsDiff(baseLog, committedLog, committingLog, resolveNode)
-
-        val committedEavs = logsDifference
-            .logAEntities()
-            .toEavsList()
         val reconciliationEavs = logsDifference
             .reconciliationEntities(lastWriterWinsResolve { db.attr(it) })
             .toEavsList()
 
-        val mergedDb = newDb
-            .with(committedEavs)
-            .with(reconciliationEavs)
         val mergedLog = committingLog.mergeWith(committedLog, baseLog.hash, reconciliationEavs)
+        val allNodes = nodesBetween(null, mergedLog.head, resolveNode).toList()
+        val indexedNodes = nodesBetween(null, committingLog.head, resolveNode).toSet()
+        val notIndexedNodes = allNodes.filter { node -> indexedNodes.none { it.hash == node.hash } }
+        val mergedDb = notIndexedNodes.fold(newDb) {db, n ->
+            db.with(n.entities().flatMap { it.second }, n.hash, resolveCausality(n.hash))
+        }
 
         return mergedLog to mergedDb
     }
@@ -170,6 +182,13 @@ private fun nodesResolver(nodeStorage: NodesStorage): (Node<Hash>) -> NodeVal<Ha
         is NodeVal<Hash> -> n
         is NodeRef -> nodeStorage.load(n) ?: throw QBitException("Corrupted graph, could not resolve $n")
     }
+}
+
+fun causalHashesResolver(nodeStorage: NodesStorage): suspend (Hash) -> List<Hash> = { hash ->
+    val node = nodeStorage.load(NodeRef(hash)) ?: throw QBitException("Error: could not resolve node for hash $hash")
+    val resolveNode = nodesResolver(nodeStorage)
+    val causalNodes = nodesBetween(null, node, resolveNode)
+    causalNodes.map { it.hash }.toList()
 }
 
 @Suppress("EXPERIMENTAL_API_USAGE")

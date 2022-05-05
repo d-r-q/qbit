@@ -5,6 +5,7 @@ import qbit.api.gid.Gid
 import qbit.api.model.Attr
 import qbit.api.model.DataType
 import qbit.api.model.Eav
+import qbit.api.model.Hash
 import qbit.api.tombstone
 import qbit.platform.assert
 import qbit.platform.collections.firstMatchIdx
@@ -15,7 +16,7 @@ import qbit.platform.collections.subList
 typealias RawEntity = Pair<Gid, List<Eav>>
 
 fun Index(entities: List<RawEntity>): Index =
-    Index().add(entities)
+    Index().add(entities, null, emptyList())
 
 fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
 
@@ -63,17 +64,17 @@ class Index(
         }
     }
 
-    fun addFacts(facts: List<Eav>, resolveAttr: (String) -> Attr<*>? = { null }): Index =
-        addFacts(facts as Iterable<Eav>, resolveAttr)
+    fun addFacts(facts: List<Eav>, hash: Hash? =  null, causalHashes: List<Hash> = emptyList(), resolveAttr: (String) -> Attr<*>? = { null }): Index =
+        addFacts(facts as Iterable<Eav>, hash, causalHashes, resolveAttr)
 
-    fun addFacts(facts: Iterable<Eav>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
+    fun addFacts(facts: Iterable<Eav>, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val entities = facts
             .groupBy { it.gid }
             .map { it.key to it.value }
-        return add(entities, resolveAttr)
+        return add(entities, hash, causalHashes, resolveAttr)
     }
 
-    fun add(entities: List<RawEntity>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
+    fun add(entities: List<RawEntity>, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val newEntities = HashMap(this.entities)
 
         // eavs of removed or updated entities
@@ -87,21 +88,32 @@ class Index(
             val obsoleteEntity = newEntities.get(gid)
 
             if (isUpdate) {
-                val crdts = obsoleteEntity?.second
-                    ?.filter {
-                        val attr = resolveAttr(it.attr)
-                        if (attr == null) {
-                            false
+                val effectiveEavs = ArrayList<Eav>()
+                eavs.mapTo(effectiveEavs) { eav ->
+                    val attr = resolveAttr(eav.attr)
+                    if (attr != null &&  DataType.ofCode(attr.type)!!.isRegister()) {
+                        val persistedEav = obsoleteEntity?.second?.firstOrNull { it.attr == eav.attr }
+                        if (persistedEav != null) {
+                            persistedEav.copy(value = (persistedEav.value as IndexedRegister).indexValue(hash, eav.value, causalHashes))
                         } else {
-                            DataType.ofCode(attr.type)!!.isCounter()
+                            eav.copy(value = IndexedRegister(listOf(Pair(hash, eav.value))))
                         }
+                    } else {
+                        eav
                     }
-                    ?.filter {
-                            crdtEav -> eavs.none { it.attr == crdtEav.attr }
-                    }
-                    ?: emptyList()
-                obsoleteEavs.removeAll(crdts)
-                newEntities.put(gid, RawEntity(gid, eavs + crdts))
+                }
+
+                if(obsoleteEntity != null) {
+                    effectiveEavs.addAll(obsoleteEntity.second.filter { eav ->
+                        val attr = resolveAttr(eav.attr)
+                        attr != null &&
+                                DataType.ofCode(attr.type)!!.let { it.isCounter() || it.isRegister() } &&
+                                eavs.none { it.attr == eav.attr }
+                    })
+                }
+
+                newEntities.put(gid, RawEntity(gid, effectiveEavs))
+                newEavs.addAll(effectiveEavs.filter { it.value is Comparable<*> && it.attr != tombstone.name })
             } else {
                 newEntities.remove(gid)
             }
@@ -109,7 +121,6 @@ class Index(
             if (obsoleteEntity != null) {
                 obsoleteEavs.addAll(obsoleteEntity.second)
             }
-            newEavs.addAll(eavs.filter { it.value is Comparable<*> && it.attr != tombstone.name })
         }
 
         obsoleteEavs.sortWith(aveCmp)
@@ -120,8 +131,8 @@ class Index(
         return Index(newEntities, newAveIndex)
     }
 
-    fun add(e: RawEntity, resolveAttr: (String) -> Attr<*>? = { null }): Index {
-        return add(listOf(e), resolveAttr)
+    fun add(e: RawEntity, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
+        return add(listOf(e), hash, causalHashes, resolveAttr)
     }
 
     fun entityById(eid: Gid): Map<String, List<Any>>? =

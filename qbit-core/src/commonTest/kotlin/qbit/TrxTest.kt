@@ -110,7 +110,8 @@ class TrxTest {
                 Gid(0, 0).nextGids(),
                 *entities
             ), conn, testSchemaFactorizer::factor,
-            GidSequence(0, 1)
+            GidSequence(0, 1),
+            { emptyList() } // TODO THINK
         )
 
     @Ignore
@@ -195,7 +196,7 @@ class TrxTest {
 
     private suspend fun openEmptyConn(): Pair<Conn, Storage> {
         val storage = MemStorage()
-        val conn = qbit(storage, testsSerialModule)
+        val conn = qbit(storage, testsSerialModule, testSchema.second)
         return conn to storage
     }
 

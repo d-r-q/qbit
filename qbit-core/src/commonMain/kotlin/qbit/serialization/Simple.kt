@@ -186,6 +186,7 @@ private fun <T : Any> readMark(ins: Input, expectedMark: DataType<T>): Any {
             readBytes(ins, count.toInt()).decodeUtf8() as T
         }
         QGid -> Gid(readLong(ins)) as T
+        is QRegister<*> -> readMark(ins, expectedMark.itemsType) as T
         QRef -> throw AssertionError("Should never happen")
         is QList<*> -> throw AssertionError("Should never happen")
     }
