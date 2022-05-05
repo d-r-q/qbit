@@ -2,7 +2,10 @@ package qbit.index
 
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
+import qbit.api.model.Attr
+import qbit.api.model.DataType
 import qbit.api.model.Eav
+import qbit.api.model.Hash
 import qbit.api.tombstone
 import qbit.platform.assert
 import qbit.platform.collections.firstMatchIdx
@@ -13,7 +16,7 @@ import qbit.platform.collections.subList
 typealias RawEntity = Pair<Gid, List<Eav>>
 
 fun Index(entities: List<RawEntity>): Index =
-    Index().add(entities)
+    Index().add(entities, null, emptyList())
 
 fun eidPattern(eid: Gid) = { other: Eav -> other.gid.compareTo(eid) }
 
@@ -61,17 +64,17 @@ class Index(
         }
     }
 
-    fun addFacts(facts: List<Eav>): Index =
-        addFacts(facts as Iterable<Eav>)
+    fun addFacts(facts: List<Eav>, hash: Hash? =  null, causalHashes: List<Hash> = emptyList(), resolveAttr: (String) -> Attr<*>? = { null }): Index =
+        addFacts(facts as Iterable<Eav>, hash, causalHashes, resolveAttr)
 
-    fun addFacts(facts: Iterable<Eav>): Index {
+    fun addFacts(facts: Iterable<Eav>, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val entities = facts
             .groupBy { it.gid }
             .map { it.key to it.value }
-        return add(entities)
+        return add(entities, hash, causalHashes, resolveAttr)
     }
 
-    fun add(entities: List<RawEntity>): Index {
+    fun add(entities: List<RawEntity>, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
         val newEntities = HashMap(this.entities)
 
         // eavs of removed or updated entities
@@ -82,17 +85,42 @@ class Index(
             val (gid, eavs) = e
 
             val isUpdate = eavs[0].attr != tombstone.name
-            val obsoleteEntity =
-                if (isUpdate) {
-                    newEntities.put(gid, e)
-                } else {
-                    newEntities.remove(gid)
+            val obsoleteEntity = newEntities.get(gid)
+
+            if (isUpdate) {
+                val effectiveEavs = ArrayList<Eav>()
+                eavs.mapTo(effectiveEavs) { eav ->
+                    val attr = resolveAttr(eav.attr)
+                    if (attr != null &&  DataType.ofCode(attr.type)!!.isRegister()) {
+                        val persistedEav = obsoleteEntity?.second?.firstOrNull { it.attr == eav.attr }
+                        if (persistedEav != null) {
+                            persistedEav.copy(value = (persistedEav.value as IndexedRegister).indexValue(hash, eav.value, causalHashes))
+                        } else {
+                            eav.copy(value = IndexedRegister(listOf(Pair(hash, eav.value))))
+                        }
+                    } else {
+                        eav
+                    }
                 }
+
+                if(obsoleteEntity != null) {
+                    effectiveEavs.addAll(obsoleteEntity.second.filter { eav ->
+                        val attr = resolveAttr(eav.attr)
+                        attr != null &&
+                                DataType.ofCode(attr.type)!!.let { it.isCounter() || it.isRegister() } &&
+                                eavs.none { it.attr == eav.attr }
+                    })
+                }
+
+                newEntities.put(gid, RawEntity(gid, effectiveEavs))
+                newEavs.addAll(effectiveEavs.filter { it.value is Comparable<*> && it.attr != tombstone.name })
+            } else {
+                newEntities.remove(gid)
+            }
 
             if (obsoleteEntity != null) {
                 obsoleteEavs.addAll(obsoleteEntity.second)
             }
-            newEavs.addAll(eavs.filter { it.value is Comparable<*> && it.attr != tombstone.name })
         }
 
         obsoleteEavs.sortWith(aveCmp)
@@ -103,8 +131,8 @@ class Index(
         return Index(newEntities, newAveIndex)
     }
 
-    fun add(e: RawEntity): Index {
-        return add(listOf(e))
+    fun add(e: RawEntity, hash: Hash?, causalHashes: List<Hash>, resolveAttr: (String) -> Attr<*>? = { null }): Index {
+        return add(listOf(e), hash, causalHashes, resolveAttr)
     }
 
     fun entityById(eid: Gid): Map<String, List<Any>>? =

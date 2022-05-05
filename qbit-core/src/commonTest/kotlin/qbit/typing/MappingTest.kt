@@ -25,7 +25,7 @@ class MappingTest {
     private val gids = Gid(0, 0).nextGids()
 
     private fun createTestDb(): IndexDb =
-        IndexDb(Index().addFacts(testSchema.flatMap { factor(it, EmptyDb::attr, gids) }), testsSerialModule)
+        IndexDb(Index().addFacts(testSchema.first.flatMap { factor(it, EmptyDb::attr, gids) }, null, ), testsSerialModule, testSchema.second)
 
 
     @JsName("Test_simple_entity_mapping")
@@ -41,10 +41,10 @@ class MappingTest {
 
         val db = createTestDb()
         val facts = factor(user, db::attr, gids)
-        val db2 = IndexDb(db.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(db.index.addFacts(facts, null, emptyList(), db::attr), testsSerialModule, testSchema.second)
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
 
-        val fullUser = typify(db::attr, se, MUser::class, testsSerialModule)
+        val fullUser = typify(db::attr, se, MUser::class, testsSerialModule, testSchema.second)
         assertEquals("optAddr", fullUser.optTheSimplestEntity!!.scalar)
         assertEquals("login", fullUser.login)
         assertEquals(listOf("str1", "str2"), fullUser.strs)
@@ -65,10 +65,10 @@ class MappingTest {
         )
         val db = createTestDb()
         val facts = factor(user, db::attr, gids)
-        val db2 = IndexDb(db.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(db.index.addFacts(facts, null, emptyList(), db::attr), testsSerialModule, testSchema.second)
 
         val se = db2.pullEntity(facts.entityFacts[user]!!.first().gid)!!
-        val fullUser = typify(db::attr, se, MUser::class, testsSerialModule)
+        val fullUser = typify(db::attr, se, MUser::class, testsSerialModule, testSchema.second)
 
         assertEquals(fullUser.theSimplestEntity, fullUser.optTheSimplestEntity)
         assertEquals(fullUser.optTheSimplestEntity, fullUser.theSimplestEntities[0])
@@ -116,6 +116,7 @@ class MappingTest {
         val attrs = schema(testsSerialModule) {
             entity(Bomb::class)
         }
+            .first
             .associateBy { it.name }
         assertEquals(
             QBoolean.code,
@@ -331,9 +332,9 @@ class MappingTest {
         // When it's factorized, stored, pulled and typed
         val testDb = createTestDb()
         val facts = factor(bomb, testDb::attr, gids)
-        val db2 = IndexDb(testDb.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(testDb.index.addFacts(facts, null, emptyList(), testDb::attr), testsSerialModule, testSchema.second)
         val se = db2.pullEntity(facts.entityFacts[bomb]!!.first().gid)!!
-        val typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule)
+        val typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule, testSchema.second)
 
         // then result is equal to original
         assertEquals(bomb, typedBomb)
@@ -356,9 +357,9 @@ class MappingTest {
         // When it's factorized, stored, pulled and typed
         val testDb = createTestDb()
         val facts = factor(bomb, testDb::attr, gids)
-        val db2 = IndexDb(testDb.index.addFacts(facts), testsSerialModule)
+        val db2 = IndexDb(testDb.index.addFacts(facts, null, emptyList(), testDb::attr), testsSerialModule, testSchema.second)
         val se = db2.pullEntity(facts.entityFacts[bomb]!!.first().gid)!!
-        var typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule)
+        var typedBomb = typify(testDb::attr, se, Bomb::class, testsSerialModule, testSchema.second)
 
         // Fix empty list handling
         typedBomb = typedBomb.copy(

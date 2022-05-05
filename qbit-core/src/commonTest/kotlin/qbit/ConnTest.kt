@@ -59,7 +59,7 @@ class ConnTest {
                 storedRoot,
                 testSchemaFactorizer::factor,
                 nodesStorage,
-                Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage)).index(storedRoot)
+                Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage), causalHashesResolver(nodesStorage), testSchema.second).index(storedRoot)
             )
 
             val newLog = FakeTrxLog(storedLeaf.hash)

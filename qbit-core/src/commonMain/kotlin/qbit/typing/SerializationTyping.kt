@@ -2,9 +2,7 @@ package qbit.typing
 
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.CompositeDecoder.Companion.DECODE_DONE
 import kotlinx.serialization.encoding.Decoder
@@ -12,8 +10,10 @@ import kotlinx.serialization.modules.SerializersModule
 import qbit.api.QBitException
 import qbit.api.gid.Gid
 import qbit.api.model.Attr
+import qbit.api.model.DataType
 import qbit.api.model.StoredEntity
 import qbit.factoring.serializatoin.AttrName
+import qbit.index.IndexedRegister
 import kotlin.reflect.KClass
 
 fun <T : Any> typify(
@@ -21,9 +21,10 @@ fun <T : Any> typify(
     entity: StoredEntity,
     type: KClass<T>,
     serialModule: SerializersModule,
+    registerFolders: Map<String, (Any, Any) -> Any>
 ): T {
     val contextual = serialModule.getContextual(type) ?: throw QBitException("Cannot find serializer for $type")
-    return contextual.deserialize(EntityDecoder(schema, entity, serialModule))
+    return contextual.deserialize(EntityDecoder(schema, entity, serialModule, registerFolders))
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -31,6 +32,7 @@ class EntityDecoder(
     val schema: (String) -> Attr<*>?,
     val entity: StoredEntity,
     override val serializersModule: SerializersModule,
+    val registerFolders: Map<String, (Any, Any) -> Any>
 ) : StubDecoder() {
 
     private var fields = 0
@@ -71,14 +73,34 @@ class EntityDecoder(
             }
         }
 
-        if (descriptor.kind == StructureKind.LIST && elementKind == StructureKind.CLASS) {
-            val decoder = EntityDecoder(schema, entity, serializersModule)
-            return deserializer.deserialize(decoder)
-        }
-
         val attrName = AttrName(descriptor, index).asString()
         val attr: Attr<T> = schema(attrName) as Attr<T>?
             ?: throw QBitException("Corrupted entity $entity, there is no attr $attrName in schema")
+        val dataType = DataType.ofCode(attr.type)!!
+
+        if(dataType.isList()) {
+            val elements = entity.tryGet(attr) ?: return null // TODO CHECK NULLABILITY
+            val decoder = ListDecoder(schema, entity, elements as List<Any>, serializersModule, cache, registerFolders)
+            return deserializer.deserialize(decoder)
+        }
+
+        if(dataType.isRegister()) {
+            val register = entity.tryGet(attr) as IndexedRegister? ?: return null
+            val folder = registerFolders[attrName] ?: throw QBitException("There is no folder for attr $attrName")
+            val values = when {
+                isValueAttr(elementDescriptor) -> register.values()
+                isRefAttr(elementDescriptor) -> register.values().map {
+                    decodeReferred(
+                        elementDescriptor,
+                        attrName,
+                        it as Gid,
+                        deserializer
+                    ) as Any // TODO NULLABILITY
+                }
+                else -> throw QBitException("$elementKind not yet supported")
+            }
+            return values.reduce(folder) as T?
+        }
 
         return when {
             isValueAttr(elementDescriptor) -> entity.tryGet(attr)
@@ -95,50 +117,28 @@ class EntityDecoder(
     private fun <T : Any> decodeReferred(
         elementDescriptor: SerialDescriptor,
         attrName: String,
-        gids: Any?,
+        gid: Gid?,
         deserializer: DeserializationStrategy<T?>,
     ): Any? {
         when {
-            gids == null && elementDescriptor.isNullable -> return null
-            gids == null && !elementDescriptor.isNullable -> throw QBitException("Corrupted entity: $entity, no value for $attrName")
+            gid == null && elementDescriptor.isNullable -> return null
+            gid == null && !elementDescriptor.isNullable -> throw QBitException("Corrupted entity: $entity, no value for $attrName")
         }
-        check(gids != null)
+        check(gid != null)
 
-        val sureGids = when (gids) {
-            is Gid -> listOf(gids)
-            is List<*> -> gids as List<Gid>
-            else -> throw AssertionError("Unexpected gids: $gids")
-        }
-
-        val referreds = sureGids.map {
-            val referee = entity.pull(it) ?: throw QBitException("Dangling ref: $it")
-            val decoder = EntityDecoder(schema, referee, serializersModule)
-            val res = cache.getOrPut(it, { deserializer.deserialize(decoder) })
-            if (res is List<*>) {
-                res[0] as T
-            } else {
-                res as T
-            }
-        }
-
-        return when (elementDescriptor.kind) {
-            is StructureKind.CLASS -> referreds[0]
-            is StructureKind.LIST -> referreds
-            else -> throw AssertionError("Unexpected kind: ${elementDescriptor.kind}")
-        }
+        val referee = entity.pull(gid) ?: throw QBitException("Dangling ref: $gid")
+        val decoder = EntityDecoder(schema, referee, serializersModule, registerFolders)
+        return cache.getOrPut(gid) { deserializer.deserialize(decoder) }
     }
 
     private fun isValueAttr(elementDescriptor: SerialDescriptor): Boolean {
         val elementKind = elementDescriptor.kind
         val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
-        return elementKind is PrimitiveKind || listElementsKind is PrimitiveKind ||
-                listElementsKind is StructureKind.LIST // List of ByteArrays
+        return elementKind is PrimitiveKind || listElementsKind is PrimitiveKind
     }
 
     private fun isRefAttr(elementDescriptor: SerialDescriptor): Boolean {
-        val elementKind = elementDescriptor.kind
-        val listElementsKind = elementDescriptor.takeIf { it.kind is StructureKind.LIST }?.getElementDescriptor(0)?.kind
-        return elementKind is StructureKind.CLASS || listElementsKind is StructureKind.CLASS
+        return elementDescriptor.kind is StructureKind.CLASS
     }
 
     override fun <T> decodeSerializableElement(
@@ -188,7 +188,13 @@ class EntityDecoder(
 
     private fun <T : Any> decodeElement(descriptor: SerialDescriptor, index: Int): T {
         val attrName = AttrName(descriptor, index).asString()
-        return entity[schema(attrName) as Attr<T>]
+        val element = entity[schema(attrName) as Attr<T>]
+        return if (element is IndexedRegister) {
+            val folder = registerFolders[attrName] ?: throw QBitException("There is no folder for attr $attrName")
+            element.values().reduce(folder) as T
+        } else {
+            element
+        }
     }
 
 }

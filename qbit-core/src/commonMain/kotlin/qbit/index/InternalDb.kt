@@ -3,10 +3,7 @@ package qbit.index
 import qbit.api.db.Db
 import qbit.api.db.QueryPred
 import qbit.api.gid.Gid
-import qbit.api.model.Attr
-import qbit.api.model.Eav
-import qbit.api.model.Entity
-import qbit.api.model.StoredEntity
+import qbit.api.model.*
 
 
 abstract class InternalDb : Db() {
@@ -16,7 +13,7 @@ abstract class InternalDb : Db() {
     // Todo: add check that attrs are presented in schema
     abstract fun query(vararg preds: QueryPred): Sequence<Entity>
 
-    abstract fun with(facts: Iterable<Eav>): InternalDb
+    abstract fun with(facts: Iterable<Eav>, commitHash: Hash? = null, causalHashes: List<Hash> = emptyList()): InternalDb
 
     abstract fun attr(attr: String): Attr<Any>?
 

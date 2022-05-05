@@ -70,7 +70,7 @@ val q5Schema = schema(q5SerialModule) {
     entity(Trx::class)
 }
 
-val schemaMap = q5Schema.map { it.name to it }.toMap()
+val schemaMap = q5Schema.first.map { it.name to it }.toMap()
 
 class Q5Test {
 
@@ -84,9 +84,9 @@ class Q5Test {
             }
             val dataFiles = dataDir.listFiles()
 
-            val conn = qbit(MemStorage(), q5SerialModule)
+            val conn = qbit(MemStorage(), q5SerialModule, q5Schema.second)
 
-            q5Schema.forEach { conn.persist(it) }
+            q5Schema.first.forEach { conn.persist(it) }
             val categories = HashMap<String, Category>()
 
             dataFiles!!

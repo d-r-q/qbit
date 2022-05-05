@@ -10,6 +10,15 @@ data class TheSimplestEntity(val id: Long?, val scalar: String)
 data class IntEntity(val id: Long?, val int: Int)
 
 @Serializable
+data class IntCounterEntity(val id: Long?, val counter: Int)
+
+@Serializable
+data class StringRegisterEntity(val id: Long?, val register: String)
+
+@Serializable
+data class CountryRegisterEntity(val id: Long?, val register: Country)
+
+@Serializable
 data class NullableIntEntity(val id: Long?, val int: Int?)
 
 @Serializable
@@ -307,6 +316,9 @@ val testsSerialModule = SerializersModule {
     contextual(ByteArrayEntity::class, ByteArrayEntity.serializer())
     contextual(ListOfByteArraysEntity::class, ListOfByteArraysEntity.serializer())
     contextual(IntEntity::class, IntEntity.serializer())
+    contextual(IntCounterEntity::class, IntCounterEntity.serializer())
+    contextual(StringRegisterEntity::class, StringRegisterEntity.serializer())
+    contextual(CountryRegisterEntity::class, CountryRegisterEntity.serializer())
     contextual(Region::class, Region.serializer())
     contextual(ParentToChildrenTreeEntity::class, ParentToChildrenTreeEntity.serializer())
     contextual(EntityWithRefsToSameType::class, EntityWithRefsToSameType.serializer())

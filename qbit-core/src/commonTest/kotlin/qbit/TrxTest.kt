@@ -6,18 +6,16 @@ import qbit.api.Attrs
 import qbit.api.Instances
 import qbit.api.QBitException
 import qbit.api.db.Conn
-import qbit.api.db.attrIs
 import qbit.api.db.pull
-import qbit.api.db.query
 import qbit.api.gid.Gid
 import qbit.api.gid.nextGids
-import qbit.api.model.Attr
 import qbit.api.system.Instance
 import qbit.ns.Key
 import qbit.ns.ns
 import qbit.platform.runBlocking
 import qbit.spi.Storage
 import qbit.storage.MemStorage
+import qbit.test.model.IntCounterEntity
 import qbit.test.model.Region
 import qbit.test.model.Scientist
 import qbit.test.model.testsSerialModule
@@ -112,7 +110,8 @@ class TrxTest {
                 Gid(0, 0).nextGids(),
                 *entities
             ), conn, testSchemaFactorizer::factor,
-            GidSequence(0, 1)
+            GidSequence(0, 1),
+            { emptyList() } // TODO THINK
         )
 
     @Ignore
@@ -176,9 +175,28 @@ class TrxTest {
         }
     }
 
+    @JsName("Counter_test")
+    @Test
+    fun `Counter test`() { // TODO: find an appropriate place for this test
+        runBlocking {
+            val conn = setupTestData()
+            val counterEntity = IntCounterEntity(1, 10)
+
+            conn.trx {
+                persist(counterEntity)
+            }
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 10)
+
+            conn.trx {
+                persist(counterEntity.copy(counter = 90))
+            }
+            assertEquals(conn.db().pull<IntCounterEntity>(1)?.counter, 90)
+        }
+    }
+
     private suspend fun openEmptyConn(): Pair<Conn, Storage> {
         val storage = MemStorage()
-        val conn = qbit(storage, testsSerialModule)
+        val conn = qbit(storage, testsSerialModule, testSchema.second)
         return conn to storage
     }
 

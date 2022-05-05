@@ -14,12 +14,14 @@ import qbit.api.gid.Gid
 import qbit.api.model.*
 import qbit.api.model.impl.AttachedEntity
 import qbit.collections.LimitedPersistentMap
+import qbit.trx.deoperationalize
 import qbit.typing.typify
 import kotlin.reflect.KClass
 
 class IndexDb(
     internal val index: Index,
-    private val serialModule: SerializersModule
+    private val serialModule: SerializersModule,
+    private val registerFolders: Map<String, (Any, Any) -> Any>
 ) : InternalDb() {
 
     private val schema = loadAttrs(index)
@@ -30,8 +32,8 @@ class IndexDb(
 
     private val dataClassesCache = atomic<LimitedPersistentMap<Entity, Any>>(LimitedPersistentMap(1024))
 
-    override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(index.addFacts(facts), serialModule)
+    override fun with(facts: Iterable<Eav>, commitHash: Hash?, causalHashes: List<Hash>): IndexDb {
+        return IndexDb(index.addFacts(deoperationalize(this, facts.toList()), commitHash, causalHashes, this::attr), serialModule, registerFolders)
     }
 
     override fun pullEntity(gid: Gid): StoredEntity? {
@@ -64,8 +66,8 @@ class IndexDb(
     // see https://github.com/d-r-q/qbit/issues/114, https://github.com/d-r-q/qbit/issues/132
     private fun fixNumberType(attr: Attr<Any>, value: Any) =
         when (attr.type) {
-            QByte.code -> (value as Number).toByte()
-            QInt.code -> (value as Number).toInt()
+            QByte.code, QByte.counter().code -> (value as Number).toByte()
+            QInt.code, QInt.counter().code -> (value as Number).toInt()
             else -> value
         }
 
@@ -79,7 +81,7 @@ class IndexDb(
             return cached as R
         }
 
-        val dc = typify(schema::get, entity, type, serialModule)
+        val dc = typify(schema::get, entity, type, serialModule, registerFolders)
         dataClassesCache.update { it.put(entity, dc) }
         return dc
     }

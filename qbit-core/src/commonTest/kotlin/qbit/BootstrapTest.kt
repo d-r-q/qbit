@@ -42,13 +42,13 @@ class BootstrapTest {
             head,
             KSFactorizer(qbitSerialModule + testsSerialModule)::factor,
             nodesStorage,
-            Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage)).index(head)
+            Indexer(qbitSerialModule + testsSerialModule, null, null, testNodesResolver(nodesStorage), causalHashesResolver(nodesStorage), testSchema.second).index(head),
         )
     }
     @Test
     fun testInit() {
         runBlocking {
-            val db = qbit(storage, testsSerialModule)
+            val db = qbit(storage, testsSerialModule, testSchema.second)
             assertNotNull(db)
             assertTrue(storage.keys(Namespace("nodes")).isNotEmpty())
         }

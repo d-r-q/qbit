@@ -43,7 +43,7 @@ abstract class StorageTest {
 
             val origin = MemStorage()
             // initialize storage
-            qbit(origin, testsSerialModule)
+            qbit(origin, testsSerialModule, emptyMap())
 
             // actually it compiles
             val storage = storage()

@@ -54,8 +54,8 @@ internal object EmptyDb : InternalDb() {
 
     override fun attr(attr: String): Attr<Any>? = bootstrapSchema[attr]
 
-    override fun with(facts: Iterable<Eav>): InternalDb {
-        return IndexDb(Index().addFacts(facts), testsSerialModule)
+    override fun with(facts: Iterable<Eav>, commitHash: Hash?, causalHashes: List<Hash>): InternalDb {
+        return IndexDb(Index().addFacts(facts, commitHash, causalHashes, this::attr), testsSerialModule, testSchema.second)
     }
 
 }
@@ -68,9 +68,11 @@ internal fun TestIndexer(
     serialModule: SerializersModule = testsSerialModule,
     baseDb: IndexDb? = null,
     baseHash: Hash? = null,
-    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver
+    nodeResolver: (Node<Hash>) -> NodeVal<Hash>? = identityNodeResolver,
+    causalHashesResolver: suspend (Hash) -> List<Hash> = { emptyList() },
+    registerFolders: Map<String, (Any, Any) -> Any> = testSchema.second
 ) =
-    Indexer(serialModule, baseDb, baseHash?.let { NodeRef(it) }, nodeResolver)
+    Indexer(serialModule, baseDb, baseHash?.let { NodeRef(it) }, nodeResolver, causalHashesResolver, registerFolders)
 
 inline fun <reified E : Throwable> assertThrows(body: () -> Unit) {
     try {
@@ -128,7 +130,7 @@ internal fun dbOf(eids: Iterator<Gid> = Gid(0, 0).nextGids(), vararg entities: A
         .map { it.name to it }
         .toMap()
     val facts = entities.flatMap { testSchemaFactorizer.factor(it, (bootstrapSchema + addedAttrs)::get, eids) }
-    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }), testsSerialModule)
+    return IndexDb(Index(facts.groupBy { it.gid }.map { it.key to it.value }), testsSerialModule, testSchema.second)
 }
 
 inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: String, unique: Boolean = true): Attr<L> {
@@ -142,9 +144,9 @@ inline fun <reified T : Any, reified L : List<T>> ListAttr(id: Gid?, name: Strin
 }
 
 suspend fun setupTestSchema(storage: Storage = MemStorage()): Conn {
-    val conn = qbit(storage, testsSerialModule)
+    val conn = qbit(storage, testsSerialModule, testSchema.second)
     conn.trx {
-        testSchema.forEach {
+        testSchema.first.forEach {
             persist(it)
         }
     }

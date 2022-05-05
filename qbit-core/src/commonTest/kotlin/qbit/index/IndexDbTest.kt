@@ -77,7 +77,7 @@ class DbTest {
                 dbUuid,
                 currentTimeMillis(),
                 NodeData((bootstrapSchema.values.flatMap { it.toFacts() } +
-                        testSchema.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
+                        testSchema.first.flatMap { testSchemaFactorizer.factor(it, bootstrapSchema::get, gids) } +
                         extId.toFacts() + name.toFacts() + nicks.toFacts() + eCodd.toFacts()).toTypedArray()))
             val nodes = hashMapOf<Hash, NodeVal<Hash>>(root.hash to root)
             val nodeResolver = mapNodeResolver(nodes)

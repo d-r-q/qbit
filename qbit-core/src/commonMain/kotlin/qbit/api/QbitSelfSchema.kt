@@ -51,7 +51,7 @@ object Instances {
     val nextEid = Attr<Int>(
         Gid(1, 5),
         "Instance/nextEid",
-        QInt.code,
+        QInt.counter().code,
         unique = false,
         list = false
     )

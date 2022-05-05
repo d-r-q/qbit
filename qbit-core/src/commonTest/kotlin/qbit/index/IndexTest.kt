@@ -62,7 +62,9 @@ class IndexTest {
                     f(0, userName, "baz"),
                     f(1, userName, "bar"),
                     f(2, userName, "bar")
-                )
+                ),
+                null,
+                emptyList()
             )
 
         var lst = idx.eidsByPred(AttrValuePred(extId.name, 1))
@@ -91,7 +93,9 @@ class IndexTest {
                     f(0, userName, "bar"),
                     f(1, userName, "bar"),
                     f(2, userName, "baz")
-                )
+                ),
+                null,
+                emptyList()
             )
 
         assertEquals(2, idx.eidsByPred(AttrPred(extId.name)).count())
@@ -219,7 +223,7 @@ class IndexTest {
                 Gid(0, 1) to listOf(Eav(Gid(0, 1), "to-keep", "any"))
             )
         )
-        val filtered = idx.addFacts(listOf(Eav(deletedEntityGid, qbit.api.tombstone.name, true)))
+        val filtered = idx.addFacts(listOf(Eav(deletedEntityGid, qbit.api.tombstone.name, true)), null, emptyList())
         assertEquals(1, filtered.entities.size)
         assertEquals(1, filtered.aveIndex.size)
         assertNotNull(filtered.eidsByPred(AttrValuePred("to-keep", "any")).firstOrNull(), "Cannot find entity by to-keep=any")
